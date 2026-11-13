@@ -371,3 +371,38 @@ All Phase 0 foundations are in place with zero product features built:
 
 ### Decisions and alternatives
 - **Kept `/home` as `initialLocation` while exposing `/splash` and `/welcome` as routes**: Lets `PekSoftRadioApp` boot directly into the 4-tab shell during development and preserves shell smoke tests while keeping Splash/Welcome fully navigable.
+
+
+---
+
+## Milestone 1.4 — Player UI (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Built `NowPlayingScreen` (`/player`) in `apps/mobile/lib/features/player/presentation/now_playing_screen.dart` with station artwork, track title, `QualityBadge`, play/pause, favourite toggle, sleep-timer trigger, share action, report trigger, similar stations, and a dev-only playback state switcher (`kDebugMode`).
+- Added `sleep_timer_sheet.dart` (`Off`, `15–90 min`) and `report_station_sheet.dart` (issue reason chips, optional notes, mock submission confirmation).
+- Updated `MiniPlayerSlot` (`mini_player_slot.dart`) to reflect all playback states (`idle`, `playing`, `paused`, `buffering`, `reconnecting`, `unavailable`) and open `/player` on tap.
+- Extended `MockSessionController` in `mock_providers.dart` with UI-only sleep timer state, wired `/player` in `app_router.dart`, and added `test/player_ui_test.dart` at `1.3x` text scale.
+- Ran `dart format`, `flutter analyze`, and `flutter test`.
+
+### Why
+- Giving every playback state (including buffering, reconnecting, and station-unavailable) a clear visual and accessible representation—plus a debug-only state switcher—lets us verify edge-case UX before integrating `just_audio` in Phase 4.
+
+### How it works (plain English)
+- `MiniPlayerSlot` and `NowPlayingScreen` both subscribe to `mockSessionController` via `ListenableBuilder`, keeping play/pause, favourites, sleep timer, and simulated error states synchronized across the app.
+
+### Files created or changed
+- `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/mock/mock_providers.dart`
+- `apps/mobile/lib/features/player/presentation/{mini_player_slot.dart,now_playing_screen.dart,sleep_timer_sheet.dart,report_station_sheet.dart}`
+- `apps/mobile/test/player_ui_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **`Semantics(liveRegion: true)`**: Announces playback status transitions (such as buffering or station unavailable) to screen readers automatically.
+- **`kDebugMode` dev state switcher**: Lets developers and reviewers preview rare network/stream failure states on demand without shipping debug UI in release builds.
+
+### Decisions and alternatives
+- **Kept playback state switcher inside `kDebugMode` on `NowPlayingScreen`**: Matches the `ComponentGalleryScreen` pattern so release builds stay clean while debug builds offer instant state previews.

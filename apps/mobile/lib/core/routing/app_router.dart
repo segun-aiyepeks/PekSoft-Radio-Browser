@@ -10,6 +10,7 @@ import 'package:peksoft_radio/features/library/presentation/library_screen.dart'
 import 'package:peksoft_radio/features/onboarding/presentation/splash_screen.dart';
 import 'package:peksoft_radio/features/onboarding/presentation/welcome_screen.dart';
 import 'package:peksoft_radio/features/player/presentation/mini_player_slot.dart';
+import 'package:peksoft_radio/features/player/presentation/now_playing_screen.dart';
 import 'package:peksoft_radio/features/profile/presentation/profile_screen.dart';
 import 'package:peksoft_radio/features/search/presentation/search_screen.dart';
 import 'package:peksoft_radio/features/station/presentation/station_detail_screen.dart';
@@ -68,6 +69,11 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
       ],
+    ),
+    GoRoute(
+      path: '/player',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const NowPlayingScreen(),
     ),
     GoRoute(
       path: '/search',

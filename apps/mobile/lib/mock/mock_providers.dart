@@ -203,6 +203,7 @@ enum MockPlaybackStatus {
 class MockSessionController extends ChangeNotifier {
   MockStation _currentStation = mockStations.first;
   MockPlaybackStatus _playbackStatus = MockPlaybackStatus.playing;
+  int? _sleepTimerMinutes;
   final Set<String> _favouriteIds = <String>{
     'mock-ng-wazobia-lagos',
     'mock-gb-jazz-fm',
@@ -217,6 +218,13 @@ class MockSessionController extends ChangeNotifier {
 
   MockStation get currentStation => _currentStation;
   MockPlaybackStatus get playbackStatus => _playbackStatus;
+  int? get sleepTimerMinutes => _sleepTimerMinutes;
+
+  void setSleepTimer(int? minutes) {
+    _sleepTimerMinutes = minutes;
+    notifyListeners();
+  }
+
   List<MockStation> get favourites =>
       _favouriteIds.map(getMockStationById).whereType<MockStation>().toList();
   List<MockStation> get recents =>
