@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
@@ -7,6 +8,30 @@ import 'package:peksoft_radio/features/player/presentation/now_playing_screen.da
 import 'package:peksoft_radio/features/search/presentation/search_screen.dart';
 import 'package:peksoft_radio/features/subscription/presentation/paywall_screen.dart';
 import 'package:peksoft_radio/mock/mock.dart';
+
+/// Allows minor cross-OS (Windows vs Linux) Skia/font anti-aliasing differences
+/// while still catching real layout, colour, or component regressions.
+class _TolerantGoldenFileComparator extends LocalFileComparator {
+  _TolerantGoldenFileComparator(super.testFile, {required this.tolerance});
+
+  final double tolerance;
+
+  @override
+  Future<bool> compare(Uint8List imageBytes, Uri golden) async {
+    final ComparisonResult result = await GoldenFileComparator.compareLists(
+      imageBytes,
+      await getGoldenBytes(golden),
+    );
+    if (!result.passed && result.diffPercent <= tolerance) {
+      return true;
+    }
+    if (!result.passed) {
+      final String error = await generateFailureOutput(result, golden, basedir);
+      throw FlutterError(error);
+    }
+    return result.passed;
+  }
+}
 
 Widget _goldenFrame({
   required Widget child,
@@ -22,6 +47,11 @@ Widget _goldenFrame({
 }
 
 void main() {
+  goldenFileComparator = _TolerantGoldenFileComparator(
+    Uri.file('test/golden_screens_test.dart'),
+    tolerance: 0.03,
+  );
+
   group('Milestone 1.6 Golden Tests (5 Key Screens)', () {
     setUp(() {
       mockSessionController.playStation(mockStations.first);
