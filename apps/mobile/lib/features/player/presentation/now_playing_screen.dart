@@ -521,7 +521,6 @@ class _DevPlaybackStateSwitcher extends StatelessWidget {
               for (final MockPlaybackStatus state in MockPlaybackStatus.values)
                 GenreChip(
                   label: state.name,
-                  compact: true,
                   selected: currentStatus == state,
                   onTap: () => mockSessionController.setPlaybackStatus(state),
                 ),

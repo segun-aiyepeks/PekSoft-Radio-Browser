@@ -446,3 +446,48 @@ All Phase 0 foundations are in place with zero product features built:
 
 ### Decisions and alternatives
 - **Kept Auth, Paywall, and Delete Account state inside `MockSessionController`**: Lets reviewers toggle signed-in, Pro, and offline states live across all tabs without adding Firebase or billing SDKs prematurely.
+
+
+---
+
+## Milestone 1.6 — Polish and review (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Ran an automated accessibility, contrast, tap-target, and `1.3x` text-scale audit (`test/polish_accessibility_test.dart`) across 8 key screens (`Home`, `Explore`, `Search`, `NowPlaying`, `Library`, `Paywall`, `Profile`, `Settings`) in both dark and light themes (`androidTapTargetGuideline`, `labeledTapTargetGuideline`, `textContrastGuideline`), plus landscape (`844x390`) and tablet (`1024x768`) layout checks.
+- Fixed a tap-target finding caught by the audit on `NowPlayingScreen`'s dev state switcher (`compact: true` chips were `28dp` tall; switched to full `48dp` `GenreChip` targets) and added **Replay Welcome & Splash** to `ProfileScreen` so onboarding is reachable from the UI.
+- Added golden tests (`test/golden_screens_test.dart`) and generated 5 baseline golden PNGs (`HomeScreen`, `ExploreScreen`, `SearchScreen`, `NowPlayingScreen` in dark mode; `PaywallScreen` in light mode).
+- Created `docs/ui-walkthrough.md` listing every Phase 1 screen, route, file path, and navigation path, and linked it from `docs/index.md`.
+- Ran the full quality gate (`dart format --output=none --set-exit-if-changed .`, `flutter analyze`, `flutter test`).
+
+### Why
+- Automated guideline tests + golden snapshots + a complete UI walkthrough ensure Phase 1 meets accessibility, responsiveness, and visual consistency requirements before Phase 2 adds real networking and persistence.
+
+### How it works (plain English)
+- `polish_accessibility_test.dart` enables Flutter's `SemanticsHandle` and verifies every tappable element meets `48x48dp`, has an accessible label, and passes text contrast in both dark and light themes, while also testing landscape and tablet viewports for overflows.
+- `golden_screens_test.dart` compares rendered pixels of 5 flagship screens against saved PNG baselines in `apps/mobile/test/goldens/`.
+
+### Files created or changed
+- `apps/mobile/lib/features/player/presentation/now_playing_screen.dart`
+- `apps/mobile/lib/features/profile/presentation/profile_screen.dart`
+- `apps/mobile/test/polish_accessibility_test.dart`
+- `apps/mobile/test/golden_screens_test.dart`, `apps/mobile/test/goldens/*.png`
+- `docs/ui-walkthrough.md`, `docs/index.md`, `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Flutter accessibility guidelines (`meetsGuideline`)**: Built-in `flutter_test` matchers (`androidTapTargetGuideline`, `labeledTapTargetGuideline`, `textContrastGuideline`) catch real a11y regressions automatically in CI.
+- **Golden testing**: Pixel-snapshot tests (`matchesGoldenFile`) catch unintended layout or token regressions on key screens.
+
+### Decisions and alternatives
+- **Kept 5 flagship golden screens (4 dark, 1 light) rather than snapshotting all 24 screens**: Covers every major layout archetype (feed, tabs, search list, player, paywall) while keeping golden maintenance fast.
+
+---
+
+## Phase 1 Summary — Ready for Review
+
+**Branch:** `phase/1-mobile-ui` → `main`  
+**Milestones completed:** `1.1` Shell & Design System · `1.2` Mock Data · `1.3` Discovery Screens · `1.4` Player UI · `1.5` Account & Money Screens · `1.6` Polish & Review
+
+Every mobile screen is built with token-driven dark & light themes, `Semantics`, `>= 48dp` touch targets, and `1.3x` text-scale support—backed by `const` mock data in `apps/mobile/lib/mock/` with zero networking, database, Firebase, or real audio.
