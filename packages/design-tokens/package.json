@@ -7,10 +7,12 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./tokens.css": "./dist/tokens.css"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "generate": "node scripts/generate.mjs",
+    "build": "node scripts/generate.mjs && tsc -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
