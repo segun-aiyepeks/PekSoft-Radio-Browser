@@ -36,13 +36,17 @@ void main() {
     expect(find.text('Countries'), findsOneWidget);
     expect(find.text('Wazobia FM: Lagos'), findsWidgets);
 
-    await tester.tap(find.text('Library'));
+    await tester.tap(
+      find.descendant(of: navBar, matching: find.text('Library')),
+    );
     await tester.pumpAndSettle();
-    expect(find.text('Library shell ready'), findsOneWidget);
+    expect(find.text('Favourites'), findsOneWidget);
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(
+      find.descendant(of: navBar, matching: find.text('Profile')),
+    );
     await tester.pumpAndSettle();
-    expect(find.text('Profile shell ready'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
   });
 
   testWidgets('Dark-first theme uses design tokens', (tester) async {

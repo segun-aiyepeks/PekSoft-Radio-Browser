@@ -266,6 +266,74 @@ class MockSessionController extends ChangeNotifier {
     _playbackStatus = status;
     notifyListeners();
   }
+
+  // --- Phase 1 UI-only Account, Subscription, Settings & Offline State ---
+  bool _isOfflineSimulated = false;
+  bool _isSignedIn = false;
+  String _userDisplayName = 'Guest Listener';
+  String _userEmail = '';
+  bool _isPro = false;
+  bool _dataSaver = false;
+  int? _defaultSleepMinutes = 30;
+  String _appLanguage = 'English';
+  bool _notifyCollections = true;
+
+  bool get isOfflineSimulated => _isOfflineSimulated;
+  bool get isSignedIn => _isSignedIn;
+  String get userDisplayName => _userDisplayName;
+  String get userEmail => _userEmail;
+  bool get isPro => _isPro;
+  bool get dataSaver => _dataSaver;
+  int? get defaultSleepMinutes => _defaultSleepMinutes;
+  String get appLanguage => _appLanguage;
+  bool get notifyCollections => _notifyCollections;
+
+  void setOfflineSimulated(bool value) {
+    _isOfflineSimulated = value;
+    notifyListeners();
+  }
+
+  void signInMock({required String email, String? displayName}) {
+    _isSignedIn = true;
+    _userEmail = email;
+    _userDisplayName = (displayName != null && displayName.trim().isNotEmpty)
+        ? displayName.trim()
+        : email.split('@').first;
+    notifyListeners();
+  }
+
+  void signOutMock() {
+    _isSignedIn = false;
+    _userDisplayName = 'Guest Listener';
+    _userEmail = '';
+    _isPro = false;
+    notifyListeners();
+  }
+
+  void setProMock(bool value) {
+    _isPro = value;
+    notifyListeners();
+  }
+
+  void setDataSaver(bool value) {
+    _dataSaver = value;
+    notifyListeners();
+  }
+
+  void setDefaultSleepMinutes(int? minutes) {
+    _defaultSleepMinutes = minutes;
+    notifyListeners();
+  }
+
+  void setAppLanguage(String language) {
+    _appLanguage = language;
+    notifyListeners();
+  }
+
+  void setNotifyCollections(bool value) {
+    _notifyCollections = value;
+    notifyListeners();
+  }
 }
 
 /// Shared UI-only mock session controller for Phase 1 screens.

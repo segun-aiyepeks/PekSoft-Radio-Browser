@@ -1,6 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:peksoft_radio/core/widgets/widgets.dart';
+import 'package:peksoft_radio/features/auth/presentation/auth_landing_screen.dart';
+import 'package:peksoft_radio/features/auth/presentation/forgot_password_screen.dart';
+import 'package:peksoft_radio/features/auth/presentation/reset_password_screen.dart';
+import 'package:peksoft_radio/features/auth/presentation/sign_in_screen.dart';
+import 'package:peksoft_radio/features/auth/presentation/sign_up_screen.dart';
+import 'package:peksoft_radio/features/auth/presentation/verify_email_screen.dart';
 import 'package:peksoft_radio/features/dev_gallery/presentation/component_gallery_screen.dart';
 import 'package:peksoft_radio/features/explore/presentation/country_detail_screen.dart';
 import 'package:peksoft_radio/features/explore/presentation/explore_screen.dart';
@@ -11,9 +18,15 @@ import 'package:peksoft_radio/features/onboarding/presentation/splash_screen.dar
 import 'package:peksoft_radio/features/onboarding/presentation/welcome_screen.dart';
 import 'package:peksoft_radio/features/player/presentation/mini_player_slot.dart';
 import 'package:peksoft_radio/features/player/presentation/now_playing_screen.dart';
+import 'package:peksoft_radio/features/profile/presentation/about_legal_screen.dart';
+import 'package:peksoft_radio/features/profile/presentation/delete_account_screen.dart';
 import 'package:peksoft_radio/features/profile/presentation/profile_screen.dart';
+import 'package:peksoft_radio/features/profile/presentation/settings_screen.dart';
 import 'package:peksoft_radio/features/search/presentation/search_screen.dart';
 import 'package:peksoft_radio/features/station/presentation/station_detail_screen.dart';
+import 'package:peksoft_radio/features/subscription/presentation/paywall_screen.dart';
+import 'package:peksoft_radio/features/subscription/presentation/subscription_management_screen.dart';
+import 'package:peksoft_radio/mock/mock.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -102,6 +115,61 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) =>
           StationDetailScreen(stationId: state.pathParameters['id'] ?? ''),
     ),
+    GoRoute(
+      path: '/auth',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const AuthLandingScreen(),
+    ),
+    GoRoute(
+      path: '/auth/sign-in',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SignInScreen(),
+    ),
+    GoRoute(
+      path: '/auth/sign-up',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SignUpScreen(),
+    ),
+    GoRoute(
+      path: '/auth/verify-email',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const VerifyEmailScreen(),
+    ),
+    GoRoute(
+      path: '/auth/forgot-password',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ForgotPasswordScreen(),
+    ),
+    GoRoute(
+      path: '/auth/reset-password',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ResetPasswordScreen(),
+    ),
+    GoRoute(
+      path: '/paywall',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const PaywallScreen(),
+    ),
+    GoRoute(
+      path: '/subscription',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SubscriptionManagementScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/delete-account',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const DeleteAccountScreen(),
+    ),
+    GoRoute(
+      path: '/about',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const AboutLegalScreen(),
+    ),
     if (kDebugMode)
       GoRoute(
         path: '/gallery',
@@ -119,7 +187,26 @@ class _MobileShellScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          ListenableBuilder(
+            listenable: mockSessionController,
+            builder: (context, _) {
+              if (!mockSessionController.isOfflineSimulated) {
+                return const SizedBox.shrink();
+              }
+              return SafeArea(
+                bottom: false,
+                child: OfflineBanner(
+                  onRetry: () =>
+                      mockSessionController.setOfflineSimulated(false),
+                ),
+              );
+            },
+          ),
+          Expanded(child: navigationShell),
+        ],
+      ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

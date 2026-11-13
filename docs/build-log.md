@@ -406,3 +406,43 @@ All Phase 0 foundations are in place with zero product features built:
 
 ### Decisions and alternatives
 - **Kept playback state switcher inside `kDebugMode` on `NowPlayingScreen`**: Matches the `ComponentGalleryScreen` pattern so release builds stay clean while debug builds offer instant state previews.
+
+
+---
+
+## Milestone 1.5 — Account and money screens (UI only) (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Built `LibraryScreen` (`/library`) with 4 tabs (`Favourites`, `Recents`, `Collections`, `Song History`) and free-tier limit upgrade prompts (`Go Pro` → `/paywall`).
+- Built the Auth flow (`AuthLandingScreen`, `SignInScreen`, `SignUpScreen`, `VerifyEmailScreen`, `ForgotPasswordScreen`, `ResetPasswordScreen`) with Google & email entry points, guest skip, and visual `Form` validation only.
+- Built `PaywallScreen` (`/paywall`) with Monthly/Annual toggle (`Save 33%`), benefits list, Restore Purchases, Terms & Privacy links, and a visible Close button, plus `SubscriptionManagementScreen` (`/subscription`).
+- Built `ProfileScreen` (`/profile`), `SettingsScreen` (`/settings` with data saver, sleep-timer default, theme, language, notifications), `DeleteAccountScreen` (`/delete-account` requiring `DELETE` confirmation), and `AboutLegalScreen` (`/about` including **Station data by Radio Browser**).
+- Added a token-driven `OfflineBanner` (`offline_banner.dart`) wired into `_MobileShellScaffold` and toggleable from Profile (`Simulate Offline Banner`), plus unit/widget tests in `test/account_money_screens_test.dart` at `1.3x` text scale.
+
+### Why
+- Completing all account, monetization, settings, legal, and offline-state UI with mock data ensures every screen in the mobile user journey is reviewable and accessible before backend/Firebase/billing integrations begin in Phases 5–6.
+
+### How it works (plain English)
+- `MockSessionController` tracks UI-only guest/signed-in status, mock Pro entitlement, simulated offline banner state, and Settings preferences (`dataSaver`, `defaultSleepMinutes`, `appLanguage`, `notifyCollections`).
+- `_MobileShellScaffold` listens to `mockSessionController` and renders `OfflineBanner` above the active tab whenever offline simulation is enabled.
+
+### Files created or changed
+- `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/core/widgets/{offline_banner.dart,widgets.dart}`
+- `apps/mobile/lib/mock/mock_providers.dart`
+- `apps/mobile/lib/features/library/presentation/library_screen.dart`
+- `apps/mobile/lib/features/auth/presentation/{auth_landing_screen.dart,sign_in_screen.dart,sign_up_screen.dart,verify_email_screen.dart,forgot_password_screen.dart,reset_password_screen.dart}`
+- `apps/mobile/lib/features/subscription/presentation/{paywall_screen.dart,subscription_management_screen.dart}`
+- `apps/mobile/lib/features/profile/presentation/{profile_screen.dart,settings_screen.dart,delete_account_screen.dart,about_legal_screen.dart}`
+- `apps/mobile/test/{widget_test.dart,account_money_screens_test.dart}`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Visual-only `Form` validation**: Using `GlobalKey<FormState>` and `TextFormField.validator` validates input formatting and feedback in UI-only prototypes without touching any auth backend.
+- **Explicit destructive confirmation (`DELETE`)**: Requiring a typed confirmation keyword before enabling account deletion prevents accidental taps.
+
+### Decisions and alternatives
+- **Kept Auth, Paywall, and Delete Account state inside `MockSessionController`**: Lets reviewers toggle signed-in, Pro, and offline states live across all tabs without adding Firebase or billing SDKs prematurely.
