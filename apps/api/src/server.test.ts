@@ -3,7 +3,7 @@ import { buildServer } from './server.js';
 
 describe('API server', () => {
   it('responds with ok on GET /health', async () => {
-    const app = buildServer();
+    const app = buildServer({ logger: false });
     const res = await app.inject({ method: 'GET', url: '/health' });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({

@@ -1,9 +1,9 @@
 import Fastify from 'fastify';
 import { APP_NAME } from '@peksoft/shared';
 
-export function buildServer() {
+export function buildServer(options: { logger?: boolean } = {}) {
   const app = Fastify({
-    logger: true,
+    logger: options.logger ?? true,
   });
 
   app.get('/health', async () => {
