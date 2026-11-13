@@ -491,3 +491,44 @@ All Phase 0 foundations are in place with zero product features built:
 **Milestones completed:** `1.1` Shell & Design System · `1.2` Mock Data · `1.3` Discovery Screens · `1.4` Player UI · `1.5` Account & Money Screens · `1.6` Polish & Review
 
 Every mobile screen is built with token-driven dark & light themes, `Semantics`, `>= 48dp` touch targets, and `1.3x` text-scale support—backed by `const` mock data in `apps/mobile/lib/mock/` with zero networking, database, Firebase, or real audio.
+
+
+---
+
+## Milestone 2.1 — Domain models (Phase 2: Mobile data layer)
+
+### What I did
+- Created branch `phase/2-mobile-data` from `main` and added `freezed_annotation` (`3.1.0`), `freezed` (`3.2.5`), and `build_runner` (`2.15.1`) to `apps/mobile/pubspec.yaml`.
+- Created immutable `@freezed` domain models across `apps/mobile/lib/features/*/domain/` and `apps/mobile/lib/core/domain/`:
+  - `Station`, `Country`, `Genre`, `Language`, `Collection`, `SongHistoryEntry`, `PlaybackState`, `UserSettings` (`workingNowDefault: true`, `AppThemePreference.dark`), and `Entitlement` (`EntitlementTier.free` by default with `maxFavourites: 10`, `maxCollections: 2`, `maxSongHistory: 10`, `adsEnabled: true`).
+- Created the sealed `AppFailure` hierarchy (`NetworkFailure`, `TimeoutFailure`, `MirrorUnavailableFailure`, `StreamPlaybackFailure`, `StorageFailure`, `NotFoundFailure`, `ValidationFailure`, `EntitlementRequiredFailure`, `UnknownFailure`) and `Result<T>` (`Success` | `Failure`) in `apps/mobile/lib/core/domain/`.
+- Added `docs/domain-model.md` with a Mermaid `classDiagram`, linked it from `docs/index.md`, and added unit tests in `apps/mobile/test/domain_models_test.dart`.
+
+### Why
+- Keeping pure, immutable `@freezed` domain models and explicit `Result`/`AppFailure` types separate from Dio DTOs and Drift tables enforces clean dependency direction (`presentation -> domain <- data`) and prevents transport or storage bugs from leaking into ViewModels.
+
+### How it works (plain English)
+- `freezed` generates value equality (`==`/`hashCode`), `copyWith`, and pattern matching for every domain class.
+- Repositories will return `Future<Result<T>>` so errors are always handled explicitly rather than swallowed.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/core/domain/{app_failure.dart,app_failure.freezed.dart,result.dart}`
+- `apps/mobile/lib/features/station/domain/{station.dart,station.freezed.dart}`
+- `apps/mobile/lib/features/catalog/domain/{country.dart,country.freezed.dart,genre.dart,genre.freezed.dart,language.dart,language.freezed.dart}`
+- `apps/mobile/lib/features/library/domain/{collection.dart,collection.freezed.dart,song_history_entry.dart,song_history_entry.freezed.dart}`
+- `apps/mobile/lib/features/player/domain/{playback_state.dart,playback_state.freezed.dart}`
+- `apps/mobile/lib/features/profile/domain/{user_settings.dart,user_settings.freezed.dart}`
+- `apps/mobile/lib/features/subscription/domain/{entitlement.dart,entitlement.freezed.dart}`
+- `apps/mobile/test/domain_models_test.dart`
+- `docs/{domain-model.md,index.md,build-log.md}`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Value equality (`==`) with `freezed`**: Two `Station` instances with identical fields compare equal without manual boilerplate, which prevents unnecessary Riverpod widget rebuilds.
+- **Sealed failure unions**: Exhaustive `switch` expressions on `AppFailure` guarantee every failure case maps to a clear user-facing message.
+
+### Decisions and alternatives
+- **Committed generated `.freezed.dart` files**: Lets `flutter analyze` and `flutter test` run immediately in CI without adding a slow `build_runner` step to every CI job.
