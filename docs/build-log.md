@@ -532,3 +532,40 @@ Every mobile screen is built with token-driven dark & light themes, `Semantics`,
 
 ### Decisions and alternatives
 - **Committed generated `.freezed.dart` files**: Lets `flutter analyze` and `flutter test` run immediately in CI without adding a slow `build_runner` step to every CI job.
+
+
+---
+
+## Milestone 2.2 — Radio Browser data source (Phase 2: Mobile data layer)
+
+### What I did
+- Added `dio` (`5.11.1`) to `apps/mobile/pubspec.yaml`.
+- Created Radio Browser DTOs matching the real Phase 0 fixture fields in `apps/mobile/lib/core/network/dto/`:
+  - `RadioBrowserServerDto`, `RadioBrowserCountryDto`, `RadioBrowserTagDto`, `RadioBrowserLanguageDto`, `RadioBrowserStationDto` (all 37 fields including `0`/`1` integer flags `hls`, `lastcheckok`, `ssl_error`), and `RadioBrowserClickDto`.
+- Built `RadioBrowserMirrorService` (`apps/mobile/lib/core/network/radio_browser_mirror_service.dart`) with `/json/servers` discovery, random starting mirror selection, 24-hour in-memory cache, and hard-coded fallback (`de1.api.radio-browser.info`, `all.api.radio-browser.info`).
+- Built `RadioBrowserClient` (`apps/mobile/lib/core/network/radio_browser_client.dart`) on `Dio` with `User-Agent: PekSoftRadioBrowser/<version>`, connect/receive timeouts (`6s`/`10s`), exponential back-off retries per mirror, automatic failover to the next mirror on error, and click reporting (`/json/url/{stationuuid}`).
+- Added unit tests in `apps/mobile/test/radio_browser_client_test.dart` using saved Phase 0 fixtures (`packages/shared/fixtures/radio-browser/*.json`) via a fake `HttpClientAdapter` (zero live network calls).
+
+### Why
+- Radio Browser is a community-run mirror pool where individual servers can be slow or unreachable; mirror discovery + 24h caching + exponential back-off + failover keeps discovery resilient while respecting server etiquette.
+
+### How it works (plain English)
+- On the first request, `RadioBrowserMirrorService` queries `https://all.api.radio-browser.info/json/servers`, shuffles/rotates from a random index, and caches the list for 24 hours. If discovery fails, it falls back to `de1.api.radio-browser.info` and `all.api.radio-browser.info`.
+- `RadioBrowserClient` sends requests with the required `User-Agent` header. Transient errors or 5xx responses retry with exponential back-off (`250ms` base) before failing over to the next mirror, returning `Failure<T>` with a typed `AppFailure` if all mirrors fail.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/core/network/dto/{radio_browser_server_dto.dart,radio_browser_country_dto.dart,radio_browser_tag_dto.dart,radio_browser_language_dto.dart,radio_browser_station_dto.dart,radio_browser_click_dto.dart}`
+- `apps/mobile/lib/core/network/{radio_browser_mirror_service.dart,radio_browser_client.dart}`
+- `apps/mobile/test/radio_browser_client_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test test/radio_browser_client_test.dart`
+
+### Concepts worth learning
+- **Fake `HttpClientAdapter` in Dio**: Swapping Dio's transport adapter in tests lets us test real request headers, retry delays, mirror failover, and fixture JSON parsing deterministically with zero network calls.
+- **Mirror rotation + 24h cache**: Picks a random starting mirror to distribute load across Radio Browser servers while avoiding repeated `/json/servers` lookups.
+
+### Decisions and alternatives
+- **HTTPS `/json/servers` discovery with hard-coded fallback**: Chosen over DNS SRV because Dart's `dart:io` lacks native SRV record lookup, matching the Phase 0 spike findings (`docs/api-spike.md`).
