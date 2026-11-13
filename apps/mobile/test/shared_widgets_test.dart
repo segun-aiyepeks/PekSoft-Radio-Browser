@@ -29,11 +29,13 @@ void main() {
       expect(find.byType(FilterChipBar), findsOneWidget);
       expect(find.byType(StationTile), findsWidgets);
 
-      final verticalScrollable = find.byWidgetPredicate(
-        (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
-      );
+      final verticalScrollable = find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          )
+          .first;
       await tester.scrollUntilVisible(
-        find.byType(PrimaryButton),
+        find.text('Start Listening'),
         300,
         scrollable: verticalScrollable,
       );
@@ -41,7 +43,7 @@ void main() {
       expect(find.byType(PrimaryButton), findsWidgets);
 
       await tester.scrollUntilVisible(
-        find.byType(AdSlotPlaceholder),
+        find.text('Sponsored · Native Ad Slot'),
         300,
         scrollable: verticalScrollable,
       );
@@ -49,7 +51,7 @@ void main() {
       expect(find.byType(AdSlotPlaceholder), findsWidgets);
 
       await tester.scrollUntilVisible(
-        find.byType(EmptyState),
+        find.text('No stations found'),
         300,
         scrollable: verticalScrollable,
       );
@@ -57,7 +59,7 @@ void main() {
       expect(find.byType(EmptyState), findsWidgets);
 
       await tester.scrollUntilVisible(
-        find.byType(ErrorState),
+        find.text('Could not reach mirrors'),
         300,
         scrollable: verticalScrollable,
       );
