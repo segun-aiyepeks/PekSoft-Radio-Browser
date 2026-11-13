@@ -126,3 +126,40 @@
 ### Decisions and alternatives
 - **Pure Node.js generator script over Style Dictionary**: Kept zero extra runtime/build dependencies in `packages/design-tokens` while producing idiomatic Flutter `BoxShadow`/`TextStyle` and Tailwind v4 `@theme` CSS. Can swap to Style Dictionary later without changing `tokens.json`.
 - **Deep Amber (`#B45309`) for light-mode accent**: Sampled `#FFB020` works on `#0A0F1C` dark backgrounds (~10.3:1), whereas `#B45309` maintains > 5:1 WCAG AA contrast on `#F6F4EE` light backgrounds.
+
+---
+
+## Milestone 0.4 — CI (Phase 0: Foundations)
+
+### What I did
+- Added `.github/workflows/ci.yml` with two parallel jobs running on every pull request and every push to `main`:
+  - **Mobile (Flutter)**: checks `dart format --output=none --set-exit-if-changed .`, `flutter analyze`, and `flutter test` with Flutter + pub dependency caching.
+  - **Web, API & Packages (TypeScript)**: runs `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` with `pnpm` store and `.turbo` caching.
+- Added `.github/PULL_REQUEST_TEMPLATE.md` with *What changed*, *Why*, *How to verify*, and *Screenshots*.
+
+### Why
+- Automated CI catches formatting, type, lint, test, and build regressions on every PR before code reaches `main`.
+- A consistent PR template keeps phase reviews clear and ensures verification steps and UI screenshots are never forgotten.
+
+### How it works (plain English)
+- Whenever a PR is opened/updated or code is pushed to `main`, GitHub Actions spins up two clean Ubuntu runners in parallel: one for `apps/mobile` and one for the TypeScript monorepo.
+- `concurrency` cancels superseded runs on the same branch/PR so you don't waste CI minutes when pushing follow-up commits.
+- Dependency caches (`subosito/flutter-action` cache, `setup-node` pnpm cache, and `.turbo` cache) speed up repeat runs.
+
+### Files created or changed
+- `.github/workflows/ci.yml`
+- `.github/PULL_REQUEST_TEMPLATE.md`
+- `docs/build-log.md`
+
+### How to run and verify
+- Push or open a PR on GitHub and check the **Actions** tab for the **CI** workflow (`Mobile (Flutter)` and `Web, API & Packages (TypeScript)`).
+- Locally, run the exact same gates:
+  - `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+  - `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+### Concepts worth learning
+- **`--frozen-lockfile`**: Ensures CI installs the exact dependency versions recorded in `pnpm-lock.yaml` instead of silently resolving newer ones.
+- **Concurrency groups**: Cancelling older in-flight CI runs for the same PR keeps feedback fast.
+
+### Decisions and alternatives
+- **Pinned Flutter `3.44.7` in CI**: Matches the local verified Flutter SDK version so CI and local checks behave identically. Alternative: floating `channel: stable`, which can introduce unexpected analyzer rules when Flutter releases a new minor version.
