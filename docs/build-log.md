@@ -247,3 +247,45 @@ All Phase 0 foundations are in place with zero product features built:
 - GitHub Actions CI (`.github/workflows/ci.yml`) and PR template.
 - Live Radio Browser API spike (`docs/api-spike.md`) and 8 real JSON fixtures (`packages/shared/fixtures/radio-browser/`).
 - ADRs (`docs/decisions.md`) and Mermaid system architecture (`docs/architecture.md`).
+
+---
+
+## Milestone 1.1 — Shell and design system (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Created branch `phase/1-mobile-ui` from `main`.
+- Added `go_router` (`18.1.4`) to `apps/mobile/pubspec.yaml`.
+- Built `ThemeData` for dark (default) and light modes in `apps/mobile/lib/core/theme/app_theme.dart` + `theme_controller.dart`, driven 100% by `design_tokens.dart` (no hard-coded colours or sizes).
+- Built all 11 reusable shared widgets in `apps/mobile/lib/core/widgets/`: `StationLogo` (with deterministic generated fallback), `StationTile`, `GenreChip`, `FilterChipBar`, `SectionHeader`, `EmptyState`, `ErrorState`, `SkeletonList` (respects reduced motion), `PrimaryButton`, `QualityBadge`, and `AdSlotPlaceholder`.
+- Configured `go_router` (`app_router.dart`) with `StatefulShellRoute.indexedStack` for 4 tabs (`Home`, `Explore`, `Library`, `Profile`), a persistent `MiniPlayerSlot` above the bottom navigation bar, and a dev-only `/gallery` route (`ComponentGalleryScreen`, guarded by `kDebugMode`).
+- Added widget tests verifying the 4-tab shell + persistent mini-player, dark/light design tokens, 48dp touch targets, and `ComponentGalleryScreen` at `1.3x` text scale.
+- Ran `dart format`, `flutter analyze` (zero issues), and `flutter test` (4/4 passed).
+
+### Why
+- Establishing the token-driven theme, shared component library, and navigation shell first ensures every screen in Milestones 1.3–1.5 looks cohesive, meets accessibility rules (48dp touch targets, `Semantics`, `1.3x` text scaling), and avoids duplicating UI code.
+
+### How it works (plain English)
+- `AppTheme.dark()` and `AppTheme.light()` map `AppDarkColors` / `AppLightColors`, `AppTypography`, `AppSpacing`, and `AppRadii` into Material `ThemeData` plus a custom `AppSemanticColors` `ThemeExtension` (`context.appColors`).
+- `StatefulShellRoute.indexedStack` keeps each tab's navigation state alive while keeping `MiniPlayerSlot` docked above the `NavigationBar` across all tabs.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/main.dart`
+- `apps/mobile/lib/core/theme/app_theme.dart`, `theme_controller.dart`
+- `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/core/widgets/` (`station_logo.dart`, `station_tile.dart`, `genre_chip.dart`, `filter_chip_bar.dart`, `section_header.dart`, `empty_state.dart`, `error_state.dart`, `skeleton_list.dart`, `primary_button.dart`, `quality_badge.dart`, `ad_slot_placeholder.dart`, `widgets.dart`)
+- `apps/mobile/lib/features/{home,explore,library,profile,player,dev_gallery}/presentation/`
+- `apps/mobile/test/widget_test.dart`, `apps/mobile/test/shared_widgets_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+- Run the app with `flutter run` and tap the top-right widgets icon on Home (or the button on Profile) in debug mode to open the Component Gallery and toggle dark/light themes.
+
+### Concepts worth learning
+- **`ThemeExtension<T>`**: Lets us expose semantic design tokens (`surfaceElevated`, `border`, `textMuted`, `accent`) cleanly via `context.appColors` beyond Material's default `ColorScheme`.
+- **`StatefulShellRoute.indexedStack`**: Preserves each bottom-tab's scroll/navigation state while keeping the mini-player persistent above the tab bar.
+
+### Decisions and alternatives
+- **Used `AppTypography.fontFamily` directly without `google_fonts`**: Prevents runtime network font fetches (which violate offline test rules and add an unrequested dependency). Font assets for Space Grotesk can be bundled locally in Phase 7 if desired.
+- **Used `ThemeController` (`ValueNotifier<ThemeMode>`)**: Keeps Milestone 1.1 free of extra state-management packages until Riverpod is introduced in Phase 2.
