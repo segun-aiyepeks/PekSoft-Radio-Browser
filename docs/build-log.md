@@ -610,3 +610,38 @@ Every mobile screen is built with token-driven dark & light themes, `Semantics`,
 
 ### Decisions and alternatives
 - **Longest-alias substring fallback after exact lookup**: Handles compound tags like `"90s pop hits"` without misclassifying short tokens.
+
+
+---
+
+## Milestone 2.4 — Local storage with Drift (Phase 2: Mobile data layer)
+
+### What I did
+- Added `drift` (`2.34.4`), `sqlite3_flutter_libs` (`0.6.0+eol`), `path_provider` (`2.1.6`), `path` (`1.9.1`), and `drift_dev` (`2.34.0`) to `apps/mobile/pubspec.yaml`.
+- Created Drift tables in `apps/mobile/lib/core/database/tables.dart`:
+  - `CachedStations`, `CachedCatalogLists` (with `cachedAt` and `ttlSeconds`), `Favourites`, `Recents`, `Collections`, `CollectionStations`, `SongHistoryEntries`, and `UserSettingsTable`.
+- Built `AppDatabase` (`apps/mobile/lib/core/database/app_database.dart` + generated `app_database.g.dart`) at `schemaVersion = 2` with `onCreate` and `onUpgrade` (`from < 2` adding `collections.sort_order`), enforcing the 50-entry cap on `Recents`.
+- Added unit and migration tests in `apps/mobile/test/app_database_test.dart`, including a real SQLite v1 -> v2 file migration test verifying preserved collections and schema version `2`.
+
+### Why
+- Offline-first caching, favourites, recents, collections, song history, and user preferences need fast, strongly typed local persistence with safe schema upgrades across app updates.
+
+### How it works (plain English)
+- `AppDatabase` stores normalised `Station` rows in `cached_stations` and JSON list snapshots with TTLs in `cached_catalog_lists` so repositories can return cached data immediately while revalidating in the background.
+- `recordRecent` runs inside a SQLite transaction, ordering by `played_at DESC` and pruning entries beyond the 50 most recent.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/core/database/{tables.dart,app_database.dart,app_database.g.dart}`
+- `apps/mobile/test/app_database_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test test/app_database_test.dart`
+
+### Concepts worth learning
+- **Versioned SQLite migrations**: Testing `onUpgrade` against a real v1 SQLite file proves existing user collections and favourites survive schema changes without data loss.
+- **Transactional pruning**: Wrapping `insert` + `delete` in `transaction(...)` guarantees `Recents` never temporarily exceeds 50 rows on concurrent updates.
+
+### Decisions and alternatives
+- **Committed `app_database.g.dart`**: Matches our `.freezed.dart` workflow so CI runs `flutter analyze` and `flutter test` without needing `build_runner` on every run.
