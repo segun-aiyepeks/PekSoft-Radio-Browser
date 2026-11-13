@@ -569,3 +569,44 @@ Every mobile screen is built with token-driven dark & light themes, `Semantics`,
 
 ### Decisions and alternatives
 - **HTTPS `/json/servers` discovery with hard-coded fallback**: Chosen over DNS SRV because Dart's `dart:io` lacks native SRV record lookup, matching the Phase 0 spike findings (`docs/api-spike.md`).
+
+
+---
+
+## Milestone 2.3 — Normalisation (Phase 2: Mobile data layer)
+
+### What I did
+- Created `packages/shared/genre-map.json` containing the 20 canonical genres (matching Phase 1 UI IDs), `maxGenresPerStation: 2`, `noiseTags` (submitter/meta/city noise from `docs/api-spike.md`), and multilingual/synonym aliases.
+- Registered `../../packages/shared/genre-map.json` as a Flutter asset in `apps/mobile/pubspec.yaml`.
+- Created `GenreMap` (`apps/mobile/lib/core/normalisation/genre_map.dart`) to parse `genre-map.json` and map raw comma-separated `tags` into deduplicated canonical `Genre` objects (capped at 2).
+- Created `StationNormaliser` (`apps/mobile/lib/core/normalisation/station_normaliser.dart`) implementing:
+  - `isHttps` (`url_resolved` or `url` starts with `https://`)
+  - `usesFallbackLogo` (`favicon` empty or non-HTTP(S))
+  - `isWorking` (`lastcheckok == 1` and non-empty stream URL)
+  - Duplicate merging by `stationuuid` first, then `(normalizedName, countryCode, resolvedHost)` keeping the working/HTTPS/highest-click variant
+  - `StationFilter` (`workingNowOnly: true` by default) and `StationSortOption` (`popular`, `trending`, `votes`, `bitrate`, `nameAsc`)
+- Added unit tests in `apps/mobile/test/station_normaliser_test.dart` covering all messy-tag examples from `docs/api-spike.md` and the real Phase 0 Nigeria fixture.
+
+### Why
+- Raw Radio Browser `tags` contain synonyms, multilingual duplicates, and submitter noise (`moi merino`, `estación`, `fm`), and even `lastcheckok=1` queries can return broken or duplicate streams. Normalising in one shared place keeps UI rows clean and lets `apps/api` reuse `packages/shared/genre-map.json` in Phase 4.
+
+### How it works (plain English)
+- `GenreMap` loads `packages/shared/genre-map.json`, strips noise tags, checks exact alias matches first and longest-substring compound matches second, and stops after 2 unique canonical genres.
+- `StationNormaliser` converts `RadioBrowserStationDto` into immutable `Station` domain models, deduplicates mirrors/re-submissions, filters out non-working streams by default, and sorts cleanly.
+
+### Files created or changed
+- `packages/shared/genre-map.json`
+- `apps/mobile/pubspec.yaml`
+- `apps/mobile/lib/core/normalisation/{genre_map.dart,station_normaliser.dart}`
+- `apps/mobile/test/station_normaliser_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test test/station_normaliser_test.dart`
+
+### Concepts worth learning
+- **Shared JSON mapping across platforms**: Storing `genre-map.json` in `packages/shared/` guarantees Flutter mobile (Dart) and Node API (TypeScript) classify stations identically without duplicating alias tables.
+- **Signature-based deduplication**: Collapsing `(normalizedName, countryCode, resolvedHost)` catches duplicate broadcaster entries across multiple `stationuuid`s while preferring the HTTPS variant.
+
+### Decisions and alternatives
+- **Longest-alias substring fallback after exact lookup**: Handles compound tags like `"90s pop hits"` without misclassifying short tokens.
