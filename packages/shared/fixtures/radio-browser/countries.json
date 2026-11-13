@@ -1,0 +1,752 @@
+[
+  {
+    "name": "The United States Of America",
+    "iso_3166_1": "US",
+    "stationcount": 7083
+  },
+  {
+    "name": "Germany",
+    "iso_3166_1": "DE",
+    "stationcount": 5654
+  },
+  {
+    "name": "France",
+    "iso_3166_1": "FR",
+    "stationcount": 2815
+  },
+  {
+    "name": "The Russian Federation",
+    "iso_3166_1": "RU",
+    "stationcount": 2531
+  },
+  {
+    "name": "The United Kingdom Of Great Britain And Northern Ireland",
+    "iso_3166_1": "GB",
+    "stationcount": 1994
+  },
+  {
+    "name": "China",
+    "iso_3166_1": "CN",
+    "stationcount": 1979
+  },
+  {
+    "name": "Greece",
+    "iso_3166_1": "GR",
+    "stationcount": 1898
+  },
+  {
+    "name": "Australia",
+    "iso_3166_1": "AU",
+    "stationcount": 1614
+  },
+  {
+    "name": "Italy",
+    "iso_3166_1": "IT",
+    "stationcount": 1604
+  },
+  {
+    "name": "Mexico",
+    "iso_3166_1": "MX",
+    "stationcount": 1563
+  },
+  {
+    "name": "Brazil",
+    "iso_3166_1": "BR",
+    "stationcount": 1434
+  },
+  {
+    "name": "Canada",
+    "iso_3166_1": "CA",
+    "stationcount": 1388
+  },
+  {
+    "name": "Spain",
+    "iso_3166_1": "ES",
+    "stationcount": 1234
+  },
+  {
+    "name": "The Netherlands",
+    "iso_3166_1": "NL",
+    "stationcount": 1218
+  },
+  {
+    "name": "Argentina",
+    "iso_3166_1": "AR",
+    "stationcount": 1055
+  },
+  {
+    "name": "Poland",
+    "iso_3166_1": "PL",
+    "stationcount": 910
+  },
+  {
+    "name": "Romania",
+    "iso_3166_1": "RO",
+    "stationcount": 859
+  },
+  {
+    "name": "India",
+    "iso_3166_1": "IN",
+    "stationcount": 750
+  },
+  {
+    "name": "The Philippines",
+    "iso_3166_1": "PH",
+    "stationcount": 723
+  },
+  {
+    "name": "Colombia",
+    "iso_3166_1": "CO",
+    "stationcount": 676
+  },
+  {
+    "name": "Türkiye",
+    "iso_3166_1": "TR",
+    "stationcount": 672
+  },
+  {
+    "name": "The United Arab Emirates",
+    "iso_3166_1": "AE",
+    "stationcount": 635
+  },
+  {
+    "name": "Switzerland",
+    "iso_3166_1": "CH",
+    "stationcount": 541
+  },
+  {
+    "name": "Indonesia",
+    "iso_3166_1": "ID",
+    "stationcount": 522
+  },
+  {
+    "name": "Chile",
+    "iso_3166_1": "CL",
+    "stationcount": 507
+  },
+  {
+    "name": "Belgium",
+    "iso_3166_1": "BE",
+    "stationcount": 461
+  },
+  {
+    "name": "Serbia",
+    "iso_3166_1": "RS",
+    "stationcount": 373
+  },
+  {
+    "name": "Hungary",
+    "iso_3166_1": "HU",
+    "stationcount": 345
+  },
+  {
+    "name": "Portugal",
+    "iso_3166_1": "PT",
+    "stationcount": 335
+  },
+  {
+    "name": "Bulgaria",
+    "iso_3166_1": "BG",
+    "stationcount": 330
+  },
+  {
+    "name": "Austria",
+    "iso_3166_1": "AT",
+    "stationcount": 321
+  },
+  {
+    "name": "Ukraine",
+    "iso_3166_1": "UA",
+    "stationcount": 285
+  },
+  {
+    "name": "Czechia",
+    "iso_3166_1": "CZ",
+    "stationcount": 270
+  },
+  {
+    "name": "Croatia",
+    "iso_3166_1": "HR",
+    "stationcount": 265
+  },
+  {
+    "name": "Peru",
+    "iso_3166_1": "PE",
+    "stationcount": 255
+  },
+  {
+    "name": "Sweden",
+    "iso_3166_1": "SE",
+    "stationcount": 239
+  },
+  {
+    "name": "Denmark",
+    "iso_3166_1": "DK",
+    "stationcount": 224
+  },
+  {
+    "name": "New Zealand",
+    "iso_3166_1": "NZ",
+    "stationcount": 215
+  },
+  {
+    "name": "Ireland",
+    "iso_3166_1": "IE",
+    "stationcount": 204
+  },
+  {
+    "name": "Kuwait",
+    "iso_3166_1": "KW",
+    "stationcount": 202
+  },
+  {
+    "name": "South Africa",
+    "iso_3166_1": "ZA",
+    "stationcount": 199
+  },
+  {
+    "name": "Taiwan, Republic Of China",
+    "iso_3166_1": "TW",
+    "stationcount": 170
+  },
+  {
+    "name": "Bolivarian Republic Of Venezuela",
+    "iso_3166_1": "VE",
+    "stationcount": 169
+  },
+  {
+    "name": "Ecuador",
+    "iso_3166_1": "EC",
+    "stationcount": 160
+  },
+  {
+    "name": "Latvia",
+    "iso_3166_1": "LV",
+    "stationcount": 157
+  },
+  {
+    "name": "Uganda",
+    "iso_3166_1": "UG",
+    "stationcount": 151
+  },
+  {
+    "name": "Nepal",
+    "iso_3166_1": "NP",
+    "stationcount": 148
+  },
+  {
+    "name": "Bosnia And Herzegovina",
+    "iso_3166_1": "BA",
+    "stationcount": 142
+  },
+  {
+    "name": "Slovakia",
+    "iso_3166_1": "SK",
+    "stationcount": 141
+  },
+  {
+    "name": "Finland",
+    "iso_3166_1": "FI",
+    "stationcount": 136
+  },
+  {
+    "name": "Estonia",
+    "iso_3166_1": "EE",
+    "stationcount": 134
+  },
+  {
+    "name": "Uruguay",
+    "iso_3166_1": "UY",
+    "stationcount": 132
+  },
+  {
+    "name": "Israel",
+    "iso_3166_1": "IL",
+    "stationcount": 130
+  },
+  {
+    "name": "Slovenia",
+    "iso_3166_1": "SI",
+    "stationcount": 128
+  },
+  {
+    "name": "Norway",
+    "iso_3166_1": "NO",
+    "stationcount": 121
+  },
+  {
+    "name": "Japan",
+    "iso_3166_1": "JP",
+    "stationcount": 120
+  },
+  {
+    "name": "Lebanon",
+    "iso_3166_1": "LB",
+    "stationcount": 118
+  },
+  {
+    "name": "Lithuania",
+    "iso_3166_1": "LT",
+    "stationcount": 113
+  },
+  {
+    "name": "The Dominican Republic",
+    "iso_3166_1": "DO",
+    "stationcount": 113
+  },
+  {
+    "name": "Thailand",
+    "iso_3166_1": "TH",
+    "stationcount": 104
+  },
+  {
+    "name": "Albania",
+    "iso_3166_1": "AL",
+    "stationcount": 100
+  },
+  {
+    "name": "Ghana",
+    "iso_3166_1": "GH",
+    "stationcount": 92
+  },
+  {
+    "name": "Algeria",
+    "iso_3166_1": "DZ",
+    "stationcount": 92
+  },
+  {
+    "name": "The Republic Of Korea",
+    "iso_3166_1": "KR",
+    "stationcount": 85
+  },
+  {
+    "name": "The Republic Of Moldova",
+    "iso_3166_1": "MD",
+    "stationcount": 84
+  },
+  {
+    "name": "Zambia",
+    "iso_3166_1": "ZM",
+    "stationcount": 82
+  },
+  {
+    "name": "Afghanistan",
+    "iso_3166_1": "AF",
+    "stationcount": 79
+  },
+  {
+    "name": "Malaysia",
+    "iso_3166_1": "MY",
+    "stationcount": 77
+  },
+  {
+    "name": "Nigeria",
+    "iso_3166_1": "NG",
+    "stationcount": 75
+  },
+  {
+    "name": "Guatemala",
+    "iso_3166_1": "GT",
+    "stationcount": 73
+  },
+  {
+    "name": "Bolivia",
+    "iso_3166_1": "BO",
+    "stationcount": 70
+  },
+  {
+    "name": "Paraguay",
+    "iso_3166_1": "PY",
+    "stationcount": 69
+  },
+  {
+    "name": "Hong Kong",
+    "iso_3166_1": "HK",
+    "stationcount": 68
+  },
+  {
+    "name": "Angola",
+    "iso_3166_1": "AO",
+    "stationcount": 64
+  },
+  {
+    "name": "Singapore",
+    "iso_3166_1": "SG",
+    "stationcount": 63
+  },
+  {
+    "name": "Sri Lanka",
+    "iso_3166_1": "LK",
+    "stationcount": 63
+  },
+  {
+    "name": "Coted Ivoire",
+    "iso_3166_1": "CI",
+    "stationcount": 61
+  },
+  {
+    "name": "Cyprus",
+    "iso_3166_1": "CY",
+    "stationcount": 61
+  },
+  {
+    "name": "El Salvador",
+    "iso_3166_1": "SV",
+    "stationcount": 61
+  },
+  {
+    "name": "Egypt",
+    "iso_3166_1": "EG",
+    "stationcount": 60
+  },
+  {
+    "name": "Malawi",
+    "iso_3166_1": "MW",
+    "stationcount": 59
+  },
+  {
+    "name": "Pakistan",
+    "iso_3166_1": "PK",
+    "stationcount": 59
+  },
+  {
+    "name": "Belarus",
+    "iso_3166_1": "BY",
+    "stationcount": 59
+  },
+  {
+    "name": "Morocco",
+    "iso_3166_1": "MA",
+    "stationcount": 59
+  },
+  {
+    "name": "Kenya",
+    "iso_3166_1": "KE",
+    "stationcount": 57
+  },
+  {
+    "name": "Tunisia",
+    "iso_3166_1": "TN",
+    "stationcount": 56
+  },
+  {
+    "name": "Cameroon",
+    "iso_3166_1": "CM",
+    "stationcount": 55
+  },
+  {
+    "name": "Costa Rica",
+    "iso_3166_1": "CR",
+    "stationcount": 53
+  },
+  {
+    "name": "Saudi Arabia",
+    "iso_3166_1": "SA",
+    "stationcount": 50
+  },
+  {
+    "name": "Puerto Rico",
+    "iso_3166_1": "PR",
+    "stationcount": 49
+  },
+  {
+    "name": "Republic Of North Macedonia",
+    "iso_3166_1": "MK",
+    "stationcount": 46
+  },
+  {
+    "name": "Montenegro",
+    "iso_3166_1": "ME",
+    "stationcount": 43
+  },
+  {
+    "name": "Jamaica",
+    "iso_3166_1": "JM",
+    "stationcount": 41
+  },
+  {
+    "name": "Kazakhstan",
+    "iso_3166_1": "KZ",
+    "stationcount": 39
+  },
+  {
+    "name": "Honduras",
+    "iso_3166_1": "HN",
+    "stationcount": 39
+  },
+  {
+    "name": "Azerbaijan",
+    "iso_3166_1": "AZ",
+    "stationcount": 36
+  },
+  {
+    "name": "Reunion",
+    "iso_3166_1": "RE",
+    "stationcount": 35
+  },
+  {
+    "name": "Senegal",
+    "iso_3166_1": "SN",
+    "stationcount": 32
+  },
+  {
+    "name": "Panama",
+    "iso_3166_1": "PA",
+    "stationcount": 32
+  },
+  {
+    "name": "Haiti",
+    "iso_3166_1": "HT",
+    "stationcount": 31
+  },
+  {
+    "name": "Luxembourg",
+    "iso_3166_1": "LU",
+    "stationcount": 31
+  },
+  {
+    "name": "Jordan",
+    "iso_3166_1": "JO",
+    "stationcount": 30
+  },
+  {
+    "name": "Vietnam",
+    "iso_3166_1": "VN",
+    "stationcount": 30
+  },
+  {
+    "name": "Georgia",
+    "iso_3166_1": "GE",
+    "stationcount": 28
+  },
+  {
+    "name": "Bangladesh",
+    "iso_3166_1": "BD",
+    "stationcount": 27
+  },
+  {
+    "name": "Iceland",
+    "iso_3166_1": "IS",
+    "stationcount": 26
+  },
+  {
+    "name": "Nicaragua",
+    "iso_3166_1": "NI",
+    "stationcount": 26
+  },
+  {
+    "name": "The United States Minor Outlying Islands",
+    "iso_3166_1": "UM",
+    "stationcount": 26
+  },
+  {
+    "name": "Zimbabwe",
+    "iso_3166_1": "ZW",
+    "stationcount": 25
+  },
+  {
+    "name": "Cuba",
+    "iso_3166_1": "CU",
+    "stationcount": 24
+  },
+  {
+    "name": "Ethiopia",
+    "iso_3166_1": "ET",
+    "stationcount": 23
+  },
+  {
+    "name": "Islamic Republic Of Iran",
+    "iso_3166_1": "IR",
+    "stationcount": 22
+  },
+  {
+    "name": "Trinidad And Tobago",
+    "iso_3166_1": "TT",
+    "stationcount": 22
+  },
+  {
+    "name": "Syrian Arab Republic",
+    "iso_3166_1": "SY",
+    "stationcount": 22
+  },
+  {
+    "name": "The Democratic Republic Of The Congo",
+    "iso_3166_1": "CD",
+    "stationcount": 21
+  },
+  {
+    "name": "Macao",
+    "iso_3166_1": "MO",
+    "stationcount": 20
+  },
+  {
+    "name": "Iraq",
+    "iso_3166_1": "IQ",
+    "stationcount": 20
+  },
+  {
+    "name": "Curacao",
+    "iso_3166_1": "CW",
+    "stationcount": 20
+  },
+  {
+    "name": "United Republic Of Tanzania",
+    "iso_3166_1": "TZ",
+    "stationcount": 18
+  },
+  {
+    "name": "Madagascar",
+    "iso_3166_1": "MG",
+    "stationcount": 17
+  },
+  {
+    "name": "Qatar",
+    "iso_3166_1": "QA",
+    "stationcount": 17
+  },
+  {
+    "name": "Cabo Verde",
+    "iso_3166_1": "CV",
+    "stationcount": 17
+  },
+  {
+    "name": "Kosovo",
+    "iso_3166_1": "XK",
+    "stationcount": 15
+  },
+  {
+    "name": "Malta",
+    "iso_3166_1": "MT",
+    "stationcount": 14
+  },
+  {
+    "name": "Barbados",
+    "iso_3166_1": "BB",
+    "stationcount": 14
+  },
+  {
+    "name": "Mozambique",
+    "iso_3166_1": "MZ",
+    "stationcount": 14
+  },
+  {
+    "name": "Namibia",
+    "iso_3166_1": "NA",
+    "stationcount": 14
+  },
+  {
+    "name": "Mauritius",
+    "iso_3166_1": "MU",
+    "stationcount": 13
+  },
+  {
+    "name": "The Faroe Islands",
+    "iso_3166_1": "FO",
+    "stationcount": 13
+  },
+  {
+    "name": "Guadeloupe",
+    "iso_3166_1": "GP",
+    "stationcount": 13
+  },
+  {
+    "name": "Fiji",
+    "iso_3166_1": "FJ",
+    "stationcount": 13
+  },
+  {
+    "name": "Martinique",
+    "iso_3166_1": "MQ",
+    "stationcount": 13
+  },
+  {
+    "name": "The Holy See",
+    "iso_3166_1": "VA",
+    "stationcount": 13
+  },
+  {
+    "name": "Mali",
+    "iso_3166_1": "ML",
+    "stationcount": 13
+  },
+  {
+    "name": "Saint Lucia",
+    "iso_3166_1": "LC",
+    "stationcount": 12
+  },
+  {
+    "name": "Yemen",
+    "iso_3166_1": "YE",
+    "stationcount": 12
+  },
+  {
+    "name": "Uzbekistan",
+    "iso_3166_1": "UZ",
+    "stationcount": 12
+  },
+  {
+    "name": "Saint Vincent And The Grenadines",
+    "iso_3166_1": "VC",
+    "stationcount": 11
+  },
+  {
+    "name": "Armenia",
+    "iso_3166_1": "AM",
+    "stationcount": 11
+  },
+  {
+    "name": "Bahrain",
+    "iso_3166_1": "BH",
+    "stationcount": 11
+  },
+  {
+    "name": "Benin",
+    "iso_3166_1": "BJ",
+    "stationcount": 11
+  },
+  {
+    "name": "Bonaire",
+    "iso_3166_1": "BQ",
+    "stationcount": 10
+  },
+  {
+    "name": "American Samoa",
+    "iso_3166_1": "AS",
+    "stationcount": 10
+  },
+  {
+    "name": "The Cayman Islands",
+    "iso_3166_1": "KY",
+    "stationcount": 9
+  },
+  {
+    "name": "Cambodia",
+    "iso_3166_1": "KH",
+    "stationcount": 9
+  },
+  {
+    "name": "Antarctica",
+    "iso_3166_1": "AQ",
+    "stationcount": 9
+  },
+  {
+    "name": "Mongolia",
+    "iso_3166_1": "MN",
+    "stationcount": 9
+  },
+  {
+    "name": "Guyana",
+    "iso_3166_1": "GY",
+    "stationcount": 9
+  },
+  {
+    "name": "Oman",
+    "iso_3166_1": "OM",
+    "stationcount": 8
+  },
+  {
+    "name": "Aruba",
+    "iso_3166_1": "AW",
+    "stationcount": 8
+  }
+]

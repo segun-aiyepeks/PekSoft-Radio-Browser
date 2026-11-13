@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <rect width="512" height="512" fill="#101A2E"/>
+  <g transform="translate(8 0)">
+    <rect x="152" y="136" width="48" height="240" rx="24" fill="#F4F6FB"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M176 136H228C269.974 136 304 170.026 304 212C304 253.974 269.974 288 228 288H176V136ZM200 182V242H228C244.569 242 258 228.569 258 212C258 195.431 244.569 182 228 182H200Z" fill="#F4F6FB"/>
+    <circle cx="228" cy="212" r="15" fill="#FFB020"/>
+    <path d="M300.2 137.2A104 104 0 0 1 300.2 286.8" stroke="#FFB020" stroke-width="24" stroke-linecap="round"/>
+    <path d="M331.6 112A144 144 0 0 1 331.6 312" stroke="#FFB020" stroke-width="24" stroke-linecap="round"/>
+  </g>
+</svg>

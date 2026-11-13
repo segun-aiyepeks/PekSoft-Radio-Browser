@@ -1,0 +1,156 @@
+// GENERATED FILE - DO NOT MODIFY BY HAND.
+// Source: packages/design-tokens/tokens.json
+
+export const tokens = {
+  "$schema": "https://peksoft.com/schemas/design-tokens.v1.json",
+  "version": "1.0.0",
+  "colors": {
+    "dark": {
+      "background": "#0A0F1C",
+      "surface": "#101A2E",
+      "surfaceElevated": "#18243E",
+      "surfaceMuted": "#131F36",
+      "border": "#243352",
+      "textPrimary": "#F4F6FB",
+      "textSecondary": "#B8C2D9",
+      "textMuted": "#8B98B8",
+      "accent": "#FFB020",
+      "accentHover": "#FFC24D",
+      "onAccent": "#0A0F1C",
+      "success": "#34D399",
+      "warning": "#FBBF24",
+      "error": "#F87171",
+      "info": "#60A5FA"
+    },
+    "light": {
+      "background": "#F6F4EE",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FDFCF9",
+      "surfaceMuted": "#ECE8DE",
+      "border": "#D8D2C5",
+      "textPrimary": "#0A0F1C",
+      "textSecondary": "#3A445C",
+      "textMuted": "#5A657D",
+      "accent": "#B45309",
+      "accentHover": "#92400E",
+      "onAccent": "#FFFFFF",
+      "success": "#047857",
+      "warning": "#B45309",
+      "error": "#B91C1C",
+      "info": "#1D4ED8"
+    }
+  },
+  "typography": {
+    "fontFamily": "Space Grotesk",
+    "scale": {
+      "display": {
+        "fontSize": 32,
+        "lineHeight": 40,
+        "fontWeight": 700,
+        "letterSpacing": -0.5
+      },
+      "h1": {
+        "fontSize": 26,
+        "lineHeight": 32,
+        "fontWeight": 700,
+        "letterSpacing": -0.3
+      },
+      "h2": {
+        "fontSize": 22,
+        "lineHeight": 28,
+        "fontWeight": 600,
+        "letterSpacing": -0.2
+      },
+      "h3": {
+        "fontSize": 18,
+        "lineHeight": 24,
+        "fontWeight": 600,
+        "letterSpacing": 0
+      },
+      "title": {
+        "fontSize": 16,
+        "lineHeight": 22,
+        "fontWeight": 600,
+        "letterSpacing": 0
+      },
+      "body": {
+        "fontSize": 15,
+        "lineHeight": 22,
+        "fontWeight": 400,
+        "letterSpacing": 0
+      },
+      "bodySmall": {
+        "fontSize": 13,
+        "lineHeight": 18,
+        "fontWeight": 400,
+        "letterSpacing": 0.1
+      },
+      "label": {
+        "fontSize": 12,
+        "lineHeight": 16,
+        "fontWeight": 600,
+        "letterSpacing": 0.4
+      },
+      "caption": {
+        "fontSize": 11,
+        "lineHeight": 14,
+        "fontWeight": 500,
+        "letterSpacing": 0.3
+      }
+    }
+  },
+  "spacing": {
+    "xxs": 2,
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48,
+    "touchTarget": 48
+  },
+  "radii": {
+    "sm": 6,
+    "md": 10,
+    "lg": 16,
+    "xl": 24,
+    "full": 9999
+  },
+  "elevation": {
+    "none": {
+      "offsetY": 0,
+      "blur": 0,
+      "spread": 0,
+      "opacity": 0
+    },
+    "sm": {
+      "offsetY": 2,
+      "blur": 6,
+      "spread": 0,
+      "opacity": 0.14
+    },
+    "md": {
+      "offsetY": 6,
+      "blur": 16,
+      "spread": -2,
+      "opacity": 0.22
+    },
+    "lg": {
+      "offsetY": 12,
+      "blur": 28,
+      "spread": -4,
+      "opacity": 0.3
+    }
+  },
+  "motion": {
+    "durationsMs": {
+      "instant": 0,
+      "fast": 120,
+      "normal": 220,
+      "slow": 360
+    }
+  }
+} as const;
+
+export type DesignTokens = typeof tokens;

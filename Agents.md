@@ -1,4 +1,4 @@
-# AGENTS.md — PekSoft Radio Browser
+﻿# AGENTS.md â€” PekSoft Radio Browser
 
 ## Project
 PekSoft Radio Browser streams radio stations worldwide using the community Radio Browser API (radio-browser.info). Apps: Flutter mobile (Android first), Next.js web and a Node.js API, in one monorepo. Revenue: ads (AdMob on mobile, AdSense on web) and Plus subscriptions (Google Play Billing on Android, Paystack on web). Auth: Firebase Authentication (email + Google). The product source of truth is docs/ux-document.md. If code and that document disagree, stop and ask.
@@ -36,6 +36,8 @@ Segun is a Flutter/Dart and UI/UX developer with foundational Node.js, React and
 - TypeScript strict everywhere. Validate all input with Zod. Shared types and schemas live in packages/shared.
 - API is layered: routes -> services -> repositories. Config comes from env and is validated at startup. Structured logs without personal data. Rate limiting and CORS configured.
 - Web: Next.js App Router, Server Components by default, client components only where needed. Public SEO pages are server-rendered with metadata and a sitemap.
+- Web UI: shadcn/ui components are added with the shadcn CLI and owned in the repo (components/ui). Restyle them through the design tokens (CSS variables), never with hard-coded colours. Product components (StationRow, PlayerBar, CountryCard, PlanToggle) are built by composing shadcn primitives. The spec is docs/web-design-system.md.
+- Web motion: use the motion library and Motion Primitives (components/motion-primitives) with the shared presets in lib/motion.ts. Animate transform and opacity only, respect prefers-reduced-motion, never delay audio controls, keep layout shift at zero. One signature moment per page; everything else is subtle.
 - Quality gate before every commit: pnpm lint, typecheck and test must pass.
 
 ## Radio Browser etiquette
