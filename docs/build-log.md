@@ -289,3 +289,44 @@ All Phase 0 foundations are in place with zero product features built:
 ### Decisions and alternatives
 - **Used `AppTypography.fontFamily` directly without `google_fonts`**: Prevents runtime network font fetches (which violate offline test rules and add an unrequested dependency). Font assets for Space Grotesk can be bundled locally in Phase 7 if desired.
 - **Used `ThemeController` (`ValueNotifier<ThemeMode>`)**: Keeps Milestone 1.1 free of extra state-management packages until Riverpod is introduced in Phase 2.
+
+
+---
+
+## Milestone 1.2 — Mock data (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Created typed `const` mock models in `apps/mobile/lib/mock/mock_models.dart` (`MockStation`, `MockCountry`, `MockGenre`, `MockLanguage`, `MockCuratedCollection`).
+- Built `mock_stations.dart` with **40 realistic `const` stations** (4 each across Nigeria, Ghana, South Africa, the UK, the USA, France, Germany, Japan, Brazil, and India), grounded in Phase 0 Radio Browser fixtures where available (`Wazobia FM: Lagos`, `Cool FM`, `Nigeria Info`, `RTL`) and covering varied codecs (`MP3`, `AAC`, `AAC+`, `OGG`), `isHls`, `isWorking`, `isHttps`, and missing-favicon (`null`) edge cases.
+- Built `mock_countries.dart` (**30 countries**), `mock_genres.dart` (**20 canonical genres** + **10 languages**), and `mock_collections.dart` (**6 curated collections** referencing valid station IDs).
+- Created `mock_providers.dart` (plus barrel `mock.dart`) exposing simple provider functions (`getMockStations`, `getMockStationsByCountry`, `getMockStationsByGenre`, `getMockStationsByLanguage`, `getMockStationById`, `getMockSimilarStations`, `searchMockStations`, `getMockCountries`, `getMockGenres`, `getMockLanguages`, `getMockCuratedCollections`, `getMockStationsForCollection`) and a UI-only `MockSessionController` for favourites, recents, and playback preview state.
+- Added unit tests in `apps/mobile/test/mock_data_test.dart` and ran `dart format`, `flutter analyze` (zero issues), and `flutter test` (9/9 passed).
+
+### Why
+- Putting all mock datasets behind simple provider functions in `lib/mock/` lets Milestones 1.3–1.5 build realistic, interactive screens offline today while making the Phase 3 swap to real Riverpod ViewModels and Drift/API repositories clean and localized.
+
+### How it works (plain English)
+- All catalog lists are compile-time `const` Dart objects—zero network calls, zero database reads.
+- `searchMockStations(...)` and `getMockStations(workingOnly: true)` enforce the product's **Working now ON by default** rule while letting filter sheets toggle `workingOnly: false` to test unavailable/broken-stream states.
+- `MockSessionController` extends `ChangeNotifier` to track in-memory favourites, recents, and the active mock playback status for UI-only interactivity.
+
+### Files created or changed
+- `apps/mobile/lib/mock/mock_models.dart`
+- `apps/mobile/lib/mock/mock_countries.dart`
+- `apps/mobile/lib/mock/mock_genres.dart`
+- `apps/mobile/lib/mock/mock_stations.dart`
+- `apps/mobile/lib/mock/mock_collections.dart`
+- `apps/mobile/lib/mock/mock_providers.dart`
+- `apps/mobile/lib/mock/mock.dart`
+- `apps/mobile/test/mock_data_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Compile-time `const` fixtures**: Making mock models `const` ensures zero runtime allocation overhead and catches invalid data shapes at compile time.
+- **Provider-function boundary**: Screens call `getMockStations(...)` instead of reading raw lists directly, creating a seam where Phase 3 Riverpod providers can drop in cleanly.
+
+### Decisions and alternatives
+- **Kept `MockSessionController` with `ChangeNotifier` instead of adding `flutter_riverpod` now**: Keeps Phase 1 strictly within the Milestone 1.1–1.2 dependency scope until Riverpod is introduced in Phase 2/3.
