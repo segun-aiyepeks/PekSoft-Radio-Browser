@@ -330,3 +330,44 @@ All Phase 0 foundations are in place with zero product features built:
 
 ### Decisions and alternatives
 - **Kept `MockSessionController` with `ChangeNotifier` instead of adding `flutter_riverpod` now**: Keeps Phase 1 strictly within the Milestone 1.1–1.2 dependency scope until Riverpod is introduced in Phase 2/3.
+
+
+---
+
+## Milestone 1.3 — Discovery screens (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Built `SplashScreen` (`/splash`) and `WelcomeScreen` (`/welcome`) in `apps/mobile/lib/features/onboarding/presentation/` with country selection, optional taste chips, and a visible `Skip` action.
+- Built the `HomeScreen` (`/home`) with quick search entry, `FilterChipBar`, horizontal curated collections carousel, `AdSlotPlaceholder`, and live/working stations list backed by `mock_providers.dart`.
+- Built `ExploreScreen` (`/explore`) with 4 tabs (`Countries`, `Genres`, `Languages`, `Map` placeholder) plus `CountryDetailScreen` (`/country/:code`) and `GenreDetailScreen` (`/genre/:name`).
+- Built `SearchScreen` (`/search`) covering empty, typing, results, and no-results states, along with `filters_bottom_sheet.dart` (`StationFilterState` with **Working now ON by default**, genre, language, codec, minimum bitrate, and sort).
+- Built `StationDetailScreen` (`/station/:id`) and reusable `MockStationTile` (`apps/mobile/lib/features/station/presentation/`), and synced `MiniPlayerSlot` with `mockSessionController`.
+- Wired all routes in `apps/mobile/lib/core/routing/app_router.dart`, added widget tests in `test/discovery_screens_test.dart` at `1.3x` text scale, and verified `dart format`, `flutter analyze` (`No issues found`), and `flutter test` (`15/15 passed`).
+
+### Why
+- Completing every discovery surface with token-driven UI, `48dp` touch targets, `Semantics`, and `Working now ON` defaults lets us review the full browse-and-search experience before adding the full player UI (Milestone 1.4).
+
+### How it works (plain English)
+- `MockStationTile` and `MiniPlayerSlot` both listen to `mockSessionController` via `ListenableBuilder`, so tapping Play or Favourite anywhere immediately updates all visible tiles and the persistent mini-player.
+- `StationFilterState` defaults `workingOnly: true` and passes parameters straight into `searchMockStations(...)`.
+
+### Files created or changed
+- `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/features/onboarding/presentation/{splash_screen.dart,welcome_screen.dart}`
+- `apps/mobile/lib/features/home/presentation/home_screen.dart`
+- `apps/mobile/lib/features/explore/presentation/{explore_screen.dart,country_detail_screen.dart,genre_detail_screen.dart}`
+- `apps/mobile/lib/features/search/presentation/{search_screen.dart,filters_bottom_sheet.dart}`
+- `apps/mobile/lib/features/station/presentation/{mock_station_tile.dart,station_detail_screen.dart}`
+- `apps/mobile/lib/features/player/presentation/mini_player_slot.dart`
+- `apps/mobile/test/{widget_test.dart,discovery_screens_test.dart}`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **`ListenableBuilder` with `ChangeNotifier`**: Lightweight built-in Flutter reactive binding for local UI-only state in Phase 1 before Riverpod is introduced in Phase 2/3.
+- **Immutable filter state (`StationFilterState`)**: Returning a new `StationFilterState` from `showModalBottomSheet` keeps filter edits cancelable until the user taps **Apply Filters**.
+
+### Decisions and alternatives
+- **Kept `/home` as `initialLocation` while exposing `/splash` and `/welcome` as routes**: Lets `PekSoftRadioApp` boot directly into the 4-tab shell during development and preserves shell smoke tests while keeping Splash/Welcome fully navigable.

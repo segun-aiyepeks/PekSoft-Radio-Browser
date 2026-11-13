@@ -10,16 +10,31 @@ void main() {
     await tester.pumpWidget(const PekSoftRadioApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Home'), findsWidgets);
-    expect(find.text('Explore'), findsOneWidget);
-    expect(find.text('Library'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
-    expect(find.text('Wazobia FM: Lagos'), findsOneWidget);
+    final navBar = find.byType(NavigationBar);
+    expect(
+      find.descendant(of: navBar, matching: find.text('Home')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: navBar, matching: find.text('Explore')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: navBar, matching: find.text('Library')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: navBar, matching: find.text('Profile')),
+      findsOneWidget,
+    );
+    expect(find.text('Wazobia FM: Lagos'), findsWidgets);
 
-    await tester.tap(find.text('Explore'));
+    await tester.tap(
+      find.descendant(of: navBar, matching: find.text('Explore')),
+    );
     await tester.pumpAndSettle();
-    expect(find.text('Explore shell ready'), findsOneWidget);
-    expect(find.text('Wazobia FM: Lagos'), findsOneWidget);
+    expect(find.text('Countries'), findsOneWidget);
+    expect(find.text('Wazobia FM: Lagos'), findsWidgets);
 
     await tester.tap(find.text('Library'));
     await tester.pumpAndSettle();
