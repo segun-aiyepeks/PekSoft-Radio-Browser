@@ -163,3 +163,39 @@
 
 ### Decisions and alternatives
 - **Pinned Flutter `3.44.7` in CI**: Matches the local verified Flutter SDK version so CI and local checks behave identically. Alternative: floating `channel: stable`, which can introduce unexpected analyzer rules when Flutter releases a new minor version.
+
+---
+
+## Milestone 0.5 — Radio Browser API spike (Phase 0: Foundations)
+
+### What I did
+- Created `apps/api/scripts/radio-browser-spike.ts` and ran it against the live Radio Browser API using `User-Agent: PekSoftRadioBrowser/0.1.0`.
+- Measured mirror discovery via DNS A+PTR (`147 ms`), DNS SRV, and `https://all.api.radio-browser.info/json/servers` (`1,279 ms`), plus `/json/stats` ping (`990 ms` on `de1.api.radio-browser.info`).
+- Fetched live countries (`225`), tags (`500`), languages (`200`), top stations by clickcount (`150`), and working Nigerian stations (`75`).
+- Saved trimmed real fixtures to `packages/shared/fixtures/radio-browser/` (`servers.json`, `countries.json`, `tags.json`, `languages.json`, `stations-topclick.json`, `stations-ng-working.json`, `stations-sample-200.json`, `spike-report.json`).
+- Documented all real field names/types, HTTPS vs HTTP-only percentages, missing favicon %, codec/bitrate distributions, HLS count, messy tag examples, and normalisation recommendations in `docs/api-spike.md`.
+
+### Why
+- Inspecting live responses prevents inventing field names, types, or assumptions about stream availability before building mobile/backend models.
+
+### How it works (plain English)
+- The spike script queries `all.api.radio-browser.info` via DNS and `/json/servers`, selects the fastest healthy mirror, downloads real catalog and station data, saves JSON fixtures for offline unit tests in Phase 2+, and computes exact statistics.
+- Key real-world discoveries: `hls`, `lastcheckok`, and `ssl_error` are integers (`0`/`1`), not booleans; `30.5%` of the 200-station sample (`39.3%` of top-150 global) are HTTP-only; `21%` (`32%` in Nigeria) lack a `favicon`; and tags are comma-separated strings with heavy synonym/language noise.
+
+### Files created or changed
+- `apps/api/scripts/radio-browser-spike.ts`
+- `apps/api/package.json` (added `"spike"` script)
+- `packages/shared/fixtures/radio-browser/*`
+- `docs/api-spike.md`, `docs/index.md`, `docs/build-log.md`
+
+### How to run and verify
+- Re-run the live spike: `pnpm --filter @peksoft/api spike`
+- Verify TypeScript checks: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+### Concepts worth learning
+- **Real API fixtures**: Saving real responses as local JSON fixtures lets Phase 2+ tests run fast and deterministically offline without hitting community servers.
+- **Client-side click reporting**: Radio Browser deduplicates clicks per station per IP per 24h, so clients should report plays directly rather than funneling through one backend IP.
+
+### Decisions and alternatives
+- **Use `/json/servers` + 24h cache on Android with DNS A fallback**: Dart lacks built-in DNS SRV support, while `/json/servers` works cleanly over HTTPS in Dio.
+- **Direct client click reporting**: Preserves accurate per-user IP counting on Radio Browser.
