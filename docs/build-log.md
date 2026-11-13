@@ -645,3 +645,43 @@ Every mobile screen is built with token-driven dark & light themes, `Semantics`,
 
 ### Decisions and alternatives
 - **Committed `app_database.g.dart`**: Matches our `.freezed.dart` workflow so CI runs `flutter analyze` and `flutter test` without needing `build_runner` on every run.
+
+
+---
+
+## Milestone 2.5 — Repositories (Phase 2: Mobile data layer)
+
+### What I did
+- Created repository interfaces (`features/*/domain/`) and implementations (`features/*/data/`):
+  - `CatalogRepository` / `CatalogRepositoryImpl`: countries, canonical genres, languages, top stations, stations by country/genre, and search with offline-first stale-while-revalidate (24-hour TTL for lists, 5-minute TTL for search results).
+  - `StationRepository` / `StationRepositoryImpl`: station lookup (cache-first with `/json/stations/byuuid` fallback), similar-station ranking by shared genre + country, and direct click reporting.
+  - `LibraryRepository` / `LibraryRepositoryImpl`: local-first Drift persistence for favourites, recents (50 cap), collections, and song history, enforcing free-tier limits (`maxFavourites: 10`, `maxCollections: 2`, `maxSongHistory: 10`) via `EntitlementRepository`.
+  - `SettingsRepository` / `SettingsRepositoryImpl`: Drift-backed `UserSettings` read/write.
+  - `EntitlementRepository` / `EntitlementRepositoryImpl`: Phase 2 stub returning `EntitlementTier.free` by default.
+- Added unit tests in `apps/mobile/test/repositories_test.dart` using `AppDatabase.inMemory()` and fake `HttpClientAdapter` responses from Phase 0 fixtures.
+
+### Why
+- Separating domain repository interfaces from Drift/Dio implementations lets ViewModels stay completely independent of storage and network mechanics while keeping offline-first caching and free-tier rules testable with fakes.
+
+### How it works (plain English)
+- When `CatalogRepositoryImpl` reads a cached list whose TTL has expired, it returns the stale cached list immediately so the UI renders with zero wait, while scheduling a background refresh that updates Drift for the next read.
+- `LibraryRepositoryImpl` consults `EntitlementRepository` before adding a new favourite or custom collection, returning `Failure(EntitlementRequiredFailure(...))` when a free-tier limit is reached.
+
+### Files created or changed
+- `apps/mobile/lib/features/catalog/{domain/catalog_repository.dart,data/catalog_repository_impl.dart}`
+- `apps/mobile/lib/features/station/{domain/station_repository.dart,data/station_repository_impl.dart}`
+- `apps/mobile/lib/features/library/{domain/library_repository.dart,data/library_repository_impl.dart}`
+- `apps/mobile/lib/features/profile/{domain/settings_repository.dart,data/settings_repository_impl.dart}`
+- `apps/mobile/lib/features/subscription/{domain/entitlement_repository.dart,data/entitlement_repository_impl.dart}`
+- `apps/mobile/test/repositories_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test test/repositories_test.dart`
+
+### Concepts worth learning
+- **Stale-while-revalidate (SWR)**: Returning slightly expired local data immediately while refreshing asynchronously eliminates loading spinners on repeat visits while keeping catalogs fresh.
+- **Dependency inversion**: ViewModels depend only on `abstract interface class` repositories, making them trivial to unit-test with in-memory fakes.
+
+### Decisions and alternatives
+- **Injected `onBackgroundRevalidation` test hook**: Lets deterministic unit tests await background SWR tasks without flaky `Future.delayed` timers.
