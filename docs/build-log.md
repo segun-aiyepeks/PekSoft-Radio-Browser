@@ -199,3 +199,51 @@
 ### Decisions and alternatives
 - **Use `/json/servers` + 24h cache on Android with DNS A fallback**: Dart lacks built-in DNS SRV support, while `/json/servers` works cleanly over HTTPS in Dio.
 - **Direct client click reporting**: Preserves accurate per-user IP counting on Radio Browser.
+
+---
+
+## Milestone 0.6 — Decisions and architecture (Phase 0: Foundations)
+
+### What I did
+- Created `docs/decisions.md` with 10 Architecture Decision Records (`ADR-001` to `ADR-010`) recording every verified tool/package version and rationale.
+- Created `docs/architecture.md` with a Mermaid system diagram covering `apps/mobile`, `apps/web`, `apps/api`, Firebase, PostgreSQL, Radio Browser mirrors, third-party streams, Google Play Billing, Paystack, AdMob, and AdSense.
+- Updated `docs/index.md` and ran the full Phase 0 quality gate (`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `dart format`, `flutter analyze`, `flutter test`).
+
+### Why
+- Recording verified versions and architectural boundaries before Phase 1 prevents drift and keeps every future phase aligned on where auth, audio, caching, payments, and ads live.
+
+### How it works (plain English)
+- `docs/decisions.md` is the durable record of *why* each technology was chosen and what exact version was verified in Phase 0.
+- `docs/architecture.md` visualises how data flows: audio streams directly to devices (never proxied), metadata is cached/normalised respectfully, and entitlements are verified server-side.
+
+### Files created or changed
+- `docs/decisions.md`
+- `docs/architecture.md`
+- `docs/index.md`
+- `docs/build-log.md`
+
+### How to run and verify
+- Full monorepo quality gate:
+  - `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+  - `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Architecture Decision Records (ADRs)**: Short, immutable-style notes capturing context, decision, and consequences so future contributors (and AI sessions) understand *why* things are built a certain way.
+- **No-proxy audio architecture**: Streaming directly from broadcaster URLs avoids massive server bandwidth costs and legal rebroadcasting issues.
+
+### Decisions and alternatives
+- **Unverified future-phase packages marked as targets**: Rather than guessing versions for Phase 1–5 libraries (`riverpod`, `drift`, `just_audio`, `shadcn`, `motion`), `docs/decisions.md` separates verified Phase 0 versions from Phase 1+ targets to be verified at install time.
+
+---
+
+## Phase 0 Summary — Ready for Review
+
+**Branch:** `phase/0-foundations` → `main`  
+**Milestones completed:** `0.1` Understand & Plan · `0.2` Monorepo Scaffold · `0.3` Brand & Design Tokens · `0.4` CI & PR Template · `0.5` Radio Browser API Spike · `0.6` Decisions & Architecture
+
+All Phase 0 foundations are in place with zero product features built:
+- `pnpm` + Turborepo monorepo (`apps/web`, `apps/api`, `packages/shared`, `packages/design-tokens`) + Flutter Android app (`apps/mobile`, `com.peksoft.radio`).
+- Brand assets (`brand/`) and automated token pipeline (`tokens.json` → Dart constants + Tailwind/CSS variables) + Android launcher icons & web favicons.
+- GitHub Actions CI (`.github/workflows/ci.yml`) and PR template.
+- Live Radio Browser API spike (`docs/api-spike.md`) and 8 real JSON fixtures (`packages/shared/fixtures/radio-browser/`).
+- ADRs (`docs/decisions.md`) and Mermaid system architecture (`docs/architecture.md`).
