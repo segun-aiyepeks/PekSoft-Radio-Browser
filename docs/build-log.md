@@ -247,3 +247,247 @@ All Phase 0 foundations are in place with zero product features built:
 - GitHub Actions CI (`.github/workflows/ci.yml`) and PR template.
 - Live Radio Browser API spike (`docs/api-spike.md`) and 8 real JSON fixtures (`packages/shared/fixtures/radio-browser/`).
 - ADRs (`docs/decisions.md`) and Mermaid system architecture (`docs/architecture.md`).
+
+---
+
+## Milestone 1.1 — Shell and design system (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Created branch `phase/1-mobile-ui` from `main`.
+- Added `go_router` (`18.1.4`) to `apps/mobile/pubspec.yaml`.
+- Built `ThemeData` for dark (default) and light modes in `apps/mobile/lib/core/theme/app_theme.dart` + `theme_controller.dart`, driven 100% by `design_tokens.dart` (no hard-coded colours or sizes).
+- Built all 11 reusable shared widgets in `apps/mobile/lib/core/widgets/`: `StationLogo` (with deterministic generated fallback), `StationTile`, `GenreChip`, `FilterChipBar`, `SectionHeader`, `EmptyState`, `ErrorState`, `SkeletonList` (respects reduced motion), `PrimaryButton`, `QualityBadge`, and `AdSlotPlaceholder`.
+- Configured `go_router` (`app_router.dart`) with `StatefulShellRoute.indexedStack` for 4 tabs (`Home`, `Explore`, `Library`, `Profile`), a persistent `MiniPlayerSlot` above the bottom navigation bar, and a dev-only `/gallery` route (`ComponentGalleryScreen`, guarded by `kDebugMode`).
+- Added widget tests verifying the 4-tab shell + persistent mini-player, dark/light design tokens, 48dp touch targets, and `ComponentGalleryScreen` at `1.3x` text scale.
+- Ran `dart format`, `flutter analyze` (zero issues), and `flutter test` (4/4 passed).
+
+### Why
+- Establishing the token-driven theme, shared component library, and navigation shell first ensures every screen in Milestones 1.3–1.5 looks cohesive, meets accessibility rules (48dp touch targets, `Semantics`, `1.3x` text scaling), and avoids duplicating UI code.
+
+### How it works (plain English)
+- `AppTheme.dark()` and `AppTheme.light()` map `AppDarkColors` / `AppLightColors`, `AppTypography`, `AppSpacing`, and `AppRadii` into Material `ThemeData` plus a custom `AppSemanticColors` `ThemeExtension` (`context.appColors`).
+- `StatefulShellRoute.indexedStack` keeps each tab's navigation state alive while keeping `MiniPlayerSlot` docked above the `NavigationBar` across all tabs.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/main.dart`
+- `apps/mobile/lib/core/theme/app_theme.dart`, `theme_controller.dart`
+- `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/core/widgets/` (`station_logo.dart`, `station_tile.dart`, `genre_chip.dart`, `filter_chip_bar.dart`, `section_header.dart`, `empty_state.dart`, `error_state.dart`, `skeleton_list.dart`, `primary_button.dart`, `quality_badge.dart`, `ad_slot_placeholder.dart`, `widgets.dart`)
+- `apps/mobile/lib/features/{home,explore,library,profile,player,dev_gallery}/presentation/`
+- `apps/mobile/test/widget_test.dart`, `apps/mobile/test/shared_widgets_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+- Run the app with `flutter run` and tap the top-right widgets icon on Home (or the button on Profile) in debug mode to open the Component Gallery and toggle dark/light themes.
+
+### Concepts worth learning
+- **`ThemeExtension<T>`**: Lets us expose semantic design tokens (`surfaceElevated`, `border`, `textMuted`, `accent`) cleanly via `context.appColors` beyond Material's default `ColorScheme`.
+- **`StatefulShellRoute.indexedStack`**: Preserves each bottom-tab's scroll/navigation state while keeping the mini-player persistent above the tab bar.
+
+### Decisions and alternatives
+- **Used `AppTypography.fontFamily` directly without `google_fonts`**: Prevents runtime network font fetches (which violate offline test rules and add an unrequested dependency). Font assets for Space Grotesk can be bundled locally in Phase 7 if desired.
+- **Used `ThemeController` (`ValueNotifier<ThemeMode>`)**: Keeps Milestone 1.1 free of extra state-management packages until Riverpod is introduced in Phase 2.
+
+
+---
+
+## Milestone 1.2 — Mock data (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Created typed `const` mock models in `apps/mobile/lib/mock/mock_models.dart` (`MockStation`, `MockCountry`, `MockGenre`, `MockLanguage`, `MockCuratedCollection`).
+- Built `mock_stations.dart` with **40 realistic `const` stations** (4 each across Nigeria, Ghana, South Africa, the UK, the USA, France, Germany, Japan, Brazil, and India), grounded in Phase 0 Radio Browser fixtures where available (`Wazobia FM: Lagos`, `Cool FM`, `Nigeria Info`, `RTL`) and covering varied codecs (`MP3`, `AAC`, `AAC+`, `OGG`), `isHls`, `isWorking`, `isHttps`, and missing-favicon (`null`) edge cases.
+- Built `mock_countries.dart` (**30 countries**), `mock_genres.dart` (**20 canonical genres** + **10 languages**), and `mock_collections.dart` (**6 curated collections** referencing valid station IDs).
+- Created `mock_providers.dart` (plus barrel `mock.dart`) exposing simple provider functions (`getMockStations`, `getMockStationsByCountry`, `getMockStationsByGenre`, `getMockStationsByLanguage`, `getMockStationById`, `getMockSimilarStations`, `searchMockStations`, `getMockCountries`, `getMockGenres`, `getMockLanguages`, `getMockCuratedCollections`, `getMockStationsForCollection`) and a UI-only `MockSessionController` for favourites, recents, and playback preview state.
+- Added unit tests in `apps/mobile/test/mock_data_test.dart` and ran `dart format`, `flutter analyze` (zero issues), and `flutter test` (9/9 passed).
+
+### Why
+- Putting all mock datasets behind simple provider functions in `lib/mock/` lets Milestones 1.3–1.5 build realistic, interactive screens offline today while making the Phase 3 swap to real Riverpod ViewModels and Drift/API repositories clean and localized.
+
+### How it works (plain English)
+- All catalog lists are compile-time `const` Dart objects—zero network calls, zero database reads.
+- `searchMockStations(...)` and `getMockStations(workingOnly: true)` enforce the product's **Working now ON by default** rule while letting filter sheets toggle `workingOnly: false` to test unavailable/broken-stream states.
+- `MockSessionController` extends `ChangeNotifier` to track in-memory favourites, recents, and the active mock playback status for UI-only interactivity.
+
+### Files created or changed
+- `apps/mobile/lib/mock/mock_models.dart`
+- `apps/mobile/lib/mock/mock_countries.dart`
+- `apps/mobile/lib/mock/mock_genres.dart`
+- `apps/mobile/lib/mock/mock_stations.dart`
+- `apps/mobile/lib/mock/mock_collections.dart`
+- `apps/mobile/lib/mock/mock_providers.dart`
+- `apps/mobile/lib/mock/mock.dart`
+- `apps/mobile/test/mock_data_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Compile-time `const` fixtures**: Making mock models `const` ensures zero runtime allocation overhead and catches invalid data shapes at compile time.
+- **Provider-function boundary**: Screens call `getMockStations(...)` instead of reading raw lists directly, creating a seam where Phase 3 Riverpod providers can drop in cleanly.
+
+### Decisions and alternatives
+- **Kept `MockSessionController` with `ChangeNotifier` instead of adding `flutter_riverpod` now**: Keeps Phase 1 strictly within the Milestone 1.1–1.2 dependency scope until Riverpod is introduced in Phase 2/3.
+
+
+---
+
+## Milestone 1.3 — Discovery screens (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Built `SplashScreen` (`/splash`) and `WelcomeScreen` (`/welcome`) in `apps/mobile/lib/features/onboarding/presentation/` with country selection, optional taste chips, and a visible `Skip` action.
+- Built the `HomeScreen` (`/home`) with quick search entry, `FilterChipBar`, horizontal curated collections carousel, `AdSlotPlaceholder`, and live/working stations list backed by `mock_providers.dart`.
+- Built `ExploreScreen` (`/explore`) with 4 tabs (`Countries`, `Genres`, `Languages`, `Map` placeholder) plus `CountryDetailScreen` (`/country/:code`) and `GenreDetailScreen` (`/genre/:name`).
+- Built `SearchScreen` (`/search`) covering empty, typing, results, and no-results states, along with `filters_bottom_sheet.dart` (`StationFilterState` with **Working now ON by default**, genre, language, codec, minimum bitrate, and sort).
+- Built `StationDetailScreen` (`/station/:id`) and reusable `MockStationTile` (`apps/mobile/lib/features/station/presentation/`), and synced `MiniPlayerSlot` with `mockSessionController`.
+- Wired all routes in `apps/mobile/lib/core/routing/app_router.dart`, added widget tests in `test/discovery_screens_test.dart` at `1.3x` text scale, and verified `dart format`, `flutter analyze` (`No issues found`), and `flutter test` (`15/15 passed`).
+
+### Why
+- Completing every discovery surface with token-driven UI, `48dp` touch targets, `Semantics`, and `Working now ON` defaults lets us review the full browse-and-search experience before adding the full player UI (Milestone 1.4).
+
+### How it works (plain English)
+- `MockStationTile` and `MiniPlayerSlot` both listen to `mockSessionController` via `ListenableBuilder`, so tapping Play or Favourite anywhere immediately updates all visible tiles and the persistent mini-player.
+- `StationFilterState` defaults `workingOnly: true` and passes parameters straight into `searchMockStations(...)`.
+
+### Files created or changed
+- `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/features/onboarding/presentation/{splash_screen.dart,welcome_screen.dart}`
+- `apps/mobile/lib/features/home/presentation/home_screen.dart`
+- `apps/mobile/lib/features/explore/presentation/{explore_screen.dart,country_detail_screen.dart,genre_detail_screen.dart}`
+- `apps/mobile/lib/features/search/presentation/{search_screen.dart,filters_bottom_sheet.dart}`
+- `apps/mobile/lib/features/station/presentation/{mock_station_tile.dart,station_detail_screen.dart}`
+- `apps/mobile/lib/features/player/presentation/mini_player_slot.dart`
+- `apps/mobile/test/{widget_test.dart,discovery_screens_test.dart}`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **`ListenableBuilder` with `ChangeNotifier`**: Lightweight built-in Flutter reactive binding for local UI-only state in Phase 1 before Riverpod is introduced in Phase 2/3.
+- **Immutable filter state (`StationFilterState`)**: Returning a new `StationFilterState` from `showModalBottomSheet` keeps filter edits cancelable until the user taps **Apply Filters**.
+
+### Decisions and alternatives
+- **Kept `/home` as `initialLocation` while exposing `/splash` and `/welcome` as routes**: Lets `PekSoftRadioApp` boot directly into the 4-tab shell during development and preserves shell smoke tests while keeping Splash/Welcome fully navigable.
+
+
+---
+
+## Milestone 1.4 — Player UI (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Built `NowPlayingScreen` (`/player`) in `apps/mobile/lib/features/player/presentation/now_playing_screen.dart` with station artwork, track title, `QualityBadge`, play/pause, favourite toggle, sleep-timer trigger, share action, report trigger, similar stations, and a dev-only playback state switcher (`kDebugMode`).
+- Added `sleep_timer_sheet.dart` (`Off`, `15–90 min`) and `report_station_sheet.dart` (issue reason chips, optional notes, mock submission confirmation).
+- Updated `MiniPlayerSlot` (`mini_player_slot.dart`) to reflect all playback states (`idle`, `playing`, `paused`, `buffering`, `reconnecting`, `unavailable`) and open `/player` on tap.
+- Extended `MockSessionController` in `mock_providers.dart` with UI-only sleep timer state, wired `/player` in `app_router.dart`, and added `test/player_ui_test.dart` at `1.3x` text scale.
+- Ran `dart format`, `flutter analyze`, and `flutter test`.
+
+### Why
+- Giving every playback state (including buffering, reconnecting, and station-unavailable) a clear visual and accessible representation—plus a debug-only state switcher—lets us verify edge-case UX before integrating `just_audio` in Phase 4.
+
+### How it works (plain English)
+- `MiniPlayerSlot` and `NowPlayingScreen` both subscribe to `mockSessionController` via `ListenableBuilder`, keeping play/pause, favourites, sleep timer, and simulated error states synchronized across the app.
+
+### Files created or changed
+- `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/mock/mock_providers.dart`
+- `apps/mobile/lib/features/player/presentation/{mini_player_slot.dart,now_playing_screen.dart,sleep_timer_sheet.dart,report_station_sheet.dart}`
+- `apps/mobile/test/player_ui_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **`Semantics(liveRegion: true)`**: Announces playback status transitions (such as buffering or station unavailable) to screen readers automatically.
+- **`kDebugMode` dev state switcher**: Lets developers and reviewers preview rare network/stream failure states on demand without shipping debug UI in release builds.
+
+### Decisions and alternatives
+- **Kept playback state switcher inside `kDebugMode` on `NowPlayingScreen`**: Matches the `ComponentGalleryScreen` pattern so release builds stay clean while debug builds offer instant state previews.
+
+
+---
+
+## Milestone 1.5 — Account and money screens (UI only) (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Built `LibraryScreen` (`/library`) with 4 tabs (`Favourites`, `Recents`, `Collections`, `Song History`) and free-tier limit upgrade prompts (`Go Pro` → `/paywall`).
+- Built the Auth flow (`AuthLandingScreen`, `SignInScreen`, `SignUpScreen`, `VerifyEmailScreen`, `ForgotPasswordScreen`, `ResetPasswordScreen`) with Google & email entry points, guest skip, and visual `Form` validation only.
+- Built `PaywallScreen` (`/paywall`) with Monthly/Annual toggle (`Save 33%`), benefits list, Restore Purchases, Terms & Privacy links, and a visible Close button, plus `SubscriptionManagementScreen` (`/subscription`).
+- Built `ProfileScreen` (`/profile`), `SettingsScreen` (`/settings` with data saver, sleep-timer default, theme, language, notifications), `DeleteAccountScreen` (`/delete-account` requiring `DELETE` confirmation), and `AboutLegalScreen` (`/about` including **Station data by Radio Browser**).
+- Added a token-driven `OfflineBanner` (`offline_banner.dart`) wired into `_MobileShellScaffold` and toggleable from Profile (`Simulate Offline Banner`), plus unit/widget tests in `test/account_money_screens_test.dart` at `1.3x` text scale.
+
+### Why
+- Completing all account, monetization, settings, legal, and offline-state UI with mock data ensures every screen in the mobile user journey is reviewable and accessible before backend/Firebase/billing integrations begin in Phases 5–6.
+
+### How it works (plain English)
+- `MockSessionController` tracks UI-only guest/signed-in status, mock Pro entitlement, simulated offline banner state, and Settings preferences (`dataSaver`, `defaultSleepMinutes`, `appLanguage`, `notifyCollections`).
+- `_MobileShellScaffold` listens to `mockSessionController` and renders `OfflineBanner` above the active tab whenever offline simulation is enabled.
+
+### Files created or changed
+- `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/core/widgets/{offline_banner.dart,widgets.dart}`
+- `apps/mobile/lib/mock/mock_providers.dart`
+- `apps/mobile/lib/features/library/presentation/library_screen.dart`
+- `apps/mobile/lib/features/auth/presentation/{auth_landing_screen.dart,sign_in_screen.dart,sign_up_screen.dart,verify_email_screen.dart,forgot_password_screen.dart,reset_password_screen.dart}`
+- `apps/mobile/lib/features/subscription/presentation/{paywall_screen.dart,subscription_management_screen.dart}`
+- `apps/mobile/lib/features/profile/presentation/{profile_screen.dart,settings_screen.dart,delete_account_screen.dart,about_legal_screen.dart}`
+- `apps/mobile/test/{widget_test.dart,account_money_screens_test.dart}`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Visual-only `Form` validation**: Using `GlobalKey<FormState>` and `TextFormField.validator` validates input formatting and feedback in UI-only prototypes without touching any auth backend.
+- **Explicit destructive confirmation (`DELETE`)**: Requiring a typed confirmation keyword before enabling account deletion prevents accidental taps.
+
+### Decisions and alternatives
+- **Kept Auth, Paywall, and Delete Account state inside `MockSessionController`**: Lets reviewers toggle signed-in, Pro, and offline states live across all tabs without adding Firebase or billing SDKs prematurely.
+
+
+---
+
+## Milestone 1.6 — Polish and review (Phase 1: Mobile UI with mock data)
+
+### What I did
+- Ran an automated accessibility, contrast, tap-target, and `1.3x` text-scale audit (`test/polish_accessibility_test.dart`) across 8 key screens (`Home`, `Explore`, `Search`, `NowPlaying`, `Library`, `Paywall`, `Profile`, `Settings`) in both dark and light themes (`androidTapTargetGuideline`, `labeledTapTargetGuideline`, `textContrastGuideline`), plus landscape (`844x390`) and tablet (`1024x768`) layout checks.
+- Fixed a tap-target finding caught by the audit on `NowPlayingScreen`'s dev state switcher (`compact: true` chips were `28dp` tall; switched to full `48dp` `GenreChip` targets) and added **Replay Welcome & Splash** to `ProfileScreen` so onboarding is reachable from the UI.
+- Added golden tests (`test/golden_screens_test.dart`) and generated 5 baseline golden PNGs (`HomeScreen`, `ExploreScreen`, `SearchScreen`, `NowPlayingScreen` in dark mode; `PaywallScreen` in light mode).
+- Created `docs/ui-walkthrough.md` listing every Phase 1 screen, route, file path, and navigation path, and linked it from `docs/index.md`.
+- Ran the full quality gate (`dart format --output=none --set-exit-if-changed .`, `flutter analyze`, `flutter test`).
+
+### Why
+- Automated guideline tests + golden snapshots + a complete UI walkthrough ensure Phase 1 meets accessibility, responsiveness, and visual consistency requirements before Phase 2 adds real networking and persistence.
+
+### How it works (plain English)
+- `polish_accessibility_test.dart` enables Flutter's `SemanticsHandle` and verifies every tappable element meets `48x48dp`, has an accessible label, and passes text contrast in both dark and light themes, while also testing landscape and tablet viewports for overflows.
+- `golden_screens_test.dart` compares rendered pixels of 5 flagship screens against saved PNG baselines in `apps/mobile/test/goldens/`.
+
+### Files created or changed
+- `apps/mobile/lib/features/player/presentation/now_playing_screen.dart`
+- `apps/mobile/lib/features/profile/presentation/profile_screen.dart`
+- `apps/mobile/test/polish_accessibility_test.dart`
+- `apps/mobile/test/golden_screens_test.dart`, `apps/mobile/test/goldens/*.png`
+- `docs/ui-walkthrough.md`, `docs/index.md`, `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Flutter accessibility guidelines (`meetsGuideline`)**: Built-in `flutter_test` matchers (`androidTapTargetGuideline`, `labeledTapTargetGuideline`, `textContrastGuideline`) catch real a11y regressions automatically in CI.
+- **Golden testing**: Pixel-snapshot tests (`matchesGoldenFile`) catch unintended layout or token regressions on key screens.
+
+### Decisions and alternatives
+- **Kept 5 flagship golden screens (4 dark, 1 light) rather than snapshotting all 24 screens**: Covers every major layout archetype (feed, tabs, search list, player, paywall) while keeping golden maintenance fast.
+
+---
+
+## Phase 1 Summary — Ready for Review
+
+**Branch:** `phase/1-mobile-ui` → `main`  
+**Milestones completed:** `1.1` Shell & Design System · `1.2` Mock Data · `1.3` Discovery Screens · `1.4` Player UI · `1.5` Account & Money Screens · `1.6` Polish & Review
+
+Every mobile screen is built with token-driven dark & light themes, `Semantics`, `>= 48dp` touch targets, and `1.3x` text-scale support—backed by `const` mock data in `apps/mobile/lib/mock/` with zero networking, database, Firebase, or real audio.

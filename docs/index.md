@@ -4,4 +4,5 @@
 - [Decisions (ADRs)](decisions.md) — Verified technology choices, versions, and rationale.
 - [API Spike](api-spike.md) — Live Radio Browser API findings, real field types, and normalisation rules.
 - [Build Log](build-log.md) — Milestone-by-milestone progress, decisions, and verification notes.
+- [Mobile UI Walkthrough](ui-walkthrough.md) — Every Phase 1 mobile screen, route, and how to reach it.
 - [Agent Guidelines](../Agents.md) — Engineering rules, architecture conventions, and Git protocol.
