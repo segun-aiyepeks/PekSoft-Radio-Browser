@@ -1,0 +1,1160 @@
+{
+  "timestamp": "2026-11-13T13:51:07.326Z",
+  "mirrors": {
+    "dnsLookupMs": 147,
+    "dnsMirrors": [
+      {
+        "ip": "91.98.4.78",
+        "host": "de1.api.radio-browser.info"
+      }
+    ],
+    "srvRecords": [
+      {
+        "name": "de1.api.radio-browser.info",
+        "port": 443,
+        "priority": 1,
+        "weight": 1,
+        "type": "SRV"
+      }
+    ],
+    "serverListLatencyMs": 1279,
+    "serverListCount": 2,
+    "mirrorLatencies": [
+      {
+        "host": "de1.api.radio-browser.info",
+        "ok": true,
+        "latencyMs": 990
+      }
+    ]
+  },
+  "counts": {
+    "countriesTotal": 225,
+    "tagsFetched": 500,
+    "languagesFetched": 200,
+    "topClickFetched": 150,
+    "ngWorkingFetched": 75,
+    "sample200Count": 200
+  },
+  "schemas": {
+    "stationFields": [
+      {
+        "field": "changeuuid",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "58e28005-89b9-4e31-831d-fb3ca9c72dcf"
+      },
+      {
+        "field": "stationuuid",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "1dfcc339-6292-4bf1-8b21-5c4a099ecd7e"
+      },
+      {
+        "field": "serveruuid",
+        "types": [
+          "null"
+        ],
+        "emptyCount": 200,
+        "sample": null
+      },
+      {
+        "field": "name",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "Wazobia FM: Lagos"
+      },
+      {
+        "field": "url",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "https://wazobiafmlagos951-atunwadigital.streamguys1.com/wazobiafmlagos951"
+      },
+      {
+        "field": "url_resolved",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 1,
+        "sample": "https://wazobiafmlagos951-atunwadigital.streamguys1.com/wazobiafmlagos951"
+      },
+      {
+        "field": "homepage",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 8,
+        "sample": "https://www.wazobiafm.com/"
+      },
+      {
+        "field": "favicon",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 42,
+        "sample": "https://cdn.onlineradiobox.com/img/l/4/6654.v11.png"
+      },
+      {
+        "field": "tags",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 57,
+        "sample": "entertainment,music"
+      },
+      {
+        "field": "country",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 1,
+        "sample": "Nigeria"
+      },
+      {
+        "field": "countrycode",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 1,
+        "sample": "NG"
+      },
+      {
+        "field": "iso_3166_2",
+        "types": [
+          "null",
+          "string"
+        ],
+        "emptyCount": 180,
+        "sample": "IT-SO"
+      },
+      {
+        "field": "state",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 102,
+        "sample": "Lagos"
+      },
+      {
+        "field": "language",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 63,
+        "sample": "english"
+      },
+      {
+        "field": "languagecodes",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 66,
+        "sample": "en"
+      },
+      {
+        "field": "votes",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 137
+      },
+      {
+        "field": "lastchangetime",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "2026-07-28 19:31:49"
+      },
+      {
+        "field": "lastchangetime_iso8601",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "2026-07-28T19:31:49Z"
+      },
+      {
+        "field": "codec",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 1,
+        "sample": "MP3"
+      },
+      {
+        "field": "bitrate",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 128
+      },
+      {
+        "field": "hls",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 0
+      },
+      {
+        "field": "lastcheckok",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 1
+      },
+      {
+        "field": "lastchecktime",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "2026-11-11 23:44:13"
+      },
+      {
+        "field": "lastchecktime_iso8601",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "2026-11-11T23:44:13Z"
+      },
+      {
+        "field": "lastcheckoktime",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 1,
+        "sample": "2026-11-11 23:44:13"
+      },
+      {
+        "field": "lastcheckoktime_iso8601",
+        "types": [
+          "string",
+          "null"
+        ],
+        "emptyCount": 1,
+        "sample": "2026-11-11T23:44:13Z"
+      },
+      {
+        "field": "lastlocalchecktime",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "2026-11-11 23:44:13"
+      },
+      {
+        "field": "lastlocalchecktime_iso8601",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "2026-11-11T23:44:13Z"
+      },
+      {
+        "field": "clicktimestamp",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 1,
+        "sample": "2026-11-13 13:32:24"
+      },
+      {
+        "field": "clicktimestamp_iso8601",
+        "types": [
+          "string",
+          "null"
+        ],
+        "emptyCount": 1,
+        "sample": "2026-11-13T13:32:24Z"
+      },
+      {
+        "field": "clickcount",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 56
+      },
+      {
+        "field": "clicktrend",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 56
+      },
+      {
+        "field": "ssl_error",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 0
+      },
+      {
+        "field": "geo_lat",
+        "types": [
+          "null",
+          "number"
+        ],
+        "emptyCount": 149,
+        "sample": 6.500050180123714
+      },
+      {
+        "field": "geo_long",
+        "types": [
+          "null",
+          "number"
+        ],
+        "emptyCount": 149,
+        "sample": 3.3769393269335706
+      },
+      {
+        "field": "geo_distance",
+        "types": [
+          "null"
+        ],
+        "emptyCount": 200,
+        "sample": null
+      },
+      {
+        "field": "has_extended_info",
+        "types": [
+          "boolean"
+        ],
+        "emptyCount": 0,
+        "sample": false
+      }
+    ],
+    "countryFields": [
+      {
+        "field": "name",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "The United States Of America"
+      },
+      {
+        "field": "iso_3166_1",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "US"
+      },
+      {
+        "field": "stationcount",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 7083
+      }
+    ],
+    "tagFields": [
+      {
+        "field": "name",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "pop"
+      },
+      {
+        "field": "stationcount",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 5188
+      }
+    ],
+    "languageFields": [
+      {
+        "field": "name",
+        "types": [
+          "string"
+        ],
+        "emptyCount": 0,
+        "sample": "english"
+      },
+      {
+        "field": "iso_639",
+        "types": [
+          "string",
+          "null"
+        ],
+        "emptyCount": 14,
+        "sample": "en"
+      },
+      {
+        "field": "stationcount",
+        "types": [
+          "number"
+        ],
+        "emptyCount": 0,
+        "sample": 11463
+      }
+    ]
+  },
+  "stationAnalysisSample200": {
+    "total": 200,
+    "lastCheckOkCount": 195,
+    "resolvedHttps": 138,
+    "resolvedHttpsPct": 69,
+    "resolvedHttp": 61,
+    "resolvedOther": 1,
+    "httpOnly": 61,
+    "httpOnlyPct": 30.5,
+    "missingFavicon": 42,
+    "missingFaviconPct": 21,
+    "hlsCount": 11,
+    "hlsPct": 5.5,
+    "codecDistribution": [
+      {
+        "codec": "MP3",
+        "count": 157
+      },
+      {
+        "codec": "AAC",
+        "count": 22
+      },
+      {
+        "codec": "AAC+",
+        "count": 12
+      },
+      {
+        "codec": "UNKNOWN",
+        "count": 6
+      },
+      {
+        "codec": "OGG",
+        "count": 2
+      },
+      {
+        "codec": "(empty)",
+        "count": 1
+      }
+    ],
+    "bitrateBuckets": {
+      "zeroOrUnknown": 24,
+      "low_1_to_64": 33,
+      "medium_65_to_128": 119,
+      "high_129_to_192": 16,
+      "ultra_gt_192": 8
+    },
+    "medianNonZeroBitrate": 128,
+    "caseCollisions": [],
+    "topStationTags": [
+      [
+        "news",
+        30
+      ],
+      [
+        "pop",
+        23
+      ],
+      [
+        "music",
+        17
+      ],
+      [
+        "public radio",
+        14
+      ],
+      [
+        "rock",
+        13
+      ],
+      [
+        "talk",
+        12
+      ],
+      [
+        "jazz",
+        9
+      ],
+      [
+        "afrobeats",
+        9
+      ],
+      [
+        "80s",
+        8
+      ],
+      [
+        "lounge",
+        8
+      ],
+      [
+        "dance",
+        8
+      ],
+      [
+        "gospel",
+        7
+      ],
+      [
+        "oldies",
+        7
+      ],
+      [
+        "christian",
+        6
+      ],
+      [
+        "information",
+        6
+      ],
+      [
+        "radio",
+        6
+      ],
+      [
+        "pop rock",
+        6
+      ],
+      [
+        "hits",
+        6
+      ],
+      [
+        "entertainment",
+        5
+      ],
+      [
+        "community radio",
+        5
+      ],
+      [
+        "classic hits",
+        5
+      ],
+      [
+        "culture",
+        5
+      ],
+      [
+        "smooth jazz",
+        4
+      ],
+      [
+        "nigeria",
+        4
+      ],
+      [
+        "variety",
+        4
+      ],
+      [
+        "90s",
+        4
+      ],
+      [
+        "pop music",
+        4
+      ],
+      [
+        "ambient",
+        4
+      ],
+      [
+        "adult contemporary",
+        4
+      ],
+      [
+        "classical",
+        4
+      ]
+    ]
+  },
+  "stationAnalysisTopClick": {
+    "total": 150,
+    "lastCheckOkCount": 150,
+    "resolvedHttps": 91,
+    "resolvedHttpsPct": 60.7,
+    "resolvedHttp": 59,
+    "resolvedOther": 0,
+    "httpOnly": 59,
+    "httpOnlyPct": 39.3,
+    "missingFavicon": 24,
+    "missingFaviconPct": 16,
+    "hlsCount": 12,
+    "hlsPct": 8,
+    "codecDistribution": [
+      {
+        "codec": "MP3",
+        "count": 106
+      },
+      {
+        "codec": "AAC",
+        "count": 25
+      },
+      {
+        "codec": "AAC+",
+        "count": 11
+      },
+      {
+        "codec": "UNKNOWN",
+        "count": 6
+      },
+      {
+        "codec": "OGG",
+        "count": 2
+      }
+    ],
+    "bitrateBuckets": {
+      "zeroOrUnknown": 18,
+      "low_1_to_64": 22,
+      "medium_65_to_128": 87,
+      "high_129_to_192": 15,
+      "ultra_gt_192": 8
+    },
+    "medianNonZeroBitrate": 128,
+    "caseCollisions": [],
+    "topStationTags": [
+      [
+        "pop",
+        26
+      ],
+      [
+        "news",
+        23
+      ],
+      [
+        "public radio",
+        14
+      ],
+      [
+        "rock",
+        14
+      ],
+      [
+        "music",
+        11
+      ],
+      [
+        "oldies",
+        9
+      ],
+      [
+        "80s",
+        8
+      ],
+      [
+        "talk",
+        8
+      ],
+      [
+        "dance",
+        7
+      ],
+      [
+        "jazz",
+        7
+      ],
+      [
+        "lounge",
+        7
+      ],
+      [
+        "pop rock",
+        7
+      ],
+      [
+        "hits",
+        7
+      ],
+      [
+        "information",
+        6
+      ],
+      [
+        "radio",
+        6
+      ],
+      [
+        "90s",
+        6
+      ],
+      [
+        "classic hits",
+        5
+      ],
+      [
+        "culture",
+        5
+      ],
+      [
+        "classical",
+        5
+      ],
+      [
+        "house",
+        5
+      ],
+      [
+        "electronic",
+        5
+      ],
+      [
+        "variety",
+        4
+      ],
+      [
+        "pop music",
+        4
+      ],
+      [
+        "ambient",
+        4
+      ],
+      [
+        "adult contemporary",
+        4
+      ],
+      [
+        "techno",
+        4
+      ],
+      [
+        "bollywood",
+        4
+      ],
+      [
+        "folk",
+        3
+      ],
+      [
+        "radio france",
+        3
+      ],
+      [
+        "easy listening",
+        3
+      ]
+    ]
+  },
+  "stationAnalysisNgWorking": {
+    "total": 75,
+    "lastCheckOkCount": 70,
+    "resolvedHttps": 66,
+    "resolvedHttpsPct": 88,
+    "resolvedHttp": 8,
+    "resolvedOther": 1,
+    "httpOnly": 8,
+    "httpOnlyPct": 10.7,
+    "missingFavicon": 24,
+    "missingFaviconPct": 32,
+    "hlsCount": 2,
+    "hlsPct": 2.7,
+    "codecDistribution": [
+      {
+        "codec": "MP3",
+        "count": 68
+      },
+      {
+        "codec": "AAC",
+        "count": 4
+      },
+      {
+        "codec": "AAC+",
+        "count": 2
+      },
+      {
+        "codec": "(empty)",
+        "count": 1
+      }
+    ],
+    "bitrateBuckets": {
+      "zeroOrUnknown": 7,
+      "low_1_to_64": 13,
+      "medium_65_to_128": 51,
+      "high_129_to_192": 4,
+      "ultra_gt_192": 0
+    },
+    "medianNonZeroBitrate": 128,
+    "caseCollisions": [],
+    "topStationTags": [
+      [
+        "news",
+        10
+      ],
+      [
+        "afrobeats",
+        9
+      ],
+      [
+        "music",
+        8
+      ],
+      [
+        "gospel",
+        7
+      ],
+      [
+        "christian",
+        5
+      ],
+      [
+        "talk",
+        5
+      ],
+      [
+        "nigeria",
+        4
+      ],
+      [
+        "entertainment",
+        3
+      ],
+      [
+        "jazz",
+        3
+      ],
+      [
+        "african",
+        3
+      ],
+      [
+        "ibadan",
+        3
+      ],
+      [
+        "afrofusion",
+        3
+      ],
+      [
+        "community radio",
+        3
+      ],
+      [
+        "general",
+        3
+      ],
+      [
+        "gospel music",
+        2
+      ],
+      [
+        "smooth jazz",
+        2
+      ],
+      [
+        "highlife",
+        2
+      ],
+      [
+        "yoruba",
+        2
+      ],
+      [
+        "dance",
+        2
+      ],
+      [
+        "afro-gospel",
+        2
+      ],
+      [
+        "talk & speech",
+        2
+      ],
+      [
+        "various",
+        2
+      ],
+      [
+        "religious",
+        1
+      ],
+      [
+        "80s",
+        1
+      ],
+      [
+        "dj mixes",
+        1
+      ],
+      [
+        "electro",
+        1
+      ],
+      [
+        "hiphop",
+        1
+      ],
+      [
+        "lounge",
+        1
+      ],
+      [
+        "mix",
+        1
+      ],
+      [
+        "r&b",
+        1
+      ]
+    ]
+  },
+  "messyTagExamplesFromTagsEndpoint": {
+    "caseCollisions": [],
+    "sampleTags": [
+      {
+        "name": "pop",
+        "stationcount": 5188
+      },
+      {
+        "name": "music",
+        "stationcount": 3657
+      },
+      {
+        "name": "news",
+        "stationcount": 2728
+      },
+      {
+        "name": "rock",
+        "stationcount": 2654
+      },
+      {
+        "name": "talk",
+        "stationcount": 1639
+      },
+      {
+        "name": "hits",
+        "stationcount": 1431
+      },
+      {
+        "name": "dance",
+        "stationcount": 1418
+      },
+      {
+        "name": "oldies",
+        "stationcount": 1213
+      },
+      {
+        "name": "entretenimiento",
+        "stationcount": 1181
+      },
+      {
+        "name": "classical",
+        "stationcount": 1171
+      },
+      {
+        "name": "radio",
+        "stationcount": 1169
+      },
+      {
+        "name": "jazz",
+        "stationcount": 1076
+      },
+      {
+        "name": "estación",
+        "stationcount": 1033
+      },
+      {
+        "name": "80s",
+        "stationcount": 1016
+      },
+      {
+        "name": "méxico",
+        "stationcount": 966
+      },
+      {
+        "name": "norteamérica",
+        "stationcount": 931
+      },
+      {
+        "name": "electronic",
+        "stationcount": 903
+      },
+      {
+        "name": "fm",
+        "stationcount": 876
+      },
+      {
+        "name": "christian",
+        "stationcount": 870
+      },
+      {
+        "name": "música",
+        "stationcount": 868
+      },
+      {
+        "name": "public radio",
+        "stationcount": 849
+      },
+      {
+        "name": "moi merino",
+        "stationcount": 848
+      },
+      {
+        "name": "español",
+        "stationcount": 810
+      },
+      {
+        "name": "latinoamérica",
+        "stationcount": 809
+      },
+      {
+        "name": "top 40",
+        "stationcount": 806
+      },
+      {
+        "name": "90s",
+        "stationcount": 805
+      },
+      {
+        "name": "community radio",
+        "stationcount": 782
+      },
+      {
+        "name": "pop music",
+        "stationcount": 777
+      },
+      {
+        "name": "classic rock",
+        "stationcount": 759
+      },
+      {
+        "name": "classic hits",
+        "stationcount": 720
+      },
+      {
+        "name": "adult contemporary",
+        "stationcount": 717
+      },
+      {
+        "name": "américa",
+        "stationcount": 693
+      },
+      {
+        "name": "house",
+        "stationcount": 691
+      },
+      {
+        "name": "local news",
+        "stationcount": 642
+      },
+      {
+        "name": "country",
+        "stationcount": 633
+      },
+      {
+        "name": "folk",
+        "stationcount": 600
+      },
+      {
+        "name": "alternative",
+        "stationcount": 598
+      },
+      {
+        "name": "pop rock",
+        "stationcount": 580
+      },
+      {
+        "name": "música en español",
+        "stationcount": 565
+      },
+      {
+        "name": "local radio",
+        "stationcount": 508
+      },
+      {
+        "name": "70s",
+        "stationcount": 485
+      },
+      {
+        "name": "noticias",
+        "stationcount": 458
+      },
+      {
+        "name": "variety",
+        "stationcount": 451
+      },
+      {
+        "name": "regional",
+        "stationcount": 429
+      },
+      {
+        "name": "information",
+        "stationcount": 428
+      },
+      {
+        "name": "soul",
+        "stationcount": 426
+      },
+      {
+        "name": "regional mexican",
+        "stationcount": 414
+      },
+      {
+        "name": "indie",
+        "stationcount": 394
+      },
+      {
+        "name": "metal",
+        "stationcount": 388
+      },
+      {
+        "name": "chillout",
+        "stationcount": 387
+      },
+      {
+        "name": "gospel",
+        "stationcount": 376
+      },
+      {
+        "name": "música pop",
+        "stationcount": 373
+      },
+      {
+        "name": "regional mexicana",
+        "stationcount": 372
+      },
+      {
+        "name": "techno",
+        "stationcount": 365
+      },
+      {
+        "name": "news talk",
+        "stationcount": 364
+      },
+      {
+        "name": "local",
+        "stationcount": 363
+      },
+      {
+        "name": "ambient",
+        "stationcount": 358
+      },
+      {
+        "name": "religion",
+        "stationcount": 357
+      },
+      {
+        "name": "música popular mexicana",
+        "stationcount": 354
+      },
+      {
+        "name": "sports",
+        "stationcount": 345
+      }
+    ]
+  }
+}

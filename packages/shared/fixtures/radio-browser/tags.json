@@ -1,0 +1,1002 @@
+[
+  {
+    "name": "pop",
+    "stationcount": 5188
+  },
+  {
+    "name": "music",
+    "stationcount": 3657
+  },
+  {
+    "name": "news",
+    "stationcount": 2728
+  },
+  {
+    "name": "rock",
+    "stationcount": 2654
+  },
+  {
+    "name": "talk",
+    "stationcount": 1639
+  },
+  {
+    "name": "hits",
+    "stationcount": 1431
+  },
+  {
+    "name": "dance",
+    "stationcount": 1418
+  },
+  {
+    "name": "oldies",
+    "stationcount": 1213
+  },
+  {
+    "name": "entretenimiento",
+    "stationcount": 1181
+  },
+  {
+    "name": "classical",
+    "stationcount": 1171
+  },
+  {
+    "name": "radio",
+    "stationcount": 1169
+  },
+  {
+    "name": "jazz",
+    "stationcount": 1076
+  },
+  {
+    "name": "estación",
+    "stationcount": 1033
+  },
+  {
+    "name": "80s",
+    "stationcount": 1016
+  },
+  {
+    "name": "méxico",
+    "stationcount": 966
+  },
+  {
+    "name": "norteamérica",
+    "stationcount": 931
+  },
+  {
+    "name": "electronic",
+    "stationcount": 903
+  },
+  {
+    "name": "fm",
+    "stationcount": 876
+  },
+  {
+    "name": "christian",
+    "stationcount": 870
+  },
+  {
+    "name": "música",
+    "stationcount": 868
+  },
+  {
+    "name": "public radio",
+    "stationcount": 849
+  },
+  {
+    "name": "moi merino",
+    "stationcount": 848
+  },
+  {
+    "name": "español",
+    "stationcount": 810
+  },
+  {
+    "name": "latinoamérica",
+    "stationcount": 809
+  },
+  {
+    "name": "top 40",
+    "stationcount": 806
+  },
+  {
+    "name": "90s",
+    "stationcount": 805
+  },
+  {
+    "name": "community radio",
+    "stationcount": 782
+  },
+  {
+    "name": "pop music",
+    "stationcount": 777
+  },
+  {
+    "name": "classic rock",
+    "stationcount": 759
+  },
+  {
+    "name": "classic hits",
+    "stationcount": 720
+  },
+  {
+    "name": "adult contemporary",
+    "stationcount": 717
+  },
+  {
+    "name": "américa",
+    "stationcount": 693
+  },
+  {
+    "name": "house",
+    "stationcount": 691
+  },
+  {
+    "name": "local news",
+    "stationcount": 642
+  },
+  {
+    "name": "country",
+    "stationcount": 633
+  },
+  {
+    "name": "folk",
+    "stationcount": 600
+  },
+  {
+    "name": "alternative",
+    "stationcount": 598
+  },
+  {
+    "name": "pop rock",
+    "stationcount": 580
+  },
+  {
+    "name": "música en español",
+    "stationcount": 565
+  },
+  {
+    "name": "local radio",
+    "stationcount": 508
+  },
+  {
+    "name": "70s",
+    "stationcount": 485
+  },
+  {
+    "name": "noticias",
+    "stationcount": 458
+  },
+  {
+    "name": "variety",
+    "stationcount": 451
+  },
+  {
+    "name": "regional",
+    "stationcount": 429
+  },
+  {
+    "name": "information",
+    "stationcount": 428
+  },
+  {
+    "name": "soul",
+    "stationcount": 426
+  },
+  {
+    "name": "regional mexican",
+    "stationcount": 414
+  },
+  {
+    "name": "indie",
+    "stationcount": 394
+  },
+  {
+    "name": "metal",
+    "stationcount": 388
+  },
+  {
+    "name": "chillout",
+    "stationcount": 387
+  },
+  {
+    "name": "gospel",
+    "stationcount": 376
+  },
+  {
+    "name": "música pop",
+    "stationcount": 373
+  },
+  {
+    "name": "regional mexicana",
+    "stationcount": 372
+  },
+  {
+    "name": "techno",
+    "stationcount": 365
+  },
+  {
+    "name": "news talk",
+    "stationcount": 364
+  },
+  {
+    "name": "local",
+    "stationcount": 363
+  },
+  {
+    "name": "ambient",
+    "stationcount": 358
+  },
+  {
+    "name": "religion",
+    "stationcount": 357
+  },
+  {
+    "name": "música popular mexicana",
+    "stationcount": 354
+  },
+  {
+    "name": "sports",
+    "stationcount": 345
+  },
+  {
+    "name": "religious",
+    "stationcount": 344
+  },
+  {
+    "name": "easy listening",
+    "stationcount": 337
+  },
+  {
+    "name": "culture",
+    "stationcount": 324
+  },
+  {
+    "name": "música regional",
+    "stationcount": 320
+  },
+  {
+    "name": "regional radio",
+    "stationcount": 318
+  },
+  {
+    "name": "entertainment",
+    "stationcount": 312
+  },
+  {
+    "name": "lounge",
+    "stationcount": 311
+  },
+  {
+    "name": "rap",
+    "stationcount": 309
+  },
+  {
+    "name": "disco",
+    "stationcount": 304
+  },
+  {
+    "name": "funk",
+    "stationcount": 303
+  },
+  {
+    "name": "blues",
+    "stationcount": 298
+  },
+  {
+    "name": "mexican music",
+    "stationcount": 298
+  },
+  {
+    "name": "full service",
+    "stationcount": 296
+  },
+  {
+    "name": "alternative rock",
+    "stationcount": 294
+  },
+  {
+    "name": "grupera",
+    "stationcount": 290
+  },
+  {
+    "name": "mexico",
+    "stationcount": 279
+  },
+  {
+    "name": "retro",
+    "stationcount": 274
+  },
+  {
+    "name": "regional music",
+    "stationcount": 273
+  },
+  {
+    "name": "2000s",
+    "stationcount": 271
+  },
+  {
+    "name": "salsa",
+    "stationcount": 271
+  },
+  {
+    "name": "webradio",
+    "stationcount": 269
+  },
+  {
+    "name": "música regional mexicana",
+    "stationcount": 267
+  },
+  {
+    "name": "hiphop",
+    "stationcount": 265
+  },
+  {
+    "name": "música mexicana",
+    "stationcount": 264
+  },
+  {
+    "name": "islamic",
+    "stationcount": 261
+  },
+  {
+    "name": "música variada",
+    "stationcount": 257
+  },
+  {
+    "name": "greek",
+    "stationcount": 256
+  },
+  {
+    "name": "edm",
+    "stationcount": 252
+  },
+  {
+    "name": "reggae",
+    "stationcount": 250
+  },
+  {
+    "name": "top40",
+    "stationcount": 248
+  },
+  {
+    "name": "banda",
+    "stationcount": 246
+  },
+  {
+    "name": "electro",
+    "stationcount": 245
+  },
+  {
+    "name": "trance",
+    "stationcount": 243
+  },
+  {
+    "name": "npr",
+    "stationcount": 239
+  },
+  {
+    "name": "commercial",
+    "stationcount": 239
+  },
+  {
+    "name": "islam",
+    "stationcount": 237
+  },
+  {
+    "name": "smooth jazz",
+    "stationcount": 237
+  },
+  {
+    "name": "quran",
+    "stationcount": 236
+  },
+  {
+    "name": "top hits",
+    "stationcount": 233
+  },
+  {
+    "name": "latino",
+    "stationcount": 229
+  },
+  {
+    "name": "radio hablada",
+    "stationcount": 229
+  },
+  {
+    "name": "mainstream",
+    "stationcount": 228
+  },
+  {
+    "name": "60s",
+    "stationcount": 225
+  },
+  {
+    "name": "traditional mexican music",
+    "stationcount": 225
+  },
+  {
+    "name": "world music",
+    "stationcount": 224
+  },
+  {
+    "name": "schlager",
+    "stationcount": 223
+  },
+  {
+    "name": "80's",
+    "stationcount": 221
+  },
+  {
+    "name": "hip-hop",
+    "stationcount": 221
+  },
+  {
+    "name": "tropical",
+    "stationcount": 219
+  },
+  {
+    "name": "musica",
+    "stationcount": 217
+  },
+  {
+    "name": "eclectic",
+    "stationcount": 217
+  },
+  {
+    "name": "hip hop",
+    "stationcount": 214
+  },
+  {
+    "name": "deep house",
+    "stationcount": 213
+  },
+  {
+    "name": "rnb",
+    "stationcount": 208
+  },
+  {
+    "name": "popular",
+    "stationcount": 208
+  },
+  {
+    "name": "relax",
+    "stationcount": 207
+  },
+  {
+    "name": "música en español e inglés",
+    "stationcount": 206
+  },
+  {
+    "name": "misc",
+    "stationcount": 204
+  },
+  {
+    "name": "música y noticias",
+    "stationcount": 204
+  },
+  {
+    "name": "hard rock",
+    "stationcount": 203
+  },
+  {
+    "name": "juvenil",
+    "stationcount": 201
+  },
+  {
+    "name": "hot adult contemporary",
+    "stationcount": 200
+  },
+  {
+    "name": "nrj",
+    "stationcount": 199
+  },
+  {
+    "name": "cumbia",
+    "stationcount": 194
+  },
+  {
+    "name": "reggaeton",
+    "stationcount": 191
+  },
+  {
+    "name": "pop en español e inglés",
+    "stationcount": 187
+  },
+  {
+    "name": "arabic",
+    "stationcount": 186
+  },
+  {
+    "name": "programas en vivo",
+    "stationcount": 185
+  },
+  {
+    "name": "grupero",
+    "stationcount": 184
+  },
+  {
+    "name": "música del recuerdo",
+    "stationcount": 184
+  },
+  {
+    "name": "radio locale",
+    "stationcount": 181
+  },
+  {
+    "name": "various",
+    "stationcount": 180
+  },
+  {
+    "name": "community",
+    "stationcount": 179
+  },
+  {
+    "name": "university radio",
+    "stationcount": 178
+  },
+  {
+    "name": "charts",
+    "stationcount": 177
+  },
+  {
+    "name": "latin",
+    "stationcount": 176
+  },
+  {
+    "name": "local music",
+    "stationcount": 175
+  },
+  {
+    "name": "instrumental",
+    "stationcount": 175
+  },
+  {
+    "name": "mex",
+    "stationcount": 174
+  },
+  {
+    "name": "college radio",
+    "stationcount": 174
+  },
+  {
+    "name": "r&b",
+    "stationcount": 172
+  },
+  {
+    "name": "mx",
+    "stationcount": 170
+  },
+  {
+    "name": "christmas music",
+    "stationcount": 169
+  },
+  {
+    "name": "chill",
+    "stationcount": 168
+  },
+  {
+    "name": "latin pop",
+    "stationcount": 167
+  },
+  {
+    "name": "heavy metal",
+    "stationcount": 167
+  },
+  {
+    "name": "baladas en español",
+    "stationcount": 167
+  },
+  {
+    "name": "sport",
+    "stationcount": 163
+  },
+  {
+    "name": "90's",
+    "stationcount": 161
+  },
+  {
+    "name": "noticias locales",
+    "stationcount": 160
+  },
+  {
+    "name": "música tradicional mexicana",
+    "stationcount": 160
+  },
+  {
+    "name": "punk",
+    "stationcount": 158
+  },
+  {
+    "name": "urban",
+    "stationcount": 156
+  },
+  {
+    "name": "indie rock",
+    "stationcount": 155
+  },
+  {
+    "name": "crossover",
+    "stationcount": 151
+  },
+  {
+    "name": "00s",
+    "stationcount": 150
+  },
+  {
+    "name": "electronica",
+    "stationcount": 150
+  },
+  {
+    "name": "ciudad de méxico",
+    "stationcount": 150
+  },
+  {
+    "name": "mexico city",
+    "stationcount": 149
+  },
+  {
+    "name": "talk & speech",
+    "stationcount": 149
+  },
+  {
+    "name": "catholic",
+    "stationcount": 146
+  },
+  {
+    "name": "pop dance",
+    "stationcount": 144
+  },
+  {
+    "name": "contemporary hits",
+    "stationcount": 143
+  },
+  {
+    "name": "1980s",
+    "stationcount": 142
+  },
+  {
+    "name": "vallenato",
+    "stationcount": 142
+  },
+  {
+    "name": "80er",
+    "stationcount": 141
+  },
+  {
+    "name": "am",
+    "stationcount": 140
+  },
+  {
+    "name": "soft rock",
+    "stationcount": 140
+  },
+  {
+    "name": "radio caprice",
+    "stationcount": 135
+  },
+  {
+    "name": "valle de méxico",
+    "stationcount": 135
+  },
+  {
+    "name": "classic",
+    "stationcount": 134
+  },
+  {
+    "name": "clásicos",
+    "stationcount": 134
+  },
+  {
+    "name": "international",
+    "stationcount": 134
+  },
+  {
+    "name": "club",
+    "stationcount": 132
+  },
+  {
+    "name": "experimental",
+    "stationcount": 127
+  },
+  {
+    "name": "música en inglés",
+    "stationcount": 127
+  },
+  {
+    "name": "party",
+    "stationcount": 125
+  },
+  {
+    "name": "eurodance",
+    "stationcount": 125
+  },
+  {
+    "name": "musica romantica",
+    "stationcount": 125
+  },
+  {
+    "name": "mix",
+    "stationcount": 124
+  },
+  {
+    "name": "mvs radio",
+    "stationcount": 124
+  },
+  {
+    "name": "cdmx",
+    "stationcount": 122
+  },
+  {
+    "name": "downtempo",
+    "stationcount": 121
+  },
+  {
+    "name": "talk radio",
+    "stationcount": 119
+  },
+  {
+    "name": "greek music",
+    "stationcount": 119
+  },
+  {
+    "name": "old time radio",
+    "stationcount": 118
+  },
+  {
+    "name": "progressive rock",
+    "stationcount": 118
+  },
+  {
+    "name": "noticias y comentarios",
+    "stationcount": 118
+  },
+  {
+    "name": "mvs",
+    "stationcount": 117
+  },
+  {
+    "name": "classics",
+    "stationcount": 117
+  },
+  {
+    "name": "christmas",
+    "stationcount": 117
+  },
+  {
+    "name": "greek pop",
+    "stationcount": 117
+  },
+  {
+    "name": "local information",
+    "stationcount": 117
+  },
+  {
+    "name": "baladas",
+    "stationcount": 116
+  },
+  {
+    "name": "traffic",
+    "stationcount": 116
+  },
+  {
+    "name": "поп-музыка",
+    "stationcount": 116
+  },
+  {
+    "name": "new wave",
+    "stationcount": 114
+  },
+  {
+    "name": "deportes",
+    "stationcount": 113
+  },
+  {
+    "name": "discography",
+    "stationcount": 113
+  },
+  {
+    "name": "noticias en español",
+    "stationcount": 113
+  },
+  {
+    "name": "sureste",
+    "stationcount": 112
+  },
+  {
+    "name": "banda norteña",
+    "stationcount": 112
+  },
+  {
+    "name": "norteño",
+    "stationcount": 110
+  },
+  {
+    "name": "electronic dance music",
+    "stationcount": 110
+  },
+  {
+    "name": "classical music",
+    "stationcount": 109
+  },
+  {
+    "name": "christian preaching",
+    "stationcount": 109
+  },
+  {
+    "name": "love songs",
+    "stationcount": 108
+  },
+  {
+    "name": "adult hits",
+    "stationcount": 107
+  },
+  {
+    "name": "radiópolis",
+    "stationcount": 107
+  },
+  {
+    "name": "romantic",
+    "stationcount": 106
+  },
+  {
+    "name": "cristiana",
+    "stationcount": 106
+  },
+  {
+    "name": "90er",
+    "stationcount": 105
+  },
+  {
+    "name": "pop en español",
+    "stationcount": 105
+  },
+  {
+    "name": "local talk",
+    "stationcount": 104
+  },
+  {
+    "name": "drum and bass",
+    "stationcount": 104
+  },
+  {
+    "name": "merengue",
+    "stationcount": 103
+  },
+  {
+    "name": "nostalgie",
+    "stationcount": 102
+  },
+  {
+    "name": "pop en inglés",
+    "stationcount": 102
+  },
+  {
+    "name": "cherie fm",
+    "stationcount": 101
+  },
+  {
+    "name": "contemporary",
+    "stationcount": 101
+  },
+  {
+    "name": "education",
+    "stationcount": 100
+  },
+  {
+    "name": "kids",
+    "stationcount": 99
+  },
+  {
+    "name": "comedy",
+    "stationcount": 99
+  },
+  {
+    "name": "non-commercial",
+    "stationcount": 99
+  },
+  {
+    "name": "2010s",
+    "stationcount": 98
+  },
+  {
+    "name": "politics",
+    "stationcount": 98
+  },
+  {
+    "name": "internet radio",
+    "stationcount": 98
+  },
+  {
+    "name": "latin music",
+    "stationcount": 97
+  },
+  {
+    "name": "christian contemporary",
+    "stationcount": 94
+  },
+  {
+    "name": "alternative / indie",
+    "stationcount": 93
+  },
+  {
+    "name": "contemporary hits radio",
+    "stationcount": 93
+  },
+  {
+    "name": "children",
+    "stationcount": 92
+  },
+  {
+    "name": "top charts",
+    "stationcount": 92
+  },
+  {
+    "name": "1990s",
+    "stationcount": 90
+  },
+  {
+    "name": "bible",
+    "stationcount": 90
+  },
+  {
+    "name": "miscellaneous",
+    "stationcount": 90
+  },
+  {
+    "name": "musica regional mexicana",
+    "stationcount": 90
+  },
+  {
+    "name": "70's",
+    "stationcount": 87
+  },
+  {
+    "name": "noticias nacionales e internacionales",
+    "stationcount": 87
+  },
+  {
+    "name": "italian pop",
+    "stationcount": 86
+  },
+  {
+    "name": "musica latina",
+    "stationcount": 86
+  },
+  {
+    "name": "cultural",
+    "stationcount": 85
+  },
+  {
+    "name": "mediaset",
+    "stationcount": 85
+  },
+  {
+    "name": "african music",
+    "stationcount": 83
+  },
+  {
+    "name": "live",
+    "stationcount": 82
+  },
+  {
+    "name": "online",
+    "stationcount": 82
+  },
+  {
+    "name": "radcap",
+    "stationcount": 82
+  },
+  {
+    "name": "veracruz",
+    "stationcount": 82
+  },
+  {
+    "name": "sipout.ai",
+    "stationcount": 82
+  },
+  {
+    "name": "tv",
+    "stationcount": 81
+  }
+]
