@@ -735,3 +735,50 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 - Versioned Drift SQLite database (`schemaVersion = 2`) with v1 → v2 migration test and 50-item recents cap
 - Offline-first SWR repositories (`CatalogRepository`, `StationRepository`, `LibraryRepository`, `SettingsRepository`, `EntitlementRepository` stub) with 24h list / 5m search TTLs
 - 13 Riverpod `Notifier`/`AsyncNotifier` ViewModels covering every Phase 1 screen (`docs/viewmodels.md`)
+
+
+---
+
+## Milestone 3.1 — Wire discovery (Phase 3: Wire & Audio)
+
+### What I did
+- Created branch `phase/3-wire-and-audio` from `main`.
+- Updated `apps/mobile/lib/main.dart` to open `AppDatabase.openDefault()`, load `packages/shared/genre-map.json` into `GenreMap`, and wrap `PekSoftRadioApp` in `ProviderScope` (accepting optional test `overrides`).
+- Added `apps/mobile/lib/core/utils/country_flag.dart` (`countryFlagEmoji`) and `apps/mobile/lib/features/station/presentation/station_list_tile.dart` (`StationListTile` backed by `playerViewModelProvider` and `libraryViewModelProvider`).
+- Wired all 8 discovery screens to their Phase 2 Riverpod ViewModels while preserving the Phase 1 UI, `Semantics`, `48dp` touch targets, and `1.3x` text scaling:
+  - `WelcomeScreen` → `welcomeViewModelProvider` + `exploreViewModelProvider`
+  - `HomeScreen` → `homeViewModelProvider` (loading `SkeletonList`, `ErrorState`, `EmptyState`, `AdSlotPlaceholder` gated on `entitlement.adsEnabled`)
+  - `ExploreScreen` → `exploreViewModelProvider` (Countries, Genres, Languages, Map)
+  - `CountryDetailScreen` → `countryDetailViewModelProvider(countryCode)`
+  - `GenreDetailScreen` → `genreDetailViewModelProvider(genreId)`
+  - `SearchScreen` & `FiltersBottomSheet` → `searchViewModelProvider` (`Working now only` ON by default)
+  - `StationDetailScreen` → `stationDetailViewModelProvider(stationId)` + `playerViewModelProvider`
+- Wired `_MobileShellScaffold` in `apps/mobile/lib/core/routing/app_router.dart` to `settingsViewModelProvider` for `OfflineBanner`.
+- Added `apps/mobile/test/helpers/mock_repository_overrides.dart` so mock data acts purely as test fixtures, updated existing Phase 1 widget/golden tests, and added `apps/mobile/test/wired_discovery_test.dart` covering loading, loaded, empty, and error states with fake repositories.
+
+### Why
+- Connecting discovery screens to Riverpod ViewModels replaces mock data calls with real offline-first repositories while keeping the UI layout and accessibility guarantees intact.
+
+### How it works (plain English)
+- Each discovery screen watches its Riverpod provider (`AsyncNotifier` or `Notifier`) and renders `SkeletonList` while loading, `ErrorState` with retry on failure, `EmptyState` when no results match, and `StationListTile` rows on success.
+
+### Files created or changed
+- `apps/mobile/lib/main.dart`, `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/core/utils/country_flag.dart`
+- `apps/mobile/lib/features/station/presentation/station_list_tile.dart`
+- `apps/mobile/lib/features/onboarding/presentation/welcome_screen.dart`
+- `apps/mobile/lib/features/home/presentation/home_screen.dart`
+- `apps/mobile/lib/features/explore/presentation/{explore_screen.dart,country_detail_screen.dart,genre_detail_screen.dart}`
+- `apps/mobile/lib/features/search/presentation/{search_screen.dart,filters_bottom_sheet.dart}`
+- `apps/mobile/lib/features/station/presentation/station_detail_screen.dart`
+- `apps/mobile/test/{helpers/mock_repository_overrides.dart,wired_discovery_test.dart,discovery_screens_test.dart,widget_test.dart,polish_accessibility_test.dart,golden_screens_test.dart}` + updated goldens
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Mock data as test fixtures**: Wrapping `lib/mock/*` behind `mockRepositoryOverrides()` lets widget and golden tests run deterministically without keeping mock calls in production screens.
+
+### Decisions and alternatives
+- **Kept `PekSoftRadioApp(overrides: ...)` parameter**: Allows `main()` to inject real Drift + `GenreMap` while tests pass fast in-memory repository overrides cleanly.

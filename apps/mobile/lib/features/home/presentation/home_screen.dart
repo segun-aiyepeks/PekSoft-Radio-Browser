@@ -1,61 +1,50 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
+import 'package:peksoft_radio/features/catalog/domain/genre.dart';
+import 'package:peksoft_radio/features/home/presentation/view_models/home_view_model.dart';
+import 'package:peksoft_radio/features/library/domain/collection.dart';
 import 'package:peksoft_radio/features/search/presentation/filters_bottom_sheet.dart';
-import 'package:peksoft_radio/features/station/presentation/mock_station_tile.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/search/presentation/view_models/search_view_model.dart';
+import 'package:peksoft_radio/features/station/domain/station.dart';
+import 'package:peksoft_radio/features/station/presentation/station_list_tile.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  static const List<String> _quickGenres = <String>[
-    'All',
-    'Afrobeats',
-    'News',
-    'Jazz',
-    'Pop',
-    'Lo-Fi',
-    'Electronic',
-  ];
-
-  int _selectedGenreIndex = 0;
-  StationFilterState _filters = const StationFilterState();
-
-  Future<void> _openFilters() async {
-    final StationFilterState? next = await showStationFiltersSheet(
+  Future<void> _openFilters(BuildContext context, WidgetRef ref) async {
+    final SearchState searchState = ref.read(searchViewModelProvider);
+    final StationFilterSelection? next = await showStationFiltersSheet(
       context,
-      initial: _filters,
+      initial: StationFilterSelection.fromDomain(
+        searchState.filter,
+        sort: searchState.sort,
+      ),
     );
-    if (next != null && mounted) {
-      setState(() => _filters = next);
+    if (next != null && context.mounted) {
+      await ref
+          .read(searchViewModelProvider.notifier)
+          .applyFilter(next.toStationFilter());
+      await ref.read(searchViewModelProvider.notifier).setSort(next.sort);
+      if (context.mounted) {
+        context.push('/search');
+      }
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.appColors;
-    final String? chipGenre = _selectedGenreIndex == 0
-        ? _filters.genre
-        : _quickGenres[_selectedGenreIndex];
-
-    final List<MockStation> popularStations = searchMockStations(
-      workingOnly: _filters.workingOnly,
-      genre: chipGenre,
-      language: _filters.language,
-      codec: _filters.codec,
-      minBitrateKbps: _filters.minBitrateKbps,
-      sort: _filters.sort,
-    );
-
-    final List<MockCuratedCollection> collections = getMockCuratedCollections();
+    final AsyncValue<HomeState> homeAsync = ref.watch(homeViewModelProvider);
+    final SearchState searchState = ref.watch(searchViewModelProvider);
+    final int activeFilters = StationFilterSelection.fromDomain(
+      searchState.filter,
+      sort: searchState.sort,
+    ).activeFilterCount;
 
     return Scaffold(
       appBar: AppBar(
@@ -83,11 +72,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: IconButton(
                 tooltip: 'Filters',
                 icon: Badge(
-                  isLabelVisible: _filters.activeFilterCount > 0,
-                  label: Text('${_filters.activeFilterCount}'),
+                  isLabelVisible: activeFilters > 0,
+                  label: Text('$activeFilters'),
                   child: const Icon(Icons.tune_rounded),
                 ),
-                onPressed: _openFilters,
+                onPressed: () => _openFilters(context, ref),
               ),
             ),
           ),
@@ -107,148 +96,176 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              AppSpacing.md,
-            ),
-            child: Semantics(
-              button: true,
-              label: 'Search radio stations, countries, and genres',
-              child: InkWell(
-                onTap: () => context.push('/search'),
-                borderRadius: BorderRadius.circular(AppRadii.full),
-                child: Container(
-                  constraints: const BoxConstraints(
-                    minHeight: AppSpacing.touchTarget,
+      body: homeAsync.when(
+        loading: () => const SkeletonList(itemCount: 6),
+        error: (Object error, StackTrace _) => ErrorState(
+          title: 'Could not load stations',
+          message: error.toString(),
+          onRetry: () => ref.read(homeViewModelProvider.notifier).refresh(),
+        ),
+        data: (HomeState home) {
+          if (home.error != null && home.stations.isEmpty) {
+            return ErrorState(
+              title: 'Could not load stations',
+              message: home.error!.message,
+              onRetry: () => ref.read(homeViewModelProvider.notifier).refresh(),
+            );
+          }
+
+          final List<Genre> quickGenres = home.genres.take(6).toList();
+
+          return RefreshIndicator(
+            onRefresh: () => ref.read(homeViewModelProvider.notifier).refresh(),
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                    AppSpacing.lg,
+                    AppSpacing.md,
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: BorderRadius.circular(AppRadii.full),
-                    border: Border.all(color: colors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search_rounded, color: colors.textMuted),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'Search 40+ mock stations worldwide...',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.body.copyWith(
-                            color: colors.textMuted,
-                          ),
+                  child: Semantics(
+                    button: true,
+                    label: 'Search radio stations, countries, and genres',
+                    child: InkWell(
+                      onTap: () => context.push('/search'),
+                      borderRadius: BorderRadius.circular(AppRadii.full),
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minHeight: AppSpacing.touchTarget,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(AppRadii.full),
+                          border: Border.all(color: colors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search_rounded, color: colors.textMuted),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                'Search stations worldwide...',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.body.copyWith(
+                                  color: colors.textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-          FilterChipBar(
-            items: [
-              for (int i = 0; i < _quickGenres.length; i++)
-                FilterChipItem(
-                  id: '$i',
-                  label: _quickGenres[i],
-                  selected: i == _selectedGenreIndex,
-                ),
-            ],
-            onToggle: (id) =>
-                setState(() => _selectedGenreIndex = int.parse(id)),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SectionHeader(
-            title: 'Curated collections',
-            actionLabel: 'Explore',
-            onActionTap: () => context.go('/explore'),
-          ),
-          SizedBox(
-            height: 128,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              itemCount: collections.length,
-              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
-              itemBuilder: (context, index) {
-                final MockCuratedCollection col = collections[index];
-                final List<MockStation> colStations =
-                    getMockStationsForCollection(col);
-                return _CollectionCard(
-                  collection: col,
-                  stationCount: colStations.length,
-                  onTap: () {
-                    if (colStations.isNotEmpty) {
-                      context.push('/station/${colStations.first.id}');
-                    }
+                FilterChipBar(
+                  items: [
+                    FilterChipItem(
+                      id: 'all',
+                      label: 'All',
+                      selected: home.selectedGenreId == null,
+                    ),
+                    for (final Genre genre in quickGenres)
+                      FilterChipItem(
+                        id: genre.id,
+                        label: genre.name,
+                        selected: home.selectedGenreId == genre.id,
+                      ),
+                  ],
+                  onToggle: (id) {
+                    ref
+                        .read(homeViewModelProvider.notifier)
+                        .selectGenre(id == 'all' ? null : id);
                   },
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const AdSlotPlaceholder(),
-          const SizedBox(height: AppSpacing.sm),
-          SectionHeader(
-            title: _filters.workingOnly
-                ? 'Live & working now'
-                : 'All mock stations',
-            actionLabel: '${popularStations.length} stations',
-            onActionTap: _openFilters,
-          ),
-          if (popularStations.isEmpty)
-            EmptyState(
-              title: 'No matching stations',
-              message: 'Try clearing a filter or choosing another genre.',
-              icon: Icons.radio_rounded,
-              actionLabel: 'Reset filters',
-              onAction: () => setState(() {
-                _selectedGenreIndex = 0;
-                _filters = const StationFilterState();
-              }),
-            )
-          else
-            for (final MockStation station in popularStations.take(10))
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.xs,
                 ),
-                child: MockStationTile(station: station),
-              ),
-        ],
+                if (home.curatedCollections.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  SectionHeader(
+                    title: 'Curated collections',
+                    actionLabel: 'Explore',
+                    onActionTap: () => context.go('/explore'),
+                  ),
+                  SizedBox(
+                    height: 128,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      itemCount: home.curatedCollections.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(width: AppSpacing.md),
+                      itemBuilder: (context, index) {
+                        final Collection col = home.curatedCollections[index];
+                        return _CollectionCard(
+                          collection: col,
+                          onTap: () {
+                            if (col.stationIds.isNotEmpty) {
+                              context.push('/station/${col.stationIds.first}');
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+                if (home.entitlement.adsEnabled) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  const AdSlotPlaceholder(),
+                ],
+                const SizedBox(height: AppSpacing.sm),
+                SectionHeader(
+                  title: 'Live & working now',
+                  actionLabel: '${home.stations.length} stations',
+                  onActionTap: () => _openFilters(context, ref),
+                ),
+                if (home.stations.isEmpty)
+                  EmptyState(
+                    title: 'No matching stations',
+                    message: 'Try clearing the genre filter or refreshing.',
+                    icon: Icons.radio_rounded,
+                    actionLabel: 'Reset filters',
+                    onAction: () => ref
+                        .read(homeViewModelProvider.notifier)
+                        .selectGenre(null),
+                  )
+                else
+                  for (final Station station in home.stations.take(20))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.xs,
+                      ),
+                      child: StationListTile(station: station),
+                    ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _CollectionCard extends StatelessWidget {
-  const _CollectionCard({
-    required this.collection,
-    required this.stationCount,
-    required this.onTap,
-  });
+  const _CollectionCard({required this.collection, required this.onTap});
 
-  final MockCuratedCollection collection;
-  final int stationCount;
+  final Collection collection;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final int count = collection.stationIds.length;
     return Semantics(
       button: true,
-      label: '${collection.title}, $stationCount stations',
+      label: '${collection.title}, $count stations',
       child: Material(
         color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -283,7 +300,7 @@ class _CollectionCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$stationCount stations · Mock',
+                  '$count stations',
                   style: AppTypography.caption.copyWith(
                     color: colors.textMuted,
                   ),

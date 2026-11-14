@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/features/explore/presentation/explore_screen.dart';
@@ -10,18 +11,26 @@ import 'package:peksoft_radio/features/profile/presentation/settings_screen.dart
 import 'package:peksoft_radio/features/search/presentation/search_screen.dart';
 import 'package:peksoft_radio/features/subscription/presentation/paywall_screen.dart';
 
+import 'helpers/mock_repository_overrides.dart';
+
 Widget _wrapViewport({
   required Widget child,
   required Size size,
   ThemeMode themeMode = ThemeMode.dark,
 }) {
-  return MediaQuery(
-    data: MediaQueryData(size: size, textScaler: const TextScaler.linear(1.3)),
-    child: MaterialApp(
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: themeMode,
-      home: SizedBox(width: size.width, height: size.height, child: child),
+  return ProviderScope(
+    overrides: mockRepositoryOverrides(),
+    child: MediaQuery(
+      data: MediaQueryData(
+        size: size,
+        textScaler: const TextScaler.linear(1.3),
+      ),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: themeMode,
+        home: SizedBox(width: size.width, height: size.height, child: child),
+      ),
     ),
   );
 }

@@ -1,265 +1,260 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
+import 'package:peksoft_radio/core/utils/country_flag.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
-import 'package:peksoft_radio/features/station/presentation/mock_station_tile.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/catalog/domain/genre.dart';
+import 'package:peksoft_radio/features/player/domain/playback_state.dart';
+import 'package:peksoft_radio/features/player/presentation/view_models/player_view_model.dart';
+import 'package:peksoft_radio/features/station/domain/station.dart';
+import 'package:peksoft_radio/features/station/presentation/station_list_tile.dart';
+import 'package:peksoft_radio/features/station/presentation/view_models/station_detail_view_model.dart';
 
-class StationDetailScreen extends StatelessWidget {
+class StationDetailScreen extends ConsumerWidget {
   const StationDetailScreen({super.key, required this.stationId});
 
   final String stationId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.appColors;
-    final MockStation? station = getMockStationById(stationId);
+    final AsyncValue<StationDetailState> detailAsync = ref.watch(
+      stationDetailViewModelProvider(stationId),
+    );
+    final PlayerState playerState = ref.watch(playerViewModelProvider);
 
-    if (station == null) {
-      return Scaffold(
+    return detailAsync.when(
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Station')),
+        body: const SkeletonList(itemCount: 4),
+      ),
+      error: (Object error, StackTrace _) => Scaffold(
         appBar: AppBar(title: const Text('Station')),
         body: ErrorState(
           title: 'Station not found',
-          message: 'This mock station could not be loaded.',
-          onRetry: () => context.pop(),
-          retryLabel: 'Go back',
+          message: error.toString(),
+          onRetry: () => ref
+              .read(stationDetailViewModelProvider(stationId).notifier)
+              .refresh(),
         ),
-      );
-    }
+      ),
+      data: (StationDetailState detail) {
+        final Station? station = detail.station;
+        if (station == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Station')),
+            body: ErrorState(
+              title: 'Station not found',
+              message: detail.error?.message ?? 'Unable to load station.',
+              onRetry: () => context.pop(),
+              retryLabel: 'Go back',
+            ),
+          );
+        }
 
-    final List<MockStation> similar = getMockSimilarStations(station);
+        final bool isCurrent =
+            playerState.playback.currentStation?.id == station.id;
+        final bool isPlaying =
+            isCurrent && playerState.playback.status == PlaybackStatus.playing;
+        final String flag = countryFlagEmoji(station.countryCode);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(station.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: [
-          ListenableBuilder(
-            listenable: mockSessionController,
-            builder: (context, _) {
-              final bool isFav = mockSessionController.isFavourite(station.id);
-              return Semantics(
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              station.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            actions: [
+              Semantics(
                 button: true,
-                toggled: isFav,
-                label: isFav
+                toggled: detail.isFavourite,
+                label: detail.isFavourite
                     ? 'Remove ${station.name} from favourites'
                     : 'Add ${station.name} to favourites',
                 child: SizedBox(
                   width: AppSpacing.touchTarget,
                   height: AppSpacing.touchTarget,
                   child: IconButton(
-                    tooltip: isFav ? 'Remove favourite' : 'Add favourite',
-                    onPressed: () =>
-                        mockSessionController.toggleFavourite(station.id),
+                    tooltip: detail.isFavourite
+                        ? 'Remove favourite'
+                        : 'Add favourite',
+                    onPressed: () => ref
+                        .read(
+                          stationDetailViewModelProvider(stationId).notifier,
+                        )
+                        .toggleFavourite(),
                     icon: Icon(
-                      isFav
+                      detail.isFavourite
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
-                      color: isFav ? colors.accent : colors.textPrimary,
+                      color: detail.isFavourite
+                          ? colors.accent
+                          : colors.textPrimary,
                     ),
                   ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.s2xl),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          body: ListView(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s2xl),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    StationLogo(
-                      stationName: station.name,
-                      faviconUrl: station.faviconUrl,
-                      hasLogo:
-                          station.faviconUrl != null &&
-                          station.faviconUrl!.isNotEmpty,
-                      size: AppSpacing.s3xl + AppSpacing.md,
-                    ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            station.name,
-                            style: AppTypography.h2.copyWith(
-                              color: colors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            '${station.flagEmoji} ${station.country} · ${station.language}',
-                            style: AppTypography.body.copyWith(
-                              color: colors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Wrap(
-                            spacing: AppSpacing.xs,
-                            runSpacing: AppSpacing.xs,
-                            children: [
-                              QualityBadge(
-                                codec: station.codec,
-                                bitrateKbps: station.bitrateKbps,
-                                isHls: station.isHls,
-                              ),
-                              _StatusChip(
-                                label: station.isWorking
-                                    ? 'Working now'
-                                    : 'Unavailable',
-                                color: station.isWorking
-                                    ? colors.success
-                                    : colors.error,
-                              ),
-                              _StatusChip(
-                                label: station.isHttps ? 'HTTPS' : 'HTTP',
-                                color: station.isHttps
-                                    ? colors.info
-                                    : colors.warning,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                if (station.currentTrack != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                      border: Border.all(color: colors.border),
-                    ),
-                    child: Row(
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.graphic_eq_rounded,
-                          color: colors.accent,
-                          size: AppSpacing.xl,
+                        StationLogo(
+                          stationName: station.name,
+                          faviconUrl: station.usesFallbackLogo
+                              ? null
+                              : station.faviconUrl,
+                          hasLogo: !station.usesFallbackLogo,
+                          size: AppSpacing.s3xl + AppSpacing.md,
                         ),
-                        const SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: AppSpacing.lg),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Now on air (Mock)',
-                                style: AppTypography.caption.copyWith(
-                                  color: colors.textMuted,
-                                ),
-                              ),
-                              Text(
-                                station.currentTrack!,
-                                style: AppTypography.title.copyWith(
+                                station.name,
+                                style: AppTypography.h2.copyWith(
                                   color: colors.textPrimary,
                                 ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                station.language.isNotEmpty
+                                    ? '$flag ${station.countryName} · ${station.language}'
+                                    : '$flag ${station.countryName}',
+                                style: AppTypography.body.copyWith(
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Wrap(
+                                spacing: AppSpacing.xs,
+                                runSpacing: AppSpacing.xs,
+                                children: [
+                                  QualityBadge(
+                                    codec: station.codec,
+                                    bitrateKbps: station.bitrateKbps,
+                                    isHls: station.isHls,
+                                  ),
+                                  _StatusChip(
+                                    label: station.isWorking
+                                        ? 'Working now'
+                                        : 'Unavailable',
+                                    color: station.isWorking
+                                        ? colors.success
+                                        : colors.error,
+                                  ),
+                                  _StatusChip(
+                                    label: station.isHttps ? 'HTTPS' : 'HTTP',
+                                    color: station.isHttps
+                                        ? colors.info
+                                        : colors.warning,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-                ListenableBuilder(
-                  listenable: mockSessionController,
-                  builder: (context, _) {
-                    final bool isPlaying =
-                        mockSessionController.currentStation.id == station.id &&
-                        mockSessionController.playbackStatus ==
-                            MockPlaybackStatus.playing;
-                    return PrimaryButton(
+                    const SizedBox(height: AppSpacing.lg),
+                    PrimaryButton(
                       label: isPlaying ? 'Pause Station' : 'Play Station',
                       icon: isPlaying
                           ? Icons.pause_rounded
                           : Icons.play_arrow_rounded,
                       onPressed: () {
-                        if (mockSessionController.currentStation.id ==
-                            station.id) {
-                          mockSessionController.togglePlayPause();
+                        final PlayerViewModel player = ref.read(
+                          playerViewModelProvider.notifier,
+                        );
+                        if (isCurrent) {
+                          player.togglePlayPause();
                         } else {
-                          mockSessionController.playStation(station);
+                          player.playStation(station);
                         }
                       },
-                    );
-                  },
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'Genres',
-                  style: AppTypography.title.copyWith(
-                    color: colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: [
-                    for (final String genre in station.genres)
-                      GenreChip(
-                        label: genre,
-                        onTap: () => context.push(
-                          '/genre/${Uri.encodeComponent(genre)}',
+                    ),
+                    if (station.genres.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Genres',
+                        style: AppTypography.title.copyWith(
+                          color: colors.textPrimary,
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: [
+                          for (final Genre genre in station.genres)
+                            GenreChip(
+                              label: genre.name,
+                              onTap: () => context.push(
+                                '/genre/${Uri.encodeComponent(genre.id)}',
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.lg),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(AppRadii.md),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _MetaRow(
+                            label: 'Clicks',
+                            value: '${station.clickCount}',
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          _MetaRow(label: 'Votes', value: '${station.votes}'),
+                          if (station.homepage.isNotEmpty) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            _MetaRow(
+                              label: 'Homepage',
+                              value: station.homepage,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: BorderRadius.circular(AppRadii.md),
-                    border: Border.all(color: colors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _DetailRow(
-                        label: 'Votes',
-                        value: '${station.votes} community votes',
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      _DetailRow(
-                        label: 'Clicks',
-                        value: '${station.clickCount} recent plays',
-                      ),
-                      if (station.homepage.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xs),
-                        _DetailRow(label: 'Homepage', value: station.homepage),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SectionHeader(title: 'Similar stations'),
-          for (final MockStation item in similar)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.xs,
               ),
-              child: MockStationTile(station: item),
-            ),
-        ],
-      ),
+              if (detail.similarStations.isNotEmpty) ...[
+                const SectionHeader(title: 'Similar stations'),
+                for (final Station s in detail.similarStations)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.xs,
+                    ),
+                    child: StationListTile(station: s),
+                  ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -272,16 +267,15 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
+        vertical: AppSpacing.xxs,
       ),
       decoration: BoxDecoration(
-        color: colors.surfaceElevated,
+        color: color.withAlpha(32),
         borderRadius: BorderRadius.circular(AppRadii.sm),
-        border: Border.all(color: color),
+        border: Border.all(color: color.withAlpha(120)),
       ),
       child: Text(
         label,
@@ -294,8 +288,8 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -305,12 +299,9 @@ class _DetailRow extends StatelessWidget {
     final colors = context.appColors;
     return Row(
       children: [
-        SizedBox(
-          width: 88,
-          child: Text(
-            label,
-            style: AppTypography.bodySmall.copyWith(color: colors.textMuted),
-          ),
+        Text(
+          '$label: ',
+          style: AppTypography.bodySmall.copyWith(color: colors.textMuted),
         ),
         Expanded(
           child: Text(

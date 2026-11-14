@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
+import 'package:peksoft_radio/features/profile/presentation/view_models/settings_view_model.dart';
 import 'package:peksoft_radio/features/auth/presentation/auth_landing_screen.dart';
 import 'package:peksoft_radio/features/auth/presentation/forgot_password_screen.dart';
 import 'package:peksoft_radio/features/auth/presentation/reset_password_screen.dart';
@@ -179,27 +181,38 @@ final GoRouter appRouter = GoRouter(
   ],
 );
 
-class _MobileShellScaffold extends StatelessWidget {
+class _MobileShellScaffold extends ConsumerWidget {
   const _MobileShellScaffold({required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bool vmOffline =
+        ref.watch(settingsViewModelProvider).asData?.value.isOfflineSimulated ??
+        false;
     return Scaffold(
       body: Column(
         children: [
           ListenableBuilder(
             listenable: mockSessionController,
             builder: (context, _) {
-              if (!mockSessionController.isOfflineSimulated) {
+              final bool isOffline =
+                  vmOffline || mockSessionController.isOfflineSimulated;
+              if (!isOffline) {
                 return const SizedBox.shrink();
               }
               return SafeArea(
                 bottom: false,
                 child: OfflineBanner(
-                  onRetry: () =>
-                      mockSessionController.setOfflineSimulated(false),
+                  onRetry: () {
+                    if (vmOffline) {
+                      ref
+                          .read(settingsViewModelProvider.notifier)
+                          .toggleOfflineSimulated();
+                    }
+                    mockSessionController.setOfflineSimulated(false);
+                  },
                 ),
               );
             },

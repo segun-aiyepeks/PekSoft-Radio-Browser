@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/features/explore/presentation/explore_screen.dart';
@@ -8,6 +9,8 @@ import 'package:peksoft_radio/features/player/presentation/now_playing_screen.da
 import 'package:peksoft_radio/features/search/presentation/search_screen.dart';
 import 'package:peksoft_radio/features/subscription/presentation/paywall_screen.dart';
 import 'package:peksoft_radio/mock/mock.dart';
+
+import 'helpers/mock_repository_overrides.dart';
 
 /// Allows minor cross-OS (Windows vs Linux) Skia/font anti-aliasing differences
 /// while still catching real layout, colour, or component regressions.
@@ -37,12 +40,15 @@ Widget _goldenFrame({
   required Widget child,
   ThemeMode themeMode = ThemeMode.dark,
 }) {
-  return MaterialApp(
-    debugShowCheckedModeBanner: false,
-    theme: AppTheme.light(),
-    darkTheme: AppTheme.dark(),
-    themeMode: themeMode,
-    home: child,
+  return ProviderScope(
+    overrides: mockRepositoryOverrides(),
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: themeMode,
+      home: child,
+    ),
   );
 }
 
