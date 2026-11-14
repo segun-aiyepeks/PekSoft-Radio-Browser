@@ -491,3 +491,247 @@ All Phase 0 foundations are in place with zero product features built:
 **Milestones completed:** `1.1` Shell & Design System · `1.2` Mock Data · `1.3` Discovery Screens · `1.4` Player UI · `1.5` Account & Money Screens · `1.6` Polish & Review
 
 Every mobile screen is built with token-driven dark & light themes, `Semantics`, `>= 48dp` touch targets, and `1.3x` text-scale support—backed by `const` mock data in `apps/mobile/lib/mock/` with zero networking, database, Firebase, or real audio.
+
+
+---
+
+## Milestone 2.1 — Domain models (Phase 2: Mobile data layer)
+
+### What I did
+- Created branch `phase/2-mobile-data` from `main` and added `freezed_annotation` (`3.1.0`), `freezed` (`3.2.5`), and `build_runner` (`2.15.1`) to `apps/mobile/pubspec.yaml`.
+- Created immutable `@freezed` domain models across `apps/mobile/lib/features/*/domain/` and `apps/mobile/lib/core/domain/`:
+  - `Station`, `Country`, `Genre`, `Language`, `Collection`, `SongHistoryEntry`, `PlaybackState`, `UserSettings` (`workingNowDefault: true`, `AppThemePreference.dark`), and `Entitlement` (`EntitlementTier.free` by default with `maxFavourites: 10`, `maxCollections: 2`, `maxSongHistory: 10`, `adsEnabled: true`).
+- Created the sealed `AppFailure` hierarchy (`NetworkFailure`, `TimeoutFailure`, `MirrorUnavailableFailure`, `StreamPlaybackFailure`, `StorageFailure`, `NotFoundFailure`, `ValidationFailure`, `EntitlementRequiredFailure`, `UnknownFailure`) and `Result<T>` (`Success` | `Failure`) in `apps/mobile/lib/core/domain/`.
+- Added `docs/domain-model.md` with a Mermaid `classDiagram`, linked it from `docs/index.md`, and added unit tests in `apps/mobile/test/domain_models_test.dart`.
+
+### Why
+- Keeping pure, immutable `@freezed` domain models and explicit `Result`/`AppFailure` types separate from Dio DTOs and Drift tables enforces clean dependency direction (`presentation -> domain <- data`) and prevents transport or storage bugs from leaking into ViewModels.
+
+### How it works (plain English)
+- `freezed` generates value equality (`==`/`hashCode`), `copyWith`, and pattern matching for every domain class.
+- Repositories will return `Future<Result<T>>` so errors are always handled explicitly rather than swallowed.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/core/domain/{app_failure.dart,app_failure.freezed.dart,result.dart}`
+- `apps/mobile/lib/features/station/domain/{station.dart,station.freezed.dart}`
+- `apps/mobile/lib/features/catalog/domain/{country.dart,country.freezed.dart,genre.dart,genre.freezed.dart,language.dart,language.freezed.dart}`
+- `apps/mobile/lib/features/library/domain/{collection.dart,collection.freezed.dart,song_history_entry.dart,song_history_entry.freezed.dart}`
+- `apps/mobile/lib/features/player/domain/{playback_state.dart,playback_state.freezed.dart}`
+- `apps/mobile/lib/features/profile/domain/{user_settings.dart,user_settings.freezed.dart}`
+- `apps/mobile/lib/features/subscription/domain/{entitlement.dart,entitlement.freezed.dart}`
+- `apps/mobile/test/domain_models_test.dart`
+- `docs/{domain-model.md,index.md,build-log.md}`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Value equality (`==`) with `freezed`**: Two `Station` instances with identical fields compare equal without manual boilerplate, which prevents unnecessary Riverpod widget rebuilds.
+- **Sealed failure unions**: Exhaustive `switch` expressions on `AppFailure` guarantee every failure case maps to a clear user-facing message.
+
+### Decisions and alternatives
+- **Committed generated `.freezed.dart` files**: Lets `flutter analyze` and `flutter test` run immediately in CI without adding a slow `build_runner` step to every CI job.
+
+
+---
+
+## Milestone 2.2 — Radio Browser data source (Phase 2: Mobile data layer)
+
+### What I did
+- Added `dio` (`5.11.1`) to `apps/mobile/pubspec.yaml`.
+- Created Radio Browser DTOs matching the real Phase 0 fixture fields in `apps/mobile/lib/core/network/dto/`:
+  - `RadioBrowserServerDto`, `RadioBrowserCountryDto`, `RadioBrowserTagDto`, `RadioBrowserLanguageDto`, `RadioBrowserStationDto` (all 37 fields including `0`/`1` integer flags `hls`, `lastcheckok`, `ssl_error`), and `RadioBrowserClickDto`.
+- Built `RadioBrowserMirrorService` (`apps/mobile/lib/core/network/radio_browser_mirror_service.dart`) with `/json/servers` discovery, random starting mirror selection, 24-hour in-memory cache, and hard-coded fallback (`de1.api.radio-browser.info`, `all.api.radio-browser.info`).
+- Built `RadioBrowserClient` (`apps/mobile/lib/core/network/radio_browser_client.dart`) on `Dio` with `User-Agent: PekSoftRadioBrowser/<version>`, connect/receive timeouts (`6s`/`10s`), exponential back-off retries per mirror, automatic failover to the next mirror on error, and click reporting (`/json/url/{stationuuid}`).
+- Added unit tests in `apps/mobile/test/radio_browser_client_test.dart` using saved Phase 0 fixtures (`packages/shared/fixtures/radio-browser/*.json`) via a fake `HttpClientAdapter` (zero live network calls).
+
+### Why
+- Radio Browser is a community-run mirror pool where individual servers can be slow or unreachable; mirror discovery + 24h caching + exponential back-off + failover keeps discovery resilient while respecting server etiquette.
+
+### How it works (plain English)
+- On the first request, `RadioBrowserMirrorService` queries `https://all.api.radio-browser.info/json/servers`, shuffles/rotates from a random index, and caches the list for 24 hours. If discovery fails, it falls back to `de1.api.radio-browser.info` and `all.api.radio-browser.info`.
+- `RadioBrowserClient` sends requests with the required `User-Agent` header. Transient errors or 5xx responses retry with exponential back-off (`250ms` base) before failing over to the next mirror, returning `Failure<T>` with a typed `AppFailure` if all mirrors fail.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/core/network/dto/{radio_browser_server_dto.dart,radio_browser_country_dto.dart,radio_browser_tag_dto.dart,radio_browser_language_dto.dart,radio_browser_station_dto.dart,radio_browser_click_dto.dart}`
+- `apps/mobile/lib/core/network/{radio_browser_mirror_service.dart,radio_browser_client.dart}`
+- `apps/mobile/test/radio_browser_client_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test test/radio_browser_client_test.dart`
+
+### Concepts worth learning
+- **Fake `HttpClientAdapter` in Dio**: Swapping Dio's transport adapter in tests lets us test real request headers, retry delays, mirror failover, and fixture JSON parsing deterministically with zero network calls.
+- **Mirror rotation + 24h cache**: Picks a random starting mirror to distribute load across Radio Browser servers while avoiding repeated `/json/servers` lookups.
+
+### Decisions and alternatives
+- **HTTPS `/json/servers` discovery with hard-coded fallback**: Chosen over DNS SRV because Dart's `dart:io` lacks native SRV record lookup, matching the Phase 0 spike findings (`docs/api-spike.md`).
+
+
+---
+
+## Milestone 2.3 — Normalisation (Phase 2: Mobile data layer)
+
+### What I did
+- Created `packages/shared/genre-map.json` containing the 20 canonical genres (matching Phase 1 UI IDs), `maxGenresPerStation: 2`, `noiseTags` (submitter/meta/city noise from `docs/api-spike.md`), and multilingual/synonym aliases.
+- Registered `../../packages/shared/genre-map.json` as a Flutter asset in `apps/mobile/pubspec.yaml`.
+- Created `GenreMap` (`apps/mobile/lib/core/normalisation/genre_map.dart`) to parse `genre-map.json` and map raw comma-separated `tags` into deduplicated canonical `Genre` objects (capped at 2).
+- Created `StationNormaliser` (`apps/mobile/lib/core/normalisation/station_normaliser.dart`) implementing:
+  - `isHttps` (`url_resolved` or `url` starts with `https://`)
+  - `usesFallbackLogo` (`favicon` empty or non-HTTP(S))
+  - `isWorking` (`lastcheckok == 1` and non-empty stream URL)
+  - Duplicate merging by `stationuuid` first, then `(normalizedName, countryCode, resolvedHost)` keeping the working/HTTPS/highest-click variant
+  - `StationFilter` (`workingNowOnly: true` by default) and `StationSortOption` (`popular`, `trending`, `votes`, `bitrate`, `nameAsc`)
+- Added unit tests in `apps/mobile/test/station_normaliser_test.dart` covering all messy-tag examples from `docs/api-spike.md` and the real Phase 0 Nigeria fixture.
+
+### Why
+- Raw Radio Browser `tags` contain synonyms, multilingual duplicates, and submitter noise (`moi merino`, `estación`, `fm`), and even `lastcheckok=1` queries can return broken or duplicate streams. Normalising in one shared place keeps UI rows clean and lets `apps/api` reuse `packages/shared/genre-map.json` in Phase 4.
+
+### How it works (plain English)
+- `GenreMap` loads `packages/shared/genre-map.json`, strips noise tags, checks exact alias matches first and longest-substring compound matches second, and stops after 2 unique canonical genres.
+- `StationNormaliser` converts `RadioBrowserStationDto` into immutable `Station` domain models, deduplicates mirrors/re-submissions, filters out non-working streams by default, and sorts cleanly.
+
+### Files created or changed
+- `packages/shared/genre-map.json`
+- `apps/mobile/pubspec.yaml`
+- `apps/mobile/lib/core/normalisation/{genre_map.dart,station_normaliser.dart}`
+- `apps/mobile/test/station_normaliser_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test test/station_normaliser_test.dart`
+
+### Concepts worth learning
+- **Shared JSON mapping across platforms**: Storing `genre-map.json` in `packages/shared/` guarantees Flutter mobile (Dart) and Node API (TypeScript) classify stations identically without duplicating alias tables.
+- **Signature-based deduplication**: Collapsing `(normalizedName, countryCode, resolvedHost)` catches duplicate broadcaster entries across multiple `stationuuid`s while preferring the HTTPS variant.
+
+### Decisions and alternatives
+- **Longest-alias substring fallback after exact lookup**: Handles compound tags like `"90s pop hits"` without misclassifying short tokens.
+
+
+---
+
+## Milestone 2.4 — Local storage with Drift (Phase 2: Mobile data layer)
+
+### What I did
+- Added `drift` (`2.34.4`), `sqlite3_flutter_libs` (`0.6.0+eol`), `path_provider` (`2.1.6`), `path` (`1.9.1`), and `drift_dev` (`2.34.0`) to `apps/mobile/pubspec.yaml`.
+- Created Drift tables in `apps/mobile/lib/core/database/tables.dart`:
+  - `CachedStations`, `CachedCatalogLists` (with `cachedAt` and `ttlSeconds`), `Favourites`, `Recents`, `Collections`, `CollectionStations`, `SongHistoryEntries`, and `UserSettingsTable`.
+- Built `AppDatabase` (`apps/mobile/lib/core/database/app_database.dart` + generated `app_database.g.dart`) at `schemaVersion = 2` with `onCreate` and `onUpgrade` (`from < 2` adding `collections.sort_order`), enforcing the 50-entry cap on `Recents`.
+- Added unit and migration tests in `apps/mobile/test/app_database_test.dart`, including a real SQLite v1 -> v2 file migration test verifying preserved collections and schema version `2`.
+
+### Why
+- Offline-first caching, favourites, recents, collections, song history, and user preferences need fast, strongly typed local persistence with safe schema upgrades across app updates.
+
+### How it works (plain English)
+- `AppDatabase` stores normalised `Station` rows in `cached_stations` and JSON list snapshots with TTLs in `cached_catalog_lists` so repositories can return cached data immediately while revalidating in the background.
+- `recordRecent` runs inside a SQLite transaction, ordering by `played_at DESC` and pruning entries beyond the 50 most recent.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/core/database/{tables.dart,app_database.dart,app_database.g.dart}`
+- `apps/mobile/test/app_database_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test test/app_database_test.dart`
+
+### Concepts worth learning
+- **Versioned SQLite migrations**: Testing `onUpgrade` against a real v1 SQLite file proves existing user collections and favourites survive schema changes without data loss.
+- **Transactional pruning**: Wrapping `insert` + `delete` in `transaction(...)` guarantees `Recents` never temporarily exceeds 50 rows on concurrent updates.
+
+### Decisions and alternatives
+- **Committed `app_database.g.dart`**: Matches our `.freezed.dart` workflow so CI runs `flutter analyze` and `flutter test` without needing `build_runner` on every run.
+
+
+---
+
+## Milestone 2.5 — Repositories (Phase 2: Mobile data layer)
+
+### What I did
+- Created repository interfaces (`features/*/domain/`) and implementations (`features/*/data/`):
+  - `CatalogRepository` / `CatalogRepositoryImpl`: countries, canonical genres, languages, top stations, stations by country/genre, and search with offline-first stale-while-revalidate (24-hour TTL for lists, 5-minute TTL for search results).
+  - `StationRepository` / `StationRepositoryImpl`: station lookup (cache-first with `/json/stations/byuuid` fallback), similar-station ranking by shared genre + country, and direct click reporting.
+  - `LibraryRepository` / `LibraryRepositoryImpl`: local-first Drift persistence for favourites, recents (50 cap), collections, and song history, enforcing free-tier limits (`maxFavourites: 10`, `maxCollections: 2`, `maxSongHistory: 10`) via `EntitlementRepository`.
+  - `SettingsRepository` / `SettingsRepositoryImpl`: Drift-backed `UserSettings` read/write.
+  - `EntitlementRepository` / `EntitlementRepositoryImpl`: Phase 2 stub returning `EntitlementTier.free` by default.
+- Added unit tests in `apps/mobile/test/repositories_test.dart` using `AppDatabase.inMemory()` and fake `HttpClientAdapter` responses from Phase 0 fixtures.
+
+### Why
+- Separating domain repository interfaces from Drift/Dio implementations lets ViewModels stay completely independent of storage and network mechanics while keeping offline-first caching and free-tier rules testable with fakes.
+
+### How it works (plain English)
+- When `CatalogRepositoryImpl` reads a cached list whose TTL has expired, it returns the stale cached list immediately so the UI renders with zero wait, while scheduling a background refresh that updates Drift for the next read.
+- `LibraryRepositoryImpl` consults `EntitlementRepository` before adding a new favourite or custom collection, returning `Failure(EntitlementRequiredFailure(...))` when a free-tier limit is reached.
+
+### Files created or changed
+- `apps/mobile/lib/features/catalog/{domain/catalog_repository.dart,data/catalog_repository_impl.dart}`
+- `apps/mobile/lib/features/station/{domain/station_repository.dart,data/station_repository_impl.dart}`
+- `apps/mobile/lib/features/library/{domain/library_repository.dart,data/library_repository_impl.dart}`
+- `apps/mobile/lib/features/profile/{domain/settings_repository.dart,data/settings_repository_impl.dart}`
+- `apps/mobile/lib/features/subscription/{domain/entitlement_repository.dart,data/entitlement_repository_impl.dart}`
+- `apps/mobile/test/repositories_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test test/repositories_test.dart`
+
+### Concepts worth learning
+- **Stale-while-revalidate (SWR)**: Returning slightly expired local data immediately while refreshing asynchronously eliminates loading spinners on repeat visits while keeping catalogs fresh.
+- **Dependency inversion**: ViewModels depend only on `abstract interface class` repositories, making them trivial to unit-test with in-memory fakes.
+
+### Decisions and alternatives
+- **Injected `onBackgroundRevalidation` test hook**: Lets deterministic unit tests await background SWR tasks without flaky `Future.delayed` timers.
+
+
+---
+
+## Milestone 2.6 — ViewModels (Phase 2: Mobile data layer)
+
+### What I did
+- Added `flutter_riverpod` (`3.5.0`) to `apps/mobile/pubspec.yaml` and created shared DI providers in `apps/mobile/lib/core/di/providers.dart`.
+- Created immutable state classes and Riverpod `Notifier` / `AsyncNotifier` ViewModels for every Phase 1 screen (without modifying or wiring up any Phase 1 UI):
+  - `SplashViewModel`, `WelcomeViewModel`, `HomeViewModel`, `ExploreViewModel`, `CountryDetailViewModel`, `GenreDetailViewModel`, `SearchViewModel`, `StationDetailViewModel`, `PlayerViewModel`, `LibraryViewModel`, `AuthViewModel`, `SubscriptionViewModel`, `SettingsViewModel`.
+- Documented the screen-to-ViewModel mapping, state fields, and event methods in `docs/viewmodels.md` and linked it from `docs/index.md`.
+- Added unit tests for every ViewModel in `apps/mobile/test/view_models_test.dart` using `ProviderContainer` with fake repositories.
+
+### Why
+- Riverpod `Notifier` and `AsyncNotifier` ViewModels isolate screen state transitions and repository calls from Flutter widgets, making every screen's logic testable without pumping UI.
+
+### How it works (plain English)
+- Each screen reads a single Riverpod provider (`homeViewModelProvider`, `playerViewModelProvider`, etc.) and invokes explicit event methods (`selectGenre`, `playStation`, `toggleFavourite`, etc.) that update immutable state classes.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/core/di/providers.dart`
+- `apps/mobile/lib/features/*/presentation/view_models/*_view_model.dart` (13 ViewModel files)
+- `apps/mobile/test/view_models_test.dart`
+- `docs/{viewmodels.md,index.md,build-log.md}`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **`ProviderContainer` overrides**: Riverpod lets tests override repository providers with fast in-memory fakes so ViewModels are tested in milliseconds.
+- **Family `AsyncNotifier`**: Parameterized screens (`/country/:code`, `/genre/:id`, `/station/:id`) receive their route argument cleanly via `AsyncNotifierProvider.family`.
+
+### Decisions and alternatives
+- **`@immutable` manual `copyWith` classes for ViewModel states**: Avoids extra `build_runner` overhead while keeping every ViewModel state immutable and explicit; domain entities continue using `@freezed`.
+
+---
+
+## Phase 2 Summary — Ready for Review
+
+**Branch:** `phase/2-mobile-data` → `main`  
+**Milestones completed:** `2.1` Domain Models · `2.2` Radio Browser Data Source · `2.3` Normalisation · `2.4` Local Storage with Drift · `2.5` Repositories · `2.6` ViewModels
+
+The complete mobile MVVM + Riverpod data layer is built and verified offline with zero UI modifications:
+- Pure `@freezed` domain models and sealed `AppFailure`/`Result<T>` (`docs/domain-model.md`)
+- `RadioBrowserClient` on `Dio` with `/json/servers` mirror discovery, 24h mirror cache, exponential back-off retries, failover, `User-Agent`, and click reporting
+- Shared `packages/shared/genre-map.json` + `StationNormaliser` (20 canonical genres, noise stripping, duplicate merging, HTTPS/fallback-logo/working-now flags, sort/filter)
+- Versioned Drift SQLite database (`schemaVersion = 2`) with v1 → v2 migration test and 50-item recents cap
+- Offline-first SWR repositories (`CatalogRepository`, `StationRepository`, `LibraryRepository`, `SettingsRepository`, `EntitlementRepository` stub) with 24h list / 5m search TTLs
+- 13 Riverpod `Notifier`/`AsyncNotifier` ViewModels covering every Phase 1 screen (`docs/viewmodels.md`)
