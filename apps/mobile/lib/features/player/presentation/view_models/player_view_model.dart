@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,9 +7,13 @@ import 'package:peksoft_radio/core/di/providers.dart';
 import 'package:peksoft_radio/core/domain/app_failure.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/core/network/connectivity_service.dart';
+import 'package:peksoft_radio/core/normalisation/station_normaliser.dart';
 import 'package:peksoft_radio/features/library/domain/song_history_entry.dart';
+import 'package:peksoft_radio/features/library/presentation/view_models/library_view_model.dart';
 import 'package:peksoft_radio/features/player/domain/audio_player_service.dart';
 import 'package:peksoft_radio/features/player/domain/playback_state.dart';
+import 'package:peksoft_radio/features/player/domain/stream_variant_selector.dart';
+import 'package:peksoft_radio/features/profile/domain/user_settings.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
 
 /// Alias matching the Phase 3 specification name (`PlaybackViewModel`).
@@ -54,6 +59,7 @@ class PlayerState {
 class PlayerViewModel extends Notifier<PlayerState> {
   StreamSubscription<AudioPlaybackSnapshot>? _audioSub;
   StreamSubscription<bool>? _connectivitySub;
+  Timer? _sleepTimer;
   int _playRequestId = 0;
   bool _isRecovering = false;
   bool _wasOffline = false;
@@ -76,6 +82,8 @@ class PlayerViewModel extends Notifier<PlayerState> {
       _audioSub = null;
       _connectivitySub?.cancel();
       _connectivitySub = null;
+      _sleepTimer?.cancel();
+      _sleepTimer = null;
     });
     return const PlayerState();
   }
@@ -101,7 +109,6 @@ class PlayerViewModel extends Notifier<PlayerState> {
   void _onAudioSnapshot(AudioPlaybackSnapshot snapshot) {
     if (state.playback.currentStation == null) return;
     if (_isRecovering && snapshot.status == PlaybackStatus.unavailable) {
-      // Handled inside _playWithFailoverAndRetries.
       return;
     }
 
@@ -129,9 +136,12 @@ class PlayerViewModel extends Notifier<PlayerState> {
 
   Future<void> playStation(Station station) async {
     final int requestId = ++_playRequestId;
+    final Station effectiveStation = await _resolveDataSaverVariant(station);
+    if (requestId != _playRequestId) return;
+
     state = state.copyWith(
       playback: state.playback.copyWith(
-        currentStation: station,
+        currentStation: effectiveStation,
         status: PlaybackStatus.buffering,
         icyTitle: null,
         error: null,
@@ -144,16 +154,24 @@ class PlayerViewModel extends Notifier<PlayerState> {
     final libraryRepo = ref.read(libraryRepositoryProvider);
 
     // Report a click to Radio Browser on every play and load metadata in parallel.
-    final Future<void> recentFuture = libraryRepo.recordRecent(station);
-    final Future<void> clickFuture = stationRepo.reportClick(station.id);
-    final Future<Result<bool>> favFuture = libraryRepo.isFavourite(station.id);
+    final Future<void> recentFuture = libraryRepo.recordRecent(
+      effectiveStation,
+    );
+    final Future<void> clickFuture = stationRepo.reportClick(
+      effectiveStation.id,
+    );
+    final Future<Result<bool>> favFuture = libraryRepo.isFavourite(
+      effectiveStation.id,
+    );
     final Future<Result<List<Station>>> similarFuture = stationRepo
-        .getSimilarStations(station);
+        .getSimilarStations(effectiveStation);
 
-    await _playWithFailoverAndRetries(station, requestId);
+    await _playWithFailoverAndRetries(effectiveStation, requestId);
     if (requestId != _playRequestId) return;
 
     await Future.wait<void>(<Future<void>>[recentFuture, clickFuture]);
+    ref.invalidate(libraryViewModelProvider);
+
     final Result<bool> favRes = await favFuture;
     final Result<List<Station>> similarRes = await similarFuture;
     if (requestId != _playRequestId) return;
@@ -168,6 +186,54 @@ class PlayerViewModel extends Notifier<PlayerState> {
         Failure<List<Station>>() => const <Station>[],
       },
     );
+  }
+
+  /// Picks a random working station from the catalog and starts playing it.
+  Future<Station?> playSurpriseMe({Random? random}) async {
+    final Result<List<Station>> res = await ref
+        .read(catalogRepositoryProvider)
+        .getTopStations(filter: const StationFilter(workingNowOnly: true));
+    final List<Station> candidates = switch (res) {
+      Success<List<Station>>(:final data) => data,
+      Failure<List<Station>>() => const <Station>[],
+    };
+    if (candidates.isEmpty) return null;
+
+    final String? currentId = state.playback.currentStation?.id;
+    final List<Station> pool = candidates.length > 1 && currentId != null
+        ? candidates
+              .where((Station s) => s.id != currentId)
+              .toList(growable: false)
+        : candidates;
+    final Station chosen = pool[(random ?? Random()).nextInt(pool.length)];
+    await playStation(chosen);
+    return chosen;
+  }
+
+  Future<Station> _resolveDataSaverVariant(Station station) async {
+    final Result<UserSettings> settingsRes = await ref
+        .read(settingsRepositoryProvider)
+        .getSettings();
+    final bool dataSaver = switch (settingsRes) {
+      Success<UserSettings>(:final data) => data.dataSaver,
+      Failure<UserSettings>() => false,
+    };
+    if (!dataSaver) return station;
+
+    final Result<List<Station>> variantsRes = await ref
+        .read(catalogRepositoryProvider)
+        .searchStations(
+          StationFilter(
+            workingNowOnly: true,
+            countryCode: station.countryCode,
+            query: station.name,
+          ),
+        );
+    final List<Station> variants = switch (variantsRes) {
+      Success<List<Station>>(:final data) => data,
+      Failure<List<Station>>() => const <Station>[],
+    };
+    return selectBitrateVariant(station, variants, dataSaver: true);
   }
 
   Future<void> _recoverMidStream(Station station, int requestId) async {
@@ -298,7 +364,11 @@ class PlayerViewModel extends Notifier<PlayerState> {
   void stop() {
     _playRequestId += 1;
     _isRecovering = false;
-    unawaited(ref.read(audioPlayerServiceProvider).stop());
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    final AudioPlayerService audio = ref.read(audioPlayerServiceProvider);
+    unawaited(audio.setVolume(1.0));
+    unawaited(audio.stop());
     state = const PlayerState();
   }
 
@@ -324,6 +394,7 @@ class PlayerViewModel extends Notifier<PlayerState> {
             playedAt: DateTime.now(),
           ),
         );
+    ref.invalidate(libraryViewModelProvider);
   }
 
   Future<void> toggleFavourite() async {
@@ -334,25 +405,78 @@ class PlayerViewModel extends Notifier<PlayerState> {
         ? await library.removeFavourite(station.id)
         : await library.addFavourite(station);
 
-    state = switch (res) {
-      Success<void>() => state.copyWith(
-        isFavourite: !state.isFavourite,
-        clearError: true,
-      ),
-      Failure<void>(:final error) => state.copyWith(error: error),
-    };
+    switch (res) {
+      case Success<void>():
+        state = state.copyWith(
+          isFavourite: !state.isFavourite,
+          clearError: true,
+        );
+        ref.invalidate(libraryViewModelProvider);
+      case Failure<void>(:final error):
+        state = state.copyWith(error: error);
+    }
   }
 
   void setSleepTimer(Duration? duration) {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    final AudioPlayerService audio = ref.read(audioPlayerServiceProvider);
+
+    if (duration == null || duration <= Duration.zero) {
+      unawaited(audio.setVolume(1.0));
+      state = state.copyWith(
+        playback: state.playback.copyWith(sleepTimerRemaining: null),
+      );
+      return;
+    }
+
+    unawaited(audio.setVolume(1.0));
     state = state.copyWith(
       playback: state.playback.copyWith(sleepTimerRemaining: duration),
     );
+
+    final Duration tick = ref.read(sleepTimerTickProvider);
+    final Duration fadeDuration = ref.read(sleepFadeDurationProvider);
+
+    _sleepTimer = Timer.periodic(tick, (_) {
+      final Duration? current = state.playback.sleepTimerRemaining;
+      if (current == null) {
+        _sleepTimer?.cancel();
+        _sleepTimer = null;
+        return;
+      }
+
+      final Duration next = current - tick;
+      if (next <= Duration.zero) {
+        _sleepTimer?.cancel();
+        _sleepTimer = null;
+        unawaited(audio.pause());
+        unawaited(audio.setVolume(1.0));
+        state = state.copyWith(
+          playback: state.playback.copyWith(
+            status: state.playback.currentStation == null
+                ? PlaybackStatus.idle
+                : PlaybackStatus.paused,
+            sleepTimerRemaining: null,
+          ),
+        );
+        return;
+      }
+
+      if (fadeDuration > Duration.zero && next <= fadeDuration) {
+        final double ratio = (next.inMilliseconds / fadeDuration.inMilliseconds)
+            .clamp(0.05, 1.0);
+        unawaited(audio.setVolume(ratio));
+      }
+
+      state = state.copyWith(
+        playback: state.playback.copyWith(sleepTimerRemaining: next),
+      );
+    });
   }
 
   void cancelSleepTimer() {
-    state = state.copyWith(
-      playback: state.playback.copyWith(sleepTimerRemaining: null),
-    );
+    setSleepTimer(null);
   }
 
   void reportCurrentStation(String reason) {

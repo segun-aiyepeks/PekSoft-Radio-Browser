@@ -125,6 +125,8 @@ void main() {
       await tester.tap(find.text('Submit Report'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Report recorded:'), findsOneWidget);
+
+      container.read(playbackViewModelProvider.notifier).cancelSleepTimer();
     });
 
     testWidgets(

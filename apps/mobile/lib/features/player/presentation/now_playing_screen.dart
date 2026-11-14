@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
@@ -62,7 +63,10 @@ class NowPlayingScreen extends ConsumerWidget {
 
     final PlaybackStatus status = playback.status;
     final bool isFav = playerState.isFavourite;
-    final int? sleepMinutes = playback.sleepTimerRemaining?.inMinutes;
+    final Duration? sleepRemaining = playback.sleepTimerRemaining;
+    final int? sleepMinutes = sleepRemaining == null
+        ? null
+        : (sleepRemaining.inSeconds / 60).ceil();
     final List<Station> similar = playerState.similarStations;
     final String flag = countryFlagEmoji(station.countryCode);
     final PlayerViewModel notifier = ref.read(
@@ -115,6 +119,11 @@ class NowPlayingScreen extends ConsumerWidget {
                 tooltip: 'Share',
                 icon: const Icon(Icons.share_outlined),
                 onPressed: () {
+                  Clipboard.setData(
+                    ClipboardData(
+                      text: 'https://peksoft.radio/station/${station.id}',
+                    ),
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(

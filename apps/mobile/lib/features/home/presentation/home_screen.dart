@@ -8,6 +8,7 @@ import 'package:peksoft_radio/core/widgets/widgets.dart';
 import 'package:peksoft_radio/features/catalog/domain/genre.dart';
 import 'package:peksoft_radio/features/home/presentation/view_models/home_view_model.dart';
 import 'package:peksoft_radio/features/library/domain/collection.dart';
+import 'package:peksoft_radio/features/player/presentation/view_models/player_view_model.dart';
 import 'package:peksoft_radio/features/search/presentation/filters_bottom_sheet.dart';
 import 'package:peksoft_radio/features/search/presentation/view_models/search_view_model.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
@@ -50,6 +51,21 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('PekSoft Radio'),
         actions: [
+          Semantics(
+            button: true,
+            label: 'Surprise me with a random station',
+            child: SizedBox(
+              width: AppSpacing.touchTarget,
+              height: AppSpacing.touchTarget,
+              child: IconButton(
+                tooltip: 'Surprise me',
+                icon: const Icon(Icons.shuffle_rounded),
+                onPressed: () => ref
+                    .read(playbackViewModelProvider.notifier)
+                    .playSurpriseMe(),
+              ),
+            ),
+          ),
           Semantics(
             button: true,
             label: 'Search stations',

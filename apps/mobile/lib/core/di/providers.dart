@@ -108,3 +108,13 @@ final Provider<List<Duration>> playbackRetryDelaysProvider =
         Duration(seconds: 4),
       ],
     );
+
+/// Tick interval for sleep timer countdown (overridable in tests).
+final Provider<Duration> sleepTimerTickProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 1),
+);
+
+/// Fade-out duration at the end of the sleep timer (overridable in tests).
+final Provider<Duration> sleepFadeDurationProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 10),
+);

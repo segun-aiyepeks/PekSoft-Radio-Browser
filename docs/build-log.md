@@ -810,3 +810,15 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 - Implemented J4 resilience in `PlayerViewModel`: primary-to-fallback URL failover (`urlResolved -> url`), 3 retries with configurable back-off (`1s, 2s, 4s`), mid-stream drop recovery, automatic reconnect when `connectivity_plus` reports network return, Radio Browser click reporting on every play, and friendly non-blocking `unavailable` banner with similar-station suggestions.
 - Wired `StationDetailViewModel.submitReport` and `PlayerViewModel.reportCurrentStation` to `reportQueueRepositoryProvider`.
 - Added `apps/mobile/test/resilience_test.dart`, `FakeConnectivityService`, `FakeReportQueueRepository`, and updated `app_database_test.dart` migration assertions.
+
+---
+
+## Milestone 3.4 — Listening features (Phase 3: Wire & Audio)
+
+### What I did
+- Implemented sleep timer countdown and smooth volume fade-out (`sleepTimerTickProvider`, `sleepFadeDurationProvider`) in `PlayerViewModel`, pausing playback and restoring volume on expiry or cancellation.
+- Added `selectBitrateVariant` (`apps/mobile/lib/features/player/domain/stream_variant_selector.dart`) and wired Data Saver mode in `PlayerViewModel` + `SettingsScreen` (`settingsViewModelProvider`) to prefer lower-bitrate working variants when available.
+- Wired `LibraryScreen` (Favourites, Recents, Collections, Song History) to `libraryViewModelProvider` and `Entitlement` limits (`maxFavourites`, `maxCollections`, `maxSongHistory`), including `+ New collection`, limit-reached prompts, and `Clear history`.
+- Added `playSurpriseMe` to `PlayerViewModel` and a `Surprise me` action button in `HomeScreen`.
+- Added `Clipboard.setData` for the placeholder share link (`https://peksoft.radio/station/<id>`) in `NowPlayingScreen`.
+- Added `apps/mobile/test/listening_features_test.dart` and updated `account_money_screens_test.dart`.

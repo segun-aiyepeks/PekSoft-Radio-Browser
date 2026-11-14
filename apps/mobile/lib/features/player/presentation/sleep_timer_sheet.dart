@@ -33,7 +33,9 @@ class _SleepTimerSheet extends ConsumerWidget {
         .watch(playbackViewModelProvider)
         .playback
         .sleepTimerRemaining;
-    final int? active = remaining?.inMinutes;
+    final int? active = remaining == null
+        ? null
+        : (remaining.inSeconds / 60).ceil();
 
     return Material(
       color: colors.surface,
