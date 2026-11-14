@@ -798,3 +798,15 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 - Since Android 9 (API 28), `usesCleartextTraffic` defaults to `false` to protect users against eavesdropping and tampering on unencrypted `http://` connections.
 - Radio Browser indexes thousands of independent broadcasters worldwide, many of whom serve Shoutcast/Icecast audio streams over plain `http://` rather than `https://`, and those domains cannot be enumerated statically in `<domain-config>`.
 - We added `network_security_config.xml` with `<base-config cleartextTrafficPermitted="true">` (with system trust anchors) for audio stream playback, while `RadioBrowserClient` continues to use `https://` for all Radio Browser API discovery and metadata requests.
+
+---
+
+## Milestone 3.3 — Resilience (UX journey J4) (Phase 3: Wire & Audio)
+
+### What I did
+- Added `connectivity_plus` and `ConnectivityService` (`ConnectivityPlusService`) in `apps/mobile/lib/core/network/connectivity_service.dart`.
+- Preserved `fallbackStreamUrl` (original `url` when distinct from `urlResolved`) on `Station` and in `StationNormaliser.normalize`.
+- Bumped `AppDatabase.schemaVersion` to `3` with migration adding `cached_stations.fallback_stream_url` and `pending_station_reports`, plus `DriftReportQueueRepository` (`ReportQueueRepository`) for locally queuing "Report broken" submissions for Phase 4 backend sync without inventing Radio Browser endpoints.
+- Implemented J4 resilience in `PlayerViewModel`: primary-to-fallback URL failover (`urlResolved -> url`), 3 retries with configurable back-off (`1s, 2s, 4s`), mid-stream drop recovery, automatic reconnect when `connectivity_plus` reports network return, Radio Browser click reporting on every play, and friendly non-blocking `unavailable` banner with similar-station suggestions.
+- Wired `StationDetailViewModel.submitReport` and `PlayerViewModel.reportCurrentStation` to `reportQueueRepositoryProvider`.
+- Added `apps/mobile/test/resilience_test.dart`, `FakeConnectivityService`, `FakeReportQueueRepository`, and updated `app_database_test.dart` migration assertions.

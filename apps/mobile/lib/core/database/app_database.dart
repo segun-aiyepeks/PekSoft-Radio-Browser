@@ -42,6 +42,7 @@ class CachedListRecord {
     CollectionStations,
     SongHistoryEntries,
     UserSettingsTable,
+    PendingStationReports,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -63,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   static const int maxRecents = 50;
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -73,6 +74,10 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (Migrator m, int from, int to) async {
       if (from < 2) {
         await m.addColumn(collections, collections.sortOrder);
+      }
+      if (from < 3) {
+        await m.addColumn(cachedStations, cachedStations.fallbackStreamUrl);
+        await m.createTable(pendingStationReports);
       }
     },
   );
@@ -439,6 +444,7 @@ class AppDatabase extends _$AppDatabase {
       id: Value<String>(s.id),
       name: Value<String>(s.name),
       streamUrl: Value<String>(s.streamUrl),
+      fallbackStreamUrl: Value<String?>(s.fallbackStreamUrl),
       homepage: Value<String>(s.homepage),
       faviconUrl: Value<String?>(s.faviconUrl),
       usesFallbackLogo: Value<bool>(s.usesFallbackLogo),
@@ -480,6 +486,7 @@ class AppDatabase extends _$AppDatabase {
       id: row.id,
       name: row.name,
       streamUrl: row.streamUrl,
+      fallbackStreamUrl: row.fallbackStreamUrl,
       homepage: row.homepage,
       faviconUrl: row.faviconUrl,
       usesFallbackLogo: row.usesFallbackLogo,
@@ -498,5 +505,37 @@ class AppDatabase extends _$AppDatabase {
       geoLat: row.geoLat,
       geoLong: row.geoLong,
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pending Station Reports (queued locally for Phase 4 backend sync)
+  // ---------------------------------------------------------------------------
+
+  Future<void> enqueueStationReport({
+    required String id,
+    required String stationId,
+    required String stationName,
+    required String reason,
+    DateTime? createdAt,
+  }) async {
+    await into(pendingStationReports).insert(
+      PendingStationReportsCompanion.insert(
+        id: id,
+        stationId: stationId,
+        stationName: stationName,
+        reason: reason,
+        createdAt: createdAt ?? DateTime.now(),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  Future<List<PendingStationReportRow>> getPendingStationReports() {
+    return (select(pendingStationReports)
+          ..where(($PendingStationReportsTable t) => t.synced.equals(false))
+          ..orderBy(<OrderingTerm Function($PendingStationReportsTable)>[
+            ($PendingStationReportsTable t) => OrderingTerm.desc(t.createdAt),
+          ]))
+        .get();
   }
 }

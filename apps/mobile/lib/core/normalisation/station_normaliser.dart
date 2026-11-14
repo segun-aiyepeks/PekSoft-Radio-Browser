@@ -47,6 +47,10 @@ class StationNormaliser {
     final String resolved = dto.urlResolved.trim();
     final String rawUrl = dto.url.trim();
     final String streamUrl = resolved.isNotEmpty ? resolved : rawUrl;
+    final String? fallbackStreamUrl =
+        resolved.isNotEmpty && rawUrl.isNotEmpty && rawUrl != resolved
+        ? rawUrl
+        : null;
 
     final bool isHttps =
         resolved.toLowerCase().startsWith('https://') ||
@@ -70,6 +74,7 @@ class StationNormaliser {
       id: dto.stationuuid.trim(),
       name: dto.name.trim(),
       streamUrl: streamUrl,
+      fallbackStreamUrl: fallbackStreamUrl,
       homepage: dto.homepage.trim(),
       faviconUrl: hasValidLogo ? trimmedFavicon : null,
       usesFallbackLogo: !hasValidLogo,

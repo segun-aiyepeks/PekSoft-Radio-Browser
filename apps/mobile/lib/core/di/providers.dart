@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peksoft_radio/core/database/app_database.dart';
+import 'package:peksoft_radio/core/network/connectivity_service.dart';
 import 'package:peksoft_radio/core/network/radio_browser_client.dart';
 import 'package:peksoft_radio/core/normalisation/genre_map.dart';
 import 'package:peksoft_radio/core/normalisation/station_normaliser.dart';
@@ -11,7 +12,9 @@ import 'package:peksoft_radio/features/player/data/just_audio_player_service.dar
 import 'package:peksoft_radio/features/player/domain/audio_player_service.dart';
 import 'package:peksoft_radio/features/profile/data/settings_repository_impl.dart';
 import 'package:peksoft_radio/features/profile/domain/settings_repository.dart';
+import 'package:peksoft_radio/features/station/data/report_queue_repository_impl.dart';
 import 'package:peksoft_radio/features/station/data/station_repository_impl.dart';
+import 'package:peksoft_radio/features/station/domain/report_queue_repository.dart';
 import 'package:peksoft_radio/features/station/domain/station_repository.dart';
 import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement_repository.dart';
@@ -83,3 +86,25 @@ final Provider<AudioPlayerService> audioPlayerServiceProvider =
       ref.onDispose(service.dispose);
       return service;
     });
+
+final Provider<ReportQueueRepository> reportQueueRepositoryProvider =
+    Provider<ReportQueueRepository>((ref) {
+      return DriftReportQueueRepository(
+        database: ref.watch(appDatabaseProvider),
+      );
+    });
+
+final Provider<ConnectivityService> connectivityServiceProvider =
+    Provider<ConnectivityService>((ref) {
+      return ConnectivityPlusService();
+    });
+
+/// Back-off delays for the 3 stream reconnect retries (overridable in tests).
+final Provider<List<Duration>> playbackRetryDelaysProvider =
+    Provider<List<Duration>>(
+      (ref) => const <Duration>[
+        Duration(seconds: 1),
+        Duration(seconds: 2),
+        Duration(seconds: 4),
+      ],
+    );

@@ -72,9 +72,16 @@ class StationDetailViewModel extends AsyncNotifier<StationDetailState> {
     });
   }
 
-  void submitReport(String reason) {
+  Future<void> submitReport(String reason) async {
     final StationDetailState? current = state.asData?.value;
-    if (current == null || reason.trim().isEmpty) return;
+    final Station? station = current?.station;
+    if (current == null || station == null || reason.trim().isEmpty) return;
+    state = AsyncValue<StationDetailState>.data(
+      current.copyWith(isReportSubmitting: true),
+    );
+    await ref
+        .read(reportQueueRepositoryProvider)
+        .enqueueReport(station: station, reason: reason);
     state = AsyncValue<StationDetailState>.data(
       current.copyWith(isReportSubmitting: false, reportSubmitted: true),
     );

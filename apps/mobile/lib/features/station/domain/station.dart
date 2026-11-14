@@ -10,6 +10,7 @@ abstract class Station with _$Station {
     required String id,
     required String name,
     required String streamUrl,
+    String? fallbackStreamUrl,
     @Default('') String homepage,
     String? faviconUrl,
     @Default(true) bool usesFallbackLogo,

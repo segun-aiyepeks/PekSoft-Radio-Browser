@@ -5,6 +5,7 @@ class CachedStations extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get streamUrl => text()();
+  TextColumn get fallbackStreamUrl => text().nullable()();
   TextColumn get homepage => text().withDefault(const Constant(''))();
   TextColumn get faviconUrl => text().nullable()();
   BoolColumn get usesFallbackLogo =>
@@ -114,6 +115,20 @@ class UserSettingsTable extends Table {
   TextColumn get homeCountryCode => text().nullable()();
   TextColumn get preferredGenreIdsJson =>
       text().withDefault(const Constant('[]'))();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
+/// Locally queued broken-station reports pending Phase 4 backend sync.
+@DataClassName('PendingStationReportRow')
+class PendingStationReports extends Table {
+  TextColumn get id => text()();
+  TextColumn get stationId => text()();
+  TextColumn get stationName => text()();
+  TextColumn get reason => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};

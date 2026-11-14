@@ -33,6 +33,8 @@ import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
 import 'package:peksoft_radio/features/subscription/presentation/view_models/subscription_view_model.dart';
 
 import 'helpers/fake_audio_player_service.dart';
+import 'helpers/fake_connectivity_service.dart';
+import 'helpers/fake_report_queue_repository.dart';
 
 const Station _sampleStation = Station(
   id: 'st-1',
@@ -245,6 +247,15 @@ ProviderContainer _createContainer({
         const EntitlementRepositoryImpl(),
       ),
       audioPlayerServiceProvider.overrideWithValue(FakeAudioPlayerService()),
+      connectivityServiceProvider.overrideWithValue(FakeConnectivityService()),
+      reportQueueRepositoryProvider.overrideWithValue(
+        FakeReportQueueRepository(),
+      ),
+      playbackRetryDelaysProvider.overrideWithValue(const <Duration>[
+        Duration.zero,
+        Duration.zero,
+        Duration.zero,
+      ]),
     ],
   );
 }

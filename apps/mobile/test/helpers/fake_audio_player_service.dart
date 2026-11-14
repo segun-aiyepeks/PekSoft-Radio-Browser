@@ -13,6 +13,9 @@ class FakeAudioPlayerService implements AudioPlayerService {
   AudioPlaybackSnapshot _current = const AudioPlaybackSnapshot();
   Station? lastPlayedStation;
   String? lastOverrideUrl;
+  final List<String> attemptedUrls = <String>[];
+  final Set<String> failingUrls = <String>{};
+  int failRemainingCalls = 0;
   double volume = 1.0;
   int pauseCalls = 0;
   int resumeCalls = 0;
@@ -29,24 +32,28 @@ class FakeAudioPlayerService implements AudioPlayerService {
   Future<void> playStation(Station station, {String? overrideUrl}) async {
     lastPlayedStation = station;
     lastOverrideUrl = overrideUrl;
-    if (failNextPlay) {
-      failNextPlay = false;
+    final String url = overrideUrl ?? station.streamUrl;
+    attemptedUrls.add(url);
+
+    final bool shouldFail =
+        failNextPlay || failRemainingCalls > 0 || failingUrls.contains(url);
+    if (failNextPlay) failNextPlay = false;
+    if (failRemainingCalls > 0) failRemainingCalls -= 1;
+
+    if (shouldFail) {
       _emit(
         AudioPlaybackSnapshot(
           status: PlaybackStatus.unavailable,
           error: const AppFailure.streamPlayback(
             message: 'Simulated stream failure',
           ),
-          activeUrl: overrideUrl ?? station.streamUrl,
+          activeUrl: url,
         ),
       );
       return;
     }
     _emit(
-      AudioPlaybackSnapshot(
-        status: PlaybackStatus.playing,
-        activeUrl: overrideUrl ?? station.streamUrl,
-      ),
+      AudioPlaybackSnapshot(status: PlaybackStatus.playing, activeUrl: url),
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peksoft_radio/core/di/providers.dart';
 import 'package:peksoft_radio/core/domain/app_failure.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
+import 'package:peksoft_radio/core/network/connectivity_service.dart';
 import 'package:peksoft_radio/features/library/domain/song_history_entry.dart';
 import 'package:peksoft_radio/features/player/domain/audio_player_service.dart';
 import 'package:peksoft_radio/features/player/domain/playback_state.dart';
@@ -52,21 +53,65 @@ class PlayerState {
 /// Shared ViewModel for Mini-Player, Now Playing, Sleep Timer, and Report sheets.
 class PlayerViewModel extends Notifier<PlayerState> {
   StreamSubscription<AudioPlaybackSnapshot>? _audioSub;
+  StreamSubscription<bool>? _connectivitySub;
+  int _playRequestId = 0;
+  bool _isRecovering = false;
+  bool _wasOffline = false;
 
   @override
   PlayerState build() {
     final AudioPlayerService audio = ref.watch(audioPlayerServiceProvider);
+    final ConnectivityService connectivity = ref.watch(
+      connectivityServiceProvider,
+    );
+
     _audioSub?.cancel();
     _audioSub = audio.playbackEvents.listen(_onAudioSnapshot);
+
+    _connectivitySub?.cancel();
+    _connectivitySub = connectivity.onOnlineChanged.listen(_onConnectivity);
+
     ref.onDispose(() {
       _audioSub?.cancel();
       _audioSub = null;
+      _connectivitySub?.cancel();
+      _connectivitySub = null;
     });
     return const PlayerState();
   }
 
+  void _onConnectivity(bool isOnline) {
+    if (!isOnline) {
+      _wasOffline = true;
+      return;
+    }
+    final Station? station = state.playback.currentStation;
+    final PlaybackStatus status = state.playback.status;
+    final bool shouldReconnect =
+        _wasOffline ||
+        status == PlaybackStatus.unavailable ||
+        status == PlaybackStatus.reconnecting;
+    _wasOffline = false;
+
+    if (station != null && shouldReconnect && !_isRecovering) {
+      unawaited(playStation(station));
+    }
+  }
+
   void _onAudioSnapshot(AudioPlaybackSnapshot snapshot) {
     if (state.playback.currentStation == null) return;
+    if (_isRecovering && snapshot.status == PlaybackStatus.unavailable) {
+      // Handled inside _playWithFailoverAndRetries.
+      return;
+    }
+
+    if (snapshot.status == PlaybackStatus.unavailable && !_isRecovering) {
+      final Station station = state.playback.currentStation!;
+      final int requestId = ++_playRequestId;
+      unawaited(_recoverMidStream(station, requestId));
+      return;
+    }
+
     state = state.copyWith(
       playback: state.playback.copyWith(
         status: snapshot.status,
@@ -83,6 +128,7 @@ class PlayerViewModel extends Notifier<PlayerState> {
   }
 
   Future<void> playStation(Station station) async {
+    final int requestId = ++_playRequestId;
     state = state.copyWith(
       playback: state.playback.copyWith(
         currentStation: station,
@@ -94,31 +140,25 @@ class PlayerViewModel extends Notifier<PlayerState> {
       clearError: true,
     );
 
-    final AudioPlayerService audio = ref.read(audioPlayerServiceProvider);
     final stationRepo = ref.read(stationRepositoryProvider);
     final libraryRepo = ref.read(libraryRepositoryProvider);
 
-    await Future.wait<void>(<Future<void>>[
-      audio.playStation(station),
-      libraryRepo.recordRecent(station),
-      stationRepo.reportClick(station.id),
-    ]);
-
-    final Result<bool> favRes = await libraryRepo.isFavourite(station.id);
-    final Result<List<Station>> similarRes = await stationRepo
+    // Report a click to Radio Browser on every play and load metadata in parallel.
+    final Future<void> recentFuture = libraryRepo.recordRecent(station);
+    final Future<void> clickFuture = stationRepo.reportClick(station.id);
+    final Future<Result<bool>> favFuture = libraryRepo.isFavourite(station.id);
+    final Future<Result<List<Station>>> similarFuture = stationRepo
         .getSimilarStations(station);
 
-    final AudioPlaybackSnapshot latestAudio = audio.currentSnapshot;
-    final PlaybackStatus resolvedStatus =
-        latestAudio.status == PlaybackStatus.idle
-        ? PlaybackStatus.playing
-        : latestAudio.status;
+    await _playWithFailoverAndRetries(station, requestId);
+    if (requestId != _playRequestId) return;
+
+    await Future.wait<void>(<Future<void>>[recentFuture, clickFuture]);
+    final Result<bool> favRes = await favFuture;
+    final Result<List<Station>> similarRes = await similarFuture;
+    if (requestId != _playRequestId) return;
 
     state = state.copyWith(
-      playback: state.playback.copyWith(
-        status: resolvedStatus,
-        error: latestAudio.error,
-      ),
       isFavourite: switch (favRes) {
         Success<bool>(:final data) => data,
         Failure<bool>() => false,
@@ -127,7 +167,111 @@ class PlayerViewModel extends Notifier<PlayerState> {
         Success<List<Station>>(:final data) => data,
         Failure<List<Station>>() => const <Station>[],
       },
-      error: latestAudio.error,
+    );
+  }
+
+  Future<void> _recoverMidStream(Station station, int requestId) async {
+    await _playWithFailoverAndRetries(station, requestId, skipInitial: true);
+  }
+
+  Future<void> _playWithFailoverAndRetries(
+    Station station,
+    int requestId, {
+    bool skipInitial = false,
+  }) async {
+    _isRecovering = true;
+    final AudioPlayerService audio = ref.read(audioPlayerServiceProvider);
+    final List<Duration> retryDelays = ref.read(playbackRetryDelaysProvider);
+
+    try {
+      if (!skipInitial) {
+        final bool connected = await _tryPrimaryThenFallback(audio, station);
+        if (requestId != _playRequestId) return;
+        if (connected) {
+          _markPlaying(audio);
+          return;
+        }
+      }
+
+      for (int attempt = 0; attempt < retryDelays.length; attempt++) {
+        if (requestId != _playRequestId) return;
+        state = state.copyWith(
+          playback: state.playback.copyWith(
+            status: PlaybackStatus.reconnecting,
+            error: null,
+          ),
+          clearError: true,
+        );
+
+        final Duration delay = retryDelays[attempt];
+        if (delay > Duration.zero) {
+          await Future<void>.delayed(delay);
+        }
+        if (requestId != _playRequestId) return;
+
+        final bool connected = await _tryPrimaryThenFallback(audio, station);
+        if (requestId != _playRequestId) return;
+        if (connected) {
+          _markPlaying(audio);
+          return;
+        }
+      }
+
+      final AppFailure friendlyError = AppFailure.streamPlayback(
+        message:
+            'Could not connect to ${station.name}. Try a similar station below or tap Retry.',
+      );
+      state = state.copyWith(
+        playback: state.playback.copyWith(
+          status: PlaybackStatus.unavailable,
+          error: friendlyError,
+        ),
+        error: friendlyError,
+      );
+    } finally {
+      if (requestId == _playRequestId) {
+        _isRecovering = false;
+      }
+    }
+  }
+
+  Future<bool> _tryPrimaryThenFallback(
+    AudioPlayerService audio,
+    Station station,
+  ) async {
+    if (await _attemptUrl(audio, station)) {
+      return true;
+    }
+    final String? fallback = station.fallbackStreamUrl?.trim();
+    if (fallback != null &&
+        fallback.isNotEmpty &&
+        fallback != station.streamUrl.trim()) {
+      return _attemptUrl(audio, station, overrideUrl: fallback);
+    }
+    return false;
+  }
+
+  Future<bool> _attemptUrl(
+    AudioPlayerService audio,
+    Station station, {
+    String? overrideUrl,
+  }) async {
+    try {
+      await audio.playStation(station, overrideUrl: overrideUrl);
+      return audio.currentSnapshot.status != PlaybackStatus.unavailable;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _markPlaying(AudioPlayerService audio) {
+    final PlaybackStatus snapshotStatus = audio.currentSnapshot.status;
+    final PlaybackStatus resolvedStatus = snapshotStatus == PlaybackStatus.idle
+        ? PlaybackStatus.playing
+        : snapshotStatus;
+    state = state.copyWith(
+      playback: state.playback.copyWith(status: resolvedStatus, error: null),
+      clearError: true,
     );
   }
 
@@ -152,6 +296,8 @@ class PlayerViewModel extends Notifier<PlayerState> {
   }
 
   void stop() {
+    _playRequestId += 1;
+    _isRecovering = false;
     unawaited(ref.read(audioPlayerServiceProvider).stop());
     state = const PlayerState();
   }
@@ -210,8 +356,14 @@ class PlayerViewModel extends Notifier<PlayerState> {
   }
 
   void reportCurrentStation(String reason) {
-    if (state.playback.currentStation == null || reason.trim().isEmpty) return;
+    final Station? station = state.playback.currentStation;
+    if (station == null || reason.trim().isEmpty) return;
     state = state.copyWith(reportSubmitted: true);
+    unawaited(
+      ref
+          .read(reportQueueRepositoryProvider)
+          .enqueueReport(station: station, reason: reason),
+    );
   }
 }
 

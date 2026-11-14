@@ -12,24 +12,35 @@ import 'package:peksoft_radio/features/library/domain/library_repository.dart';
 import 'package:peksoft_radio/features/library/domain/song_history_entry.dart';
 import 'package:peksoft_radio/features/profile/domain/settings_repository.dart';
 import 'package:peksoft_radio/features/profile/domain/user_settings.dart';
+import 'package:peksoft_radio/features/station/domain/report_queue_repository.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/features/station/domain/station_repository.dart';
 import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
 import 'package:peksoft_radio/mock/mock.dart';
 
 import 'fake_audio_player_service.dart';
+import 'fake_connectivity_service.dart';
+import 'fake_report_queue_repository.dart';
 
 /// Converts Phase 1 mock data into fake Riverpod repository overrides for
 /// widget and golden tests (zero network, zero SQLite).
 List<Override> mockRepositoryOverrides({
+  StationRepository? stationRepository,
   FakeAudioPlayerService? audioPlayerService,
+  FakeConnectivityService? connectivityService,
+  ReportQueueRepository? reportQueueRepository,
 }) {
   final _MockCatalogRepository catalog = _MockCatalogRepository();
-  final _MockStationRepository station = _MockStationRepository();
+  final StationRepository station =
+      stationRepository ?? _MockStationRepository();
   final _MockLibraryRepository library = _MockLibraryRepository();
   final _MockSettingsRepository settings = _MockSettingsRepository();
   final FakeAudioPlayerService audio =
       audioPlayerService ?? FakeAudioPlayerService();
+  final FakeConnectivityService connectivity =
+      connectivityService ?? FakeConnectivityService();
+  final ReportQueueRepository reportQueue =
+      reportQueueRepository ?? FakeReportQueueRepository();
 
   return <Override>[
     catalogRepositoryProvider.overrideWithValue(catalog),
@@ -40,6 +51,13 @@ List<Override> mockRepositoryOverrides({
       const EntitlementRepositoryImpl(),
     ),
     audioPlayerServiceProvider.overrideWithValue(audio),
+    connectivityServiceProvider.overrideWithValue(connectivity),
+    reportQueueRepositoryProvider.overrideWithValue(reportQueue),
+    playbackRetryDelaysProvider.overrideWithValue(const <Duration>[
+      Duration.zero,
+      Duration.zero,
+      Duration.zero,
+    ]),
   ];
 }
 

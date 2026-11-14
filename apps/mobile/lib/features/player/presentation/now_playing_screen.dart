@@ -194,6 +194,7 @@ class NowPlayingScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.lg),
                 _PlaybackStatusBanner(
                   status: status,
+                  errorMessage: playback.error?.userMessage,
                   onRetry: () => notifier.playStation(station),
                   onReport: () => showReportStationSheet(context, station),
                 ),
@@ -324,11 +325,13 @@ class NowPlayingScreen extends ConsumerWidget {
 class _PlaybackStatusBanner extends StatelessWidget {
   const _PlaybackStatusBanner({
     required this.status,
+    this.errorMessage,
     required this.onRetry,
     required this.onReport,
   });
 
   final PlaybackStatus status;
+  final String? errorMessage;
   final VoidCallback onRetry;
   final VoidCallback onReport;
 
@@ -380,7 +383,9 @@ class _PlaybackStatusBanner extends StatelessWidget {
       PlaybackStatus.unavailable => (
         icon: Icons.error_outline_rounded,
         title: 'Station unavailable',
-        subtitle: 'This stream did not respond. Try again or report it.',
+        subtitle:
+            errorMessage ??
+            'This stream did not respond. Try again or pick a similar station below.',
         tone: colors.error,
         showSpinner: false,
         showActions: true,
