@@ -7,6 +7,8 @@ import 'package:peksoft_radio/features/catalog/data/catalog_repository_impl.dart
 import 'package:peksoft_radio/features/catalog/domain/catalog_repository.dart';
 import 'package:peksoft_radio/features/library/data/library_repository_impl.dart';
 import 'package:peksoft_radio/features/library/domain/library_repository.dart';
+import 'package:peksoft_radio/features/player/data/just_audio_player_service.dart';
+import 'package:peksoft_radio/features/player/domain/audio_player_service.dart';
 import 'package:peksoft_radio/features/profile/data/settings_repository_impl.dart';
 import 'package:peksoft_radio/features/profile/domain/settings_repository.dart';
 import 'package:peksoft_radio/features/station/data/station_repository_impl.dart';
@@ -73,4 +75,11 @@ final Provider<LibraryRepository> libraryRepositoryProvider =
 final Provider<SettingsRepository> settingsRepositoryProvider =
     Provider<SettingsRepository>((ref) {
       return SettingsRepositoryImpl(database: ref.watch(appDatabaseProvider));
+    });
+
+final Provider<AudioPlayerService> audioPlayerServiceProvider =
+    Provider<AudioPlayerService>((ref) {
+      final JustAudioPlayerService service = JustAudioPlayerService();
+      ref.onDispose(service.dispose);
+      return service;
     });

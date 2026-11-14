@@ -1,37 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
+import 'package:peksoft_radio/features/catalog/domain/genre.dart';
+import 'package:peksoft_radio/features/player/domain/playback_state.dart';
 import 'package:peksoft_radio/features/player/presentation/mini_player_slot.dart';
 import 'package:peksoft_radio/features/player/presentation/now_playing_screen.dart';
+import 'package:peksoft_radio/features/player/presentation/view_models/player_view_model.dart';
+import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/mock/mock.dart';
 
-Widget _wrapAtScale13(Widget child) {
-  return MaterialApp(
-    theme: AppTheme.light(),
-    darkTheme: AppTheme.dark(),
-    themeMode: ThemeMode.dark,
-    builder: (context, inner) => MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: const TextScaler.linear(1.3)),
-      child: inner!,
+import 'helpers/mock_repository_overrides.dart';
+
+final Station _testStation = Station(
+  id: mockStations.first.id,
+  name: 'Wazobia FM: Lagos',
+  streamUrl: 'https://stream.example.com/wazobia',
+  countryCode: 'NG',
+  countryName: 'Nigeria',
+  language: 'Pidgin',
+  codec: 'AAC',
+  bitrateKbps: 128,
+  isHttps: true,
+  isWorking: true,
+  genres: const <Genre>[Genre(id: 'afrobeats', name: 'Afrobeats')],
+);
+
+Widget _wrapAtScale13(Widget child, {required ProviderContainer container}) {
+  return UncontrolledProviderScope(
+    container: container,
+    child: MaterialApp(
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.dark,
+      builder: (context, inner) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: const TextScaler.linear(1.3)),
+        child: inner!,
+      ),
+      home: child,
     ),
-    home: child,
   );
 }
 
 void main() {
-  group('Milestone 1.4 Player UI', () {
-    setUp(() {
-      mockSessionController.playStation(mockStations.first);
-      mockSessionController.setSleepTimer(null);
-    });
-
+  group('Player UI (wired to PlaybackViewModel)', () {
     testWidgets(
       'NowPlayingScreen renders artwork, quality badge, dev switcher, and all playback states at 1.3x scale',
       (tester) async {
-        await tester.pumpWidget(_wrapAtScale13(const NowPlayingScreen()));
+        final ProviderContainer container = ProviderContainer(
+          overrides: mockRepositoryOverrides(),
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(playbackViewModelProvider.notifier)
+            .playStation(_testStation);
+
+        await tester.pumpWidget(
+          _wrapAtScale13(const NowPlayingScreen(), container: container),
+        );
         await tester.pumpAndSettle();
 
         expect(find.text('NOW PLAYING'), findsOneWidget);
@@ -61,10 +91,21 @@ void main() {
       },
     );
 
-    testWidgets('Sleep timer and Report sheets open and apply mock state', (
+    testWidgets('Sleep timer and Report sheets open and apply state', (
       tester,
     ) async {
-      await tester.pumpWidget(_wrapAtScale13(const NowPlayingScreen()));
+      final ProviderContainer container = ProviderContainer(
+        overrides: mockRepositoryOverrides(),
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(playbackViewModelProvider.notifier)
+          .playStation(_testStation);
+
+      await tester.pumpWidget(
+        _wrapAtScale13(const NowPlayingScreen(), container: container),
+      );
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(find.byTooltip('Sleep Timer'), 200);
@@ -83,29 +124,42 @@ void main() {
       expect(find.text('Submit Report'), findsOneWidget);
       await tester.tap(find.text('Submit Report'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Report recorded (mock):'), findsOneWidget);
+      expect(find.textContaining('Report recorded:'), findsOneWidget);
     });
 
     testWidgets(
       'MiniPlayerSlot displays buffering, reconnecting, and unavailable states',
       (tester) async {
+        final ProviderContainer container = ProviderContainer(
+          overrides: mockRepositoryOverrides(),
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(playbackViewModelProvider.notifier)
+            .playStation(_testStation);
+
         await tester.pumpWidget(
-          _wrapAtScale13(const Scaffold(body: MiniPlayerSlot())),
+          _wrapAtScale13(
+            const Scaffold(body: MiniPlayerSlot()),
+            container: container,
+          ),
         );
         await tester.pumpAndSettle();
         expect(find.text('Playing · Nigeria'), findsOneWidget);
 
-        mockSessionController.setPlaybackStatus(MockPlaybackStatus.buffering);
+        final PlayerViewModel notifier = container.read(
+          playbackViewModelProvider.notifier,
+        );
+        notifier.setPlaybackStatus(PlaybackStatus.buffering);
         await tester.pump();
         expect(find.text('Buffering stream...'), findsOneWidget);
 
-        mockSessionController.setPlaybackStatus(
-          MockPlaybackStatus.reconnecting,
-        );
+        notifier.setPlaybackStatus(PlaybackStatus.reconnecting);
         await tester.pump();
         expect(find.text('Reconnecting...'), findsOneWidget);
 
-        mockSessionController.setPlaybackStatus(MockPlaybackStatus.unavailable);
+        notifier.setPlaybackStatus(PlaybackStatus.unavailable);
         await tester.pump();
         expect(find.text('Station unavailable'), findsOneWidget);
       },

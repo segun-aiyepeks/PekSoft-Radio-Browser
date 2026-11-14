@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/player/presentation/view_models/player_view_model.dart';
 
-/// Opens the Sleep Timer bottom sheet for UI-only timer selection.
+/// Opens the Sleep Timer bottom sheet for timer selection.
 Future<void> showSleepTimerSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
@@ -12,7 +13,7 @@ Future<void> showSleepTimerSheet(BuildContext context) {
   );
 }
 
-class _SleepTimerSheet extends StatelessWidget {
+class _SleepTimerSheet extends ConsumerWidget {
   const _SleepTimerSheet();
 
   static const List<({int? minutes, String label})> _presets =
@@ -26,76 +27,84 @@ class _SleepTimerSheet extends StatelessWidget {
       ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.appColors;
+    final Duration? remaining = ref
+        .watch(playbackViewModelProvider)
+        .playback
+        .sleepTimerRemaining;
+    final int? active = remaining?.inMinutes;
 
-    return ListenableBuilder(
-      listenable: mockSessionController,
-      builder: (context, _) {
-        final int? active = mockSessionController.sleepTimerMinutes;
-        return Material(
-          color: colors.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadii.xl),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.lg,
-                      AppSpacing.lg,
-                      AppSpacing.lg,
-                      AppSpacing.sm,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.bedtime_rounded, color: colors.accent),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Sleep Timer',
-                          style: AppTypography.h2.copyWith(
-                            color: colors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(height: 1, color: colors.border),
-                  for (final preset in _presets)
-                    Semantics(
-                      button: true,
-                      selected: active == preset.minutes,
-                      label: 'Set sleep timer to ${preset.label}',
-                      child: ListTile(
-                        minTileHeight: AppSpacing.touchTarget,
-                        title: Text(
-                          preset.label,
-                          style: AppTypography.body.copyWith(
-                            color: colors.textPrimary,
-                          ),
-                        ),
-                        trailing: active == preset.minutes
-                            ? Icon(Icons.check_rounded, color: colors.accent)
-                            : null,
-                        onTap: () {
-                          mockSessionController.setSleepTimer(preset.minutes);
-                          Navigator.of(context).pop();
-                        },
+    return Material(
+      color: colors.surface,
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppRadii.xl),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.bedtime_rounded, color: colors.accent),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'Sleep Timer',
+                      style: AppTypography.h2.copyWith(
+                        color: colors.textPrimary,
                       ),
                     ),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
+                  ],
+                ),
               ),
-            ),
+              Divider(height: 1, color: colors.border),
+              for (final preset in _presets)
+                Semantics(
+                  button: true,
+                  selected: active == preset.minutes,
+                  label: 'Set sleep timer to ${preset.label}',
+                  child: ListTile(
+                    minTileHeight: AppSpacing.touchTarget,
+                    title: Text(
+                      preset.label,
+                      style: AppTypography.body.copyWith(
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    trailing: active == preset.minutes
+                        ? Icon(Icons.check_rounded, color: colors.accent)
+                        : null,
+                    onTap: () {
+                      final notifier = ref.read(
+                        playbackViewModelProvider.notifier,
+                      );
+                      if (preset.minutes == null) {
+                        notifier.cancelSleepTimer();
+                      } else {
+                        notifier.setSleepTimer(
+                          Duration(minutes: preset.minutes!),
+                        );
+                      }
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

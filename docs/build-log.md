@@ -782,3 +782,19 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 
 ### Decisions and alternatives
 - **Kept `PekSoftRadioApp(overrides: ...)` parameter**: Allows `main()` to inject real Drift + `GenreMap` while tests pass fast in-memory repository overrides cleanly.
+
+---
+
+## Milestone 3.2 — Audio engine (Phase 3: Wire & Audio)
+
+### What I did
+- Defined `AudioPlayerService` and `AudioPlaybackSnapshot` in `apps/mobile/lib/features/player/domain/audio_player_service.dart`.
+- Implemented `RadioAudioHandler` (`BaseAudioHandler` using `just_audio`, `audio_service`, and `audio_session`) and `JustAudioPlayerService` in `apps/mobile/lib/features/player/data/`.
+- Configured Android foreground service (`mediaPlayback`), `MediaButtonReceiver`, `WAKE_LOCK`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `POST_NOTIFICATIONS`, `AudioServiceActivity` in `MainActivity.kt`, and `android/app/src/main/res/xml/network_security_config.xml`.
+- Wired `PlayerViewModel` (`PlaybackViewModel` / `playbackViewModelProvider`) to `audioPlayerServiceProvider`, driving both `MiniPlayerSlot` and `NowPlayingScreen` (plus `SleepTimerSheet` and `ReportStationSheet`) with live ICY track title updates and Song History logging.
+- Added `FakeAudioPlayerService` and unit/widget tests in `apps/mobile/test/audio_engine_test.dart`, and updated `player_ui_test.dart`, `widget_test.dart`, and `golden_screens_test.dart`.
+
+### Why Android blocks cleartext traffic by default & what we allowed
+- Since Android 9 (API 28), `usesCleartextTraffic` defaults to `false` to protect users against eavesdropping and tampering on unencrypted `http://` connections.
+- Radio Browser indexes thousands of independent broadcasters worldwide, many of whom serve Shoutcast/Icecast audio streams over plain `http://` rather than `https://`, and those domains cannot be enumerated statically in `<domain-config>`.
+- We added `network_security_config.xml` with `<base-config cleartextTrafficPermitted="true">` (with system trust anchors) for audio stream playback, while `RadioBrowserClient` continues to use `https://` for all Radio Browser API discovery and metadata requests.

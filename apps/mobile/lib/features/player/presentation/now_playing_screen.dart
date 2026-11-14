@@ -1,281 +1,322 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
+import 'package:peksoft_radio/core/utils/country_flag.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
+import 'package:peksoft_radio/features/player/domain/playback_state.dart';
 import 'package:peksoft_radio/features/player/presentation/report_station_sheet.dart';
 import 'package:peksoft_radio/features/player/presentation/sleep_timer_sheet.dart';
-import 'package:peksoft_radio/features/station/presentation/mock_station_tile.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/player/presentation/view_models/player_view_model.dart';
+import 'package:peksoft_radio/features/station/domain/station.dart';
+import 'package:peksoft_radio/features/station/presentation/station_list_tile.dart';
 
-/// Full Now Playing screen with artwork, track title, play/pause, favourite,
-/// sleep timer, share, report sheet, quality badge, similar stations, and a
-/// dev-only playback state switcher (`kDebugMode`).
-class NowPlayingScreen extends StatelessWidget {
+/// Full Now Playing screen with artwork, ICY track title, play/pause,
+/// favourite, sleep timer, share, report sheet, quality badge, similar
+/// stations, and a dev-only playback state switcher (`kDebugMode`).
+class NowPlayingScreen extends ConsumerWidget {
   const NowPlayingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.appColors;
+    final PlayerState playerState = ref.watch(playbackViewModelProvider);
+    final PlaybackState playback = playerState.playback;
+    final Station? station = playback.currentStation;
 
-    return ListenableBuilder(
-      listenable: mockSessionController,
-      builder: (context, _) {
-        final MockStation station = mockSessionController.currentStation;
-        final MockPlaybackStatus status = mockSessionController.playbackStatus;
-        final bool isFav = mockSessionController.isFavourite(station.id);
-        final int? sleepMinutes = mockSessionController.sleepTimerMinutes;
-        final List<MockStation> similar = getMockSimilarStations(station);
-
-        return Scaffold(
-          appBar: AppBar(
-            leading: Semantics(
-              button: true,
-              label: 'Close now playing',
-              child: SizedBox(
-                width: AppSpacing.touchTarget,
-                height: AppSpacing.touchTarget,
-                child: IconButton(
-                  tooltip: 'Close',
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                  onPressed: () => context.pop(),
-                ),
+    if (station == null) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: Semantics(
+            button: true,
+            label: 'Close now playing',
+            child: SizedBox(
+              width: AppSpacing.touchTarget,
+              height: AppSpacing.touchTarget,
+              child: IconButton(
+                tooltip: 'Close',
+                icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                onPressed: () => context.pop(),
               ),
             ),
-            title: Column(
+          ),
+          title: Text(
+            'NOW PLAYING',
+            style: AppTypography.caption.copyWith(
+              color: colors.textMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: const EmptyState(
+          icon: Icons.radio_rounded,
+          title: 'No station selected',
+          message:
+              'Pick a radio station from Home, Explore, or Search to start listening.',
+        ),
+      );
+    }
+
+    final PlaybackStatus status = playback.status;
+    final bool isFav = playerState.isFavourite;
+    final int? sleepMinutes = playback.sleepTimerRemaining?.inMinutes;
+    final List<Station> similar = playerState.similarStations;
+    final String flag = countryFlagEmoji(station.countryCode);
+    final PlayerViewModel notifier = ref.read(
+      playbackViewModelProvider.notifier,
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: Semantics(
+          button: true,
+          label: 'Close now playing',
+          child: SizedBox(
+            width: AppSpacing.touchTarget,
+            height: AppSpacing.touchTarget,
+            child: IconButton(
+              tooltip: 'Close',
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              onPressed: () => context.pop(),
+            ),
+          ),
+        ),
+        title: Column(
+          children: [
+            Text(
+              'NOW PLAYING',
+              style: AppTypography.caption.copyWith(
+                color: colors.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              '$flag ${station.countryName}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.bodySmall.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true,
+        actions: [
+          Semantics(
+            button: true,
+            label: 'Share ${station.name}',
+            child: SizedBox(
+              width: AppSpacing.touchTarget,
+              height: AppSpacing.touchTarget,
+              child: IconButton(
+                tooltip: 'Share',
+                icon: const Icon(Icons.share_outlined),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Share link copied: https://peksoft.radio/station/${station.id}',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: AppSpacing.s2xl),
+        children: [
+          if (kDebugMode)
+            _DevPlaybackStateSwitcher(
+              currentStatus: status,
+              onSelectStatus: (PlaybackStatus s) =>
+                  notifier.setPlaybackStatus(s),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
               children: [
-                Text(
-                  'NOW PLAYING',
-                  style: AppTypography.caption.copyWith(
-                    color: colors.textMuted,
-                    fontWeight: FontWeight.w700,
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.xl),
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: StationLogo(
+                    stationName: station.name,
+                    faviconUrl: station.faviconUrl,
+                    hasLogo: !station.usesFallbackLogo,
+                    size: AppSpacing.s3xl * 3,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.xl),
                 Text(
-                  '${station.flagEmoji} ${station.country}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodySmall.copyWith(
+                  station.name,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.h1.copyWith(color: colors.textPrimary),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  playback.icyTitle ??
+                      (station.language.isNotEmpty
+                          ? 'Live Broadcast · ${station.language}'
+                          : 'Live Broadcast'),
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body.copyWith(
                     color: colors.textSecondary,
                   ),
                 ),
-              ],
-            ),
-            centerTitle: true,
-            actions: [
-              Semantics(
-                button: true,
-                label: 'Share ${station.name}',
-                child: SizedBox(
-                  width: AppSpacing.touchTarget,
-                  height: AppSpacing.touchTarget,
-                  child: IconButton(
-                    tooltip: 'Share',
-                    icon: const Icon(Icons.share_outlined),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Share link copied (mock): https://peksoft.radio/station/${station.id}',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.only(bottom: AppSpacing.s2xl),
-            children: [
-              if (kDebugMode) _DevPlaybackStateSwitcher(currentStatus: status),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
+                const SizedBox(height: AppSpacing.md),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  alignment: WrapAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(AppRadii.xl),
-                        border: Border.all(color: colors.border),
-                      ),
-                      child: StationLogo(
-                        stationName: station.name,
-                        faviconUrl: station.faviconUrl,
-                        hasLogo:
-                            station.faviconUrl != null &&
-                            station.faviconUrl!.isNotEmpty,
-                        size: AppSpacing.s3xl * 3,
-                      ),
+                    QualityBadge(
+                      codec: station.codec,
+                      bitrateKbps: station.bitrateKbps,
+                      isHls: station.isHls,
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      station.name,
-                      textAlign: TextAlign.center,
-                      style: AppTypography.h1.copyWith(
-                        color: colors.textPrimary,
+                    if (sleepMinutes != null)
+                      GenreChip(
+                        label: 'Sleep: ${sleepMinutes}m',
+                        selected: true,
+                        onTap: () => showSleepTimerSheet(context),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      station.currentTrack ??
-                          'Live Broadcast · ${station.language}',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.body.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        QualityBadge(
-                          codec: station.codec,
-                          bitrateKbps: station.bitrateKbps,
-                          isHls: station.isHls,
-                        ),
-                        if (sleepMinutes != null)
-                          GenreChip(
-                            label: 'Sleep: ${sleepMinutes}m',
-                            selected: true,
-                            onTap: () => showSleepTimerSheet(context),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                _PlaybackStatusBanner(
+                  status: status,
+                  onRetry: () => notifier.playStation(station),
+                  onReport: () => showReportStationSheet(context, station),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Semantics(
+                      button: true,
+                      toggled: isFav,
+                      label: isFav
+                          ? 'Remove ${station.name} from favourites'
+                          : 'Add ${station.name} to favourites',
+                      child: SizedBox(
+                        width: AppSpacing.touchTarget,
+                        height: AppSpacing.touchTarget,
+                        child: IconButton(
+                          tooltip: isFav ? 'Unfavourite' : 'Favourite',
+                          onPressed: notifier.toggleFavourite,
+                          icon: Icon(
+                            isFav
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isFav ? colors.accent : colors.textPrimary,
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    _PlaybackStatusBanner(
-                      status: status,
-                      onRetry: () => mockSessionController.setPlaybackStatus(
-                        MockPlaybackStatus.playing,
+                        ),
                       ),
-                      onReport: () => showReportStationSheet(context, station),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Semantics(
-                          button: true,
-                          toggled: isFav,
-                          label: isFav
-                              ? 'Remove ${station.name} from favourites'
-                              : 'Add ${station.name} to favourites',
-                          child: SizedBox(
-                            width: AppSpacing.touchTarget,
-                            height: AppSpacing.touchTarget,
-                            child: IconButton(
-                              tooltip: isFav ? 'Unfavourite' : 'Favourite',
-                              onPressed: () => mockSessionController
-                                  .toggleFavourite(station.id),
-                              icon: Icon(
-                                isFav
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                color: isFav
-                                    ? colors.accent
-                                    : colors.textPrimary,
-                              ),
+                    Semantics(
+                      button: true,
+                      toggled: status == PlaybackStatus.playing,
+                      label: status == PlaybackStatus.playing
+                          ? 'Pause ${station.name}'
+                          : 'Play ${station.name}',
+                      child: SizedBox(
+                        width: AppSpacing.s3xl + AppSpacing.lg,
+                        height: AppSpacing.s3xl + AppSpacing.lg,
+                        child: IconButton.filled(
+                          onPressed: notifier.togglePlayPause,
+                          style: IconButton.styleFrom(
+                            backgroundColor: colors.accent,
+                            foregroundColor: colors.onAccent,
+                          ),
+                          icon: Icon(
+                            status == PlaybackStatus.playing
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            size: AppSpacing.s2xl,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Semantics(
+                      button: true,
+                      label: sleepMinutes == null
+                          ? 'Open sleep timer'
+                          : 'Sleep timer active: $sleepMinutes minutes',
+                      child: SizedBox(
+                        width: AppSpacing.touchTarget,
+                        height: AppSpacing.touchTarget,
+                        child: IconButton(
+                          tooltip: 'Sleep Timer',
+                          onPressed: () => showSleepTimerSheet(context),
+                          icon: Badge(
+                            isLabelVisible: sleepMinutes != null,
+                            label: Text('${sleepMinutes ?? 0}m'),
+                            child: Icon(
+                              Icons.bedtime_outlined,
+                              color: sleepMinutes != null
+                                  ? colors.accent
+                                  : colors.textPrimary,
                             ),
                           ),
                         ),
-                        Semantics(
-                          button: true,
-                          toggled: status == MockPlaybackStatus.playing,
-                          label: status == MockPlaybackStatus.playing
-                              ? 'Pause ${station.name}'
-                              : 'Play ${station.name}',
-                          child: SizedBox(
-                            width: AppSpacing.s3xl + AppSpacing.lg,
-                            height: AppSpacing.s3xl + AppSpacing.lg,
-                            child: IconButton.filled(
-                              onPressed: mockSessionController.togglePlayPause,
-                              style: IconButton.styleFrom(
-                                backgroundColor: colors.accent,
-                                foregroundColor: colors.onAccent,
-                              ),
-                              icon: Icon(
-                                status == MockPlaybackStatus.playing
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded,
-                                size: AppSpacing.s2xl,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Semantics(
-                          button: true,
-                          label: sleepMinutes == null
-                              ? 'Open sleep timer'
-                              : 'Sleep timer active: $sleepMinutes minutes',
-                          child: SizedBox(
-                            width: AppSpacing.touchTarget,
-                            height: AppSpacing.touchTarget,
-                            child: IconButton(
-                              tooltip: 'Sleep Timer',
-                              onPressed: () => showSleepTimerSheet(context),
-                              icon: Badge(
-                                isLabelVisible: sleepMinutes != null,
-                                label: Text('${sleepMinutes ?? 0}m'),
-                                child: Icon(
-                                  Icons.bedtime_outlined,
-                                  color: sleepMinutes != null
-                                      ? colors.accent
-                                      : colors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _PlayerActionButton(
-                          icon: Icons.flag_outlined,
-                          label: 'Report',
-                          onTap: () => showReportStationSheet(context, station),
-                        ),
-                        _PlayerActionButton(
-                          icon: Icons.share_outlined,
-                          label: 'Share',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Shared ${station.name} (mock)'),
-                              ),
-                            );
-                          },
-                        ),
-                        _PlayerActionButton(
-                          icon: Icons.info_outline_rounded,
-                          label: 'Details',
-                          onTap: () => context.push('/station/${station.id}'),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SectionHeader(title: 'Similar stations'),
-              for (final MockStation item in similar)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.xs,
-                  ),
-                  child: MockStationTile(station: item),
+                const SizedBox(height: AppSpacing.lg),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _PlayerActionButton(
+                      icon: Icons.flag_outlined,
+                      label: 'Report',
+                      onTap: () => showReportStationSheet(context, station),
+                    ),
+                    _PlayerActionButton(
+                      icon: Icons.share_outlined,
+                      label: 'Share',
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Share link copied: https://peksoft.radio/station/${station.id}',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _PlayerActionButton(
+                      icon: Icons.info_outline_rounded,
+                      label: 'Details',
+                      onTap: () => context.push('/station/${station.id}'),
+                    ),
+                  ],
                 ),
-            ],
+              ],
+            ),
           ),
-        );
-      },
+          if (similar.isNotEmpty) ...[
+            const SectionHeader(title: 'Similar stations'),
+            for (final Station item in similar)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.xs,
+                ),
+                child: StationListTile(station: item),
+              ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -287,7 +328,7 @@ class _PlaybackStatusBanner extends StatelessWidget {
     required this.onReport,
   });
 
-  final MockPlaybackStatus status;
+  final PlaybackStatus status;
   final VoidCallback onRetry;
   final VoidCallback onReport;
 
@@ -304,15 +345,15 @@ class _PlaybackStatusBanner extends StatelessWidget {
       bool showActions,
     })
     data = switch (status) {
-      MockPlaybackStatus.playing => (
+      PlaybackStatus.playing => (
         icon: Icons.graphic_eq_rounded,
         title: 'LIVE · Streaming',
-        subtitle: 'Audio stream active (Phase 1 mock)',
+        subtitle: 'Audio stream active',
         tone: colors.success,
         showSpinner: false,
         showActions: false,
       ),
-      MockPlaybackStatus.paused => (
+      PlaybackStatus.paused => (
         icon: Icons.pause_circle_outline_rounded,
         title: 'Paused',
         subtitle: 'Tap play to resume live radio',
@@ -320,7 +361,7 @@ class _PlaybackStatusBanner extends StatelessWidget {
         showSpinner: false,
         showActions: false,
       ),
-      MockPlaybackStatus.buffering => (
+      PlaybackStatus.buffering => (
         icon: Icons.hourglass_top_rounded,
         title: 'Buffering stream...',
         subtitle: 'Preparing audio buffer',
@@ -328,7 +369,7 @@ class _PlaybackStatusBanner extends StatelessWidget {
         showSpinner: true,
         showActions: false,
       ),
-      MockPlaybackStatus.reconnecting => (
+      PlaybackStatus.reconnecting => (
         icon: Icons.wifi_find_rounded,
         title: 'Reconnecting...',
         subtitle: 'Network hiccup — attempting to restore stream',
@@ -336,7 +377,7 @@ class _PlaybackStatusBanner extends StatelessWidget {
         showSpinner: true,
         showActions: false,
       ),
-      MockPlaybackStatus.unavailable => (
+      PlaybackStatus.unavailable => (
         icon: Icons.error_outline_rounded,
         title: 'Station unavailable',
         subtitle: 'This stream did not respond. Try again or report it.',
@@ -344,7 +385,7 @@ class _PlaybackStatusBanner extends StatelessWidget {
         showSpinner: false,
         showActions: true,
       ),
-      MockPlaybackStatus.idle => (
+      PlaybackStatus.idle => (
         icon: Icons.radio_rounded,
         title: 'Ready to play',
         subtitle: 'Tap play to start listening',
@@ -483,9 +524,13 @@ class _PlayerActionButton extends StatelessWidget {
 }
 
 class _DevPlaybackStateSwitcher extends StatelessWidget {
-  const _DevPlaybackStateSwitcher({required this.currentStatus});
+  const _DevPlaybackStateSwitcher({
+    required this.currentStatus,
+    required this.onSelectStatus,
+  });
 
-  final MockPlaybackStatus currentStatus;
+  final PlaybackStatus currentStatus;
+  final ValueChanged<PlaybackStatus> onSelectStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -518,11 +563,11 @@ class _DevPlaybackStateSwitcher extends StatelessWidget {
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
             children: [
-              for (final MockPlaybackStatus state in MockPlaybackStatus.values)
+              for (final PlaybackStatus state in PlaybackStatus.values)
                 GenreChip(
                   label: state.name,
                   selected: currentStatus == state,
-                  onTap: () => mockSessionController.setPlaybackStatus(state),
+                  onTap: () => onSelectStatus(state),
                 ),
             ],
           ),

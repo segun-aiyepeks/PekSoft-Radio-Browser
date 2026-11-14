@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
+import 'package:peksoft_radio/features/catalog/domain/genre.dart';
 import 'package:peksoft_radio/features/explore/presentation/explore_screen.dart';
 import 'package:peksoft_radio/features/home/presentation/home_screen.dart';
 import 'package:peksoft_radio/features/player/presentation/now_playing_screen.dart';
+import 'package:peksoft_radio/features/player/presentation/view_models/player_view_model.dart';
 import 'package:peksoft_radio/features/search/presentation/search_screen.dart';
+import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/features/subscription/presentation/paywall_screen.dart';
 import 'package:peksoft_radio/mock/mock.dart';
 
@@ -110,7 +113,51 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_goldenFrame(child: const NowPlayingScreen()));
+      final ProviderContainer container = ProviderContainer(
+        overrides: mockRepositoryOverrides(),
+      );
+      addTearDown(container.dispose);
+
+      final MockStation first = mockStations.first;
+      await container
+          .read(playbackViewModelProvider.notifier)
+          .playStation(
+            Station(
+              id: first.id,
+              name: first.name,
+              streamUrl: 'https://stream.example.com/${first.id}',
+              homepage: first.homepage,
+              faviconUrl: first.faviconUrl,
+              usesFallbackLogo:
+                  first.faviconUrl == null || first.faviconUrl!.isEmpty,
+              isHttps: first.isHttps,
+              isHls: first.isHls,
+              isWorking: first.isWorking,
+              countryCode: first.countryCode,
+              countryName: first.country,
+              genres: first.genres
+                  .map((String g) => Genre(id: g.toLowerCase(), name: g))
+                  .toList(growable: false),
+              language: first.language,
+              codec: first.codec,
+              bitrateKbps: first.bitrateKbps,
+              votes: first.votes,
+              clickCount: first.clickCount,
+            ),
+          );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: ThemeMode.dark,
+            home: const NowPlayingScreen(),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       await expectLater(

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/player/presentation/view_models/player_view_model.dart';
+import 'package:peksoft_radio/features/station/domain/station.dart';
 
-/// Opens the Report Station bottom sheet (UI-only in Phase 1).
-Future<void> showReportStationSheet(BuildContext context, MockStation station) {
+/// Opens the Report Station bottom sheet.
+Future<void> showReportStationSheet(BuildContext context, Station station) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -14,16 +16,17 @@ Future<void> showReportStationSheet(BuildContext context, MockStation station) {
   );
 }
 
-class _ReportStationSheet extends StatefulWidget {
+class _ReportStationSheet extends ConsumerStatefulWidget {
   const _ReportStationSheet({required this.station});
 
-  final MockStation station;
+  final Station station;
 
   @override
-  State<_ReportStationSheet> createState() => _ReportStationSheetState();
+  ConsumerState<_ReportStationSheet> createState() =>
+      _ReportStationSheetState();
 }
 
-class _ReportStationSheetState extends State<_ReportStationSheet> {
+class _ReportStationSheetState extends ConsumerState<_ReportStationSheet> {
   static const List<String> _reasons = <String>[
     'Stream won\'t play / dead link',
     'Wrong country or genre',
@@ -69,7 +72,7 @@ class _ReportStationSheetState extends State<_ReportStationSheet> {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Let us know what is wrong with this stream (mock UI only).',
+                'Let us know what is wrong with this stream.',
                 style: AppTypography.bodySmall.copyWith(
                   color: colors.textSecondary,
                 ),
@@ -101,17 +104,27 @@ class _ReportStationSheetState extends State<_ReportStationSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              PrimaryButton(
-                label: 'Submit Report',
-                icon: Icons.flag_outlined,
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Report recorded (mock): $_selectedReason'),
-                    ),
-                  );
-                },
+              SizedBox(
+                width: double.infinity,
+                height: AppSpacing.touchTarget,
+                child: FilledButton(
+                  onPressed: () {
+                    final String details = _notesController.text.trim();
+                    final String reason = details.isEmpty
+                        ? _selectedReason
+                        : '$_selectedReason: $details';
+                    ref
+                        .read(playbackViewModelProvider.notifier)
+                        .reportCurrentStation(reason);
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Report recorded: $_selectedReason'),
+                      ),
+                    );
+                  },
+                  child: const Text('Submit Report'),
+                ),
               ),
             ],
           ),

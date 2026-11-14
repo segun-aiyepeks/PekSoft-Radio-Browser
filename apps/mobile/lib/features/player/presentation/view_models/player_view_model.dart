@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peksoft_radio/core/di/providers.dart';
 import 'package:peksoft_radio/core/domain/app_failure.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/features/library/domain/song_history_entry.dart';
+import 'package:peksoft_radio/features/player/domain/audio_player_service.dart';
 import 'package:peksoft_radio/features/player/domain/playback_state.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
+
+/// Alias matching the Phase 3 specification name (`PlaybackViewModel`).
+typedef PlaybackViewModel = PlayerViewModel;
 
 /// Immutable state for [MiniPlayerSlot], [NowPlayingScreen] (`/player`),
 /// [SleepTimerSheet], and [ReportStationSheet].
@@ -45,8 +51,36 @@ class PlayerState {
 
 /// Shared ViewModel for Mini-Player, Now Playing, Sleep Timer, and Report sheets.
 class PlayerViewModel extends Notifier<PlayerState> {
+  StreamSubscription<AudioPlaybackSnapshot>? _audioSub;
+
   @override
-  PlayerState build() => const PlayerState();
+  PlayerState build() {
+    final AudioPlayerService audio = ref.watch(audioPlayerServiceProvider);
+    _audioSub?.cancel();
+    _audioSub = audio.playbackEvents.listen(_onAudioSnapshot);
+    ref.onDispose(() {
+      _audioSub?.cancel();
+      _audioSub = null;
+    });
+    return const PlayerState();
+  }
+
+  void _onAudioSnapshot(AudioPlaybackSnapshot snapshot) {
+    if (state.playback.currentStation == null) return;
+    state = state.copyWith(
+      playback: state.playback.copyWith(
+        status: snapshot.status,
+        error: snapshot.error,
+      ),
+      error: snapshot.error,
+      clearError: snapshot.error == null,
+    );
+
+    final String? title = snapshot.icyTitle?.trim();
+    if (title != null && title.isNotEmpty && title != state.playback.icyTitle) {
+      unawaited(updateTrackTitle(title));
+    }
+  }
 
   Future<void> playStation(Station station) async {
     state = state.copyWith(
@@ -60,18 +94,31 @@ class PlayerViewModel extends Notifier<PlayerState> {
       clearError: true,
     );
 
+    final AudioPlayerService audio = ref.read(audioPlayerServiceProvider);
     final stationRepo = ref.read(stationRepositoryProvider);
     final libraryRepo = ref.read(libraryRepositoryProvider);
 
-    await libraryRepo.recordRecent(station);
-    await stationRepo.reportClick(station.id);
+    await Future.wait<void>(<Future<void>>[
+      audio.playStation(station),
+      libraryRepo.recordRecent(station),
+      stationRepo.reportClick(station.id),
+    ]);
 
     final Result<bool> favRes = await libraryRepo.isFavourite(station.id);
     final Result<List<Station>> similarRes = await stationRepo
         .getSimilarStations(station);
 
+    final AudioPlaybackSnapshot latestAudio = audio.currentSnapshot;
+    final PlaybackStatus resolvedStatus =
+        latestAudio.status == PlaybackStatus.idle
+        ? PlaybackStatus.playing
+        : latestAudio.status;
+
     state = state.copyWith(
-      playback: state.playback.copyWith(status: PlaybackStatus.playing),
+      playback: state.playback.copyWith(
+        status: resolvedStatus,
+        error: latestAudio.error,
+      ),
       isFavourite: switch (favRes) {
         Success<bool>(:final data) => data,
         Failure<bool>() => false,
@@ -80,19 +127,32 @@ class PlayerViewModel extends Notifier<PlayerState> {
         Success<List<Station>>(:final data) => data,
         Failure<List<Station>>() => const <Station>[],
       },
+      error: latestAudio.error,
     );
   }
 
   void togglePlayPause() {
+    final Station? station = state.playback.currentStation;
+    if (station == null) return;
+    final AudioPlayerService audio = ref.read(audioPlayerServiceProvider);
     final PlaybackStatus current = state.playback.status;
-    if (state.playback.currentStation == null) return;
-    final PlaybackStatus next = current == PlaybackStatus.playing
-        ? PlaybackStatus.paused
-        : PlaybackStatus.playing;
-    state = state.copyWith(playback: state.playback.copyWith(status: next));
+    if (current == PlaybackStatus.playing) {
+      state = state.copyWith(
+        playback: state.playback.copyWith(status: PlaybackStatus.paused),
+      );
+      unawaited(audio.pause());
+    } else if (current == PlaybackStatus.unavailable) {
+      unawaited(playStation(station));
+    } else {
+      state = state.copyWith(
+        playback: state.playback.copyWith(status: PlaybackStatus.playing),
+      );
+      unawaited(audio.resume());
+    }
   }
 
   void stop() {
+    unawaited(ref.read(audioPlayerServiceProvider).stop());
     state = const PlayerState();
   }
 
@@ -157,3 +217,7 @@ class PlayerViewModel extends Notifier<PlayerState> {
 
 final NotifierProvider<PlayerViewModel, PlayerState> playerViewModelProvider =
     NotifierProvider<PlayerViewModel, PlayerState>(PlayerViewModel.new);
+
+/// Alias matching the Phase 3 specification name (`playbackViewModelProvider`).
+final NotifierProvider<PlayerViewModel, PlayerState> playbackViewModelProvider =
+    playerViewModelProvider;

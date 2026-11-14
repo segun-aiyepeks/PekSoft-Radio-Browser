@@ -32,6 +32,8 @@ import 'package:peksoft_radio/features/subscription/data/entitlement_repository_
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
 import 'package:peksoft_radio/features/subscription/presentation/view_models/subscription_view_model.dart';
 
+import 'helpers/fake_audio_player_service.dart';
+
 const Station _sampleStation = Station(
   id: 'st-1',
   name: 'Cool FM Lagos',
@@ -242,6 +244,7 @@ ProviderContainer _createContainer({
       entitlementRepositoryProvider.overrideWithValue(
         const EntitlementRepositoryImpl(),
       ),
+      audioPlayerServiceProvider.overrideWithValue(FakeAudioPlayerService()),
     ],
   );
 }

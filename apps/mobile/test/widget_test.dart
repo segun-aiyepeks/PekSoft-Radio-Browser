@@ -31,14 +31,15 @@ void main() {
       find.descendant(of: navBar, matching: find.text('Profile')),
       findsOneWidget,
     );
-    expect(find.text('Wazobia FM: Lagos'), findsWidgets);
+    expect(find.text('PekSoft Radio'), findsWidgets);
+    expect(find.text('Tap a station to listen'), findsOneWidget);
 
     await tester.tap(
       find.descendant(of: navBar, matching: find.text('Explore')),
     );
     await tester.pumpAndSettle();
     expect(find.text('Countries'), findsOneWidget);
-    expect(find.text('Wazobia FM: Lagos'), findsWidgets);
+    expect(find.text('Tap a station to listen'), findsOneWidget);
 
     await tester.tap(
       find.descendant(of: navBar, matching: find.text('Library')),

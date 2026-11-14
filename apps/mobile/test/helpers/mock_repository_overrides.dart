@@ -17,13 +17,19 @@ import 'package:peksoft_radio/features/station/domain/station_repository.dart';
 import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
 import 'package:peksoft_radio/mock/mock.dart';
 
+import 'fake_audio_player_service.dart';
+
 /// Converts Phase 1 mock data into fake Riverpod repository overrides for
 /// widget and golden tests (zero network, zero SQLite).
-List<Override> mockRepositoryOverrides() {
+List<Override> mockRepositoryOverrides({
+  FakeAudioPlayerService? audioPlayerService,
+}) {
   final _MockCatalogRepository catalog = _MockCatalogRepository();
   final _MockStationRepository station = _MockStationRepository();
   final _MockLibraryRepository library = _MockLibraryRepository();
   final _MockSettingsRepository settings = _MockSettingsRepository();
+  final FakeAudioPlayerService audio =
+      audioPlayerService ?? FakeAudioPlayerService();
 
   return <Override>[
     catalogRepositoryProvider.overrideWithValue(catalog),
@@ -33,6 +39,7 @@ List<Override> mockRepositoryOverrides() {
     entitlementRepositoryProvider.overrideWithValue(
       const EntitlementRepositoryImpl(),
     ),
+    audioPlayerServiceProvider.overrideWithValue(audio),
   ];
 }
 
@@ -229,6 +236,8 @@ class _MockStationRepository implements StationRepository {
 
 class _MockLibraryRepository implements LibraryRepository {
   final List<Station> _favs = <Station>[];
+  final List<Station> _recents = <Station>[];
+  final List<SongHistoryEntry> _history = <SongHistoryEntry>[];
 
   @override
   Future<Result<void>> addFavourite(Station station) async {
@@ -237,7 +246,10 @@ class _MockLibraryRepository implements LibraryRepository {
   }
 
   @override
-  Future<Result<void>> clearSongHistory() async => const Success<void>(null);
+  Future<Result<void>> clearSongHistory() async {
+    _history.clear();
+    return const Success<void>(null);
+  }
 
   @override
   Future<Result<void>> deleteCollection(String collectionId) async =>
@@ -266,24 +278,31 @@ class _MockLibraryRepository implements LibraryRepository {
 
   @override
   Future<Result<List<Station>>> getRecents({int limit = 50}) async =>
-      const Success<List<Station>>(<Station>[]);
+      Success<List<Station>>(List<Station>.unmodifiable(_recents.take(limit)));
 
   @override
   Future<Result<List<SongHistoryEntry>>> getSongHistory({
     int limit = 100,
-  }) async => const Success<List<SongHistoryEntry>>(<SongHistoryEntry>[]);
+  }) async => Success<List<SongHistoryEntry>>(
+    List<SongHistoryEntry>.unmodifiable(_history.take(limit)),
+  );
 
   @override
   Future<Result<bool>> isFavourite(String stationId) async =>
       Success<bool>(_favs.any((Station s) => s.id == stationId));
 
   @override
-  Future<Result<void>> logSongHistory(SongHistoryEntry entry) async =>
-      const Success<void>(null);
+  Future<Result<void>> logSongHistory(SongHistoryEntry entry) async {
+    _history.insert(0, entry);
+    return const Success<void>(null);
+  }
 
   @override
-  Future<Result<void>> recordRecent(Station station) async =>
-      const Success<void>(null);
+  Future<Result<void>> recordRecent(Station station) async {
+    _recents.removeWhere((Station s) => s.id == station.id);
+    _recents.insert(0, station);
+    return const Success<void>(null);
+  }
 
   @override
   Future<Result<void>> removeFavourite(String stationId) async {
