@@ -25,12 +25,14 @@ import 'fake_report_queue_repository.dart';
 /// Converts Phase 1 mock data into fake Riverpod repository overrides for
 /// widget and golden tests (zero network, zero SQLite).
 List<Override> mockRepositoryOverrides({
+  CatalogRepository? catalogRepository,
   StationRepository? stationRepository,
   FakeAudioPlayerService? audioPlayerService,
   FakeConnectivityService? connectivityService,
   ReportQueueRepository? reportQueueRepository,
 }) {
-  final _MockCatalogRepository catalog = _MockCatalogRepository();
+  final CatalogRepository catalog =
+      catalogRepository ?? _MockCatalogRepository();
   final StationRepository station =
       stationRepository ?? _MockStationRepository();
   final _MockLibraryRepository library = _MockLibraryRepository();

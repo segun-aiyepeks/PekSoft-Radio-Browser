@@ -175,10 +175,10 @@ void main() {
           ),
           audioPlayerServiceProvider.overrideWithValue(audio),
           sleepTimerTickProvider.overrideWithValue(
-            const Duration(milliseconds: 15),
+            const Duration(milliseconds: 30),
           ),
           sleepFadeDurationProvider.overrideWithValue(
-            const Duration(milliseconds: 45),
+            const Duration(milliseconds: 150),
           ),
         ],
       );
@@ -190,11 +190,11 @@ void main() {
       await vm.playStation(_hqVariant);
       expect(audio.volume, 1.0);
 
-      vm.setSleepTimer(const Duration(milliseconds: 60));
-      await Future<void>.delayed(const Duration(milliseconds: 35));
+      vm.setSleepTimer(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(audio.volume, lessThan(1.0));
 
-      await Future<void>.delayed(const Duration(milliseconds: 80));
+      await Future<void>.delayed(const Duration(milliseconds: 220));
       final PlayerState afterExpiry = container.read(playbackViewModelProvider);
       expect(afterExpiry.playback.status, PlaybackStatus.paused);
       expect(afterExpiry.playback.sleepTimerRemaining, isNull);

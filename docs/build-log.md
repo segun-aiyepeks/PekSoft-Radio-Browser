@@ -822,3 +822,31 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 - Added `playSurpriseMe` to `PlayerViewModel` and a `Surprise me` action button in `HomeScreen`.
 - Added `Clipboard.setData` for the placeholder share link (`https://peksoft.radio/station/<id>`) in `NowPlayingScreen`.
 - Added `apps/mobile/test/listening_features_test.dart` and updated `account_money_screens_test.dart`.
+
+
+---
+
+## Milestone 3.5 — Tests and release prep (Phase 3: Wire & Audio)
+
+### What I did
+- Added end-to-end play-flow integration test (`apps/mobile/integration_test/play_flow_test.dart`, backed by shared `apps/mobile/test/helpers/play_flow_runner.dart` and `apps/mobile/test/play_flow_integration_test.dart`) exercising `Welcome -> Home -> Play -> MiniPlayer -> Now Playing -> ICY -> Favourite -> Library (Favourites & Song History)` with `FakeAudioPlayerService`.
+- Profiled cold start and list scrolling and applied two targeted optimizations:
+  - Parallelized `AppDatabase.openDefault()` and `_loadGenreMap()` startup futures in `apps/mobile/lib/main.dart`.
+  - Converted `HomeScreen` from an eager `ListView` + `for` loop to a lazy `CustomScrollView` + `SliverToBoxAdapter` + `SliverList.builder` in `apps/mobile/lib/features/home/presentation/home_screen.dart`.
+  - Added `apps/mobile/test/performance_profile_test.dart` verifying lazy viewport materialization (`< 25` of 120 stations built initially) and smooth fling scrolling.
+- Wrote `docs/release-android.md` documenting `applicationId` (`com.peksoft.radio`), `versionName`/`versionCode` mapping, Play App Signing (App Signing Key vs Upload Key), keystore setup, and `flutter build appbundle --release`.
+- Built the Android release App Bundle: `apps/mobile/build/app/outputs/bundle/release/app-release.aab` (`59.7MB`).
+
+---
+
+## Phase 3 Summary — Ready for Review
+
+**Branch:** `phase/3-wire-and-audio` → `main`  
+**Milestones completed:** `3.1` Wire discovery · `3.2` Audio engine · `3.3` Resilience (J4) · `3.4` Listening features · `3.5` Tests & release prep
+
+Phase 3 turns the Phase 1 UI + Phase 2 offline-first repositories/ViewModels into a working Android radio player:
+- All discovery screens (`Welcome`, `Home`, `Explore`, `Search`, `Filters`, `CountryDetail`, `GenreDetail`, `StationDetail`) and `Library` / `Settings` are wired to Riverpod ViewModels with skeleton loading, empty, error, and offline states; mock data remains only in test fixtures.
+- `AudioPlayerService` (`RadioAudioHandler` + `JustAudioPlayerService`) handles background playback, notification/lock-screen controls, audio focus ducking, headphone unplug pause, Bluetooth metadata, MP3/AAC/OGG/HLS streams, live ICY track updates, and cleartext HTTP streams via `network_security_config.xml`.
+- J4 playback resilience (`urlResolved -> url` failover, 3 retries with back-off, `connectivity_plus` auto-reconnect, Radio Browser click reporting, local Drift report queue, and friendly unavailable suggestions).
+- Listening features: sleep timer with fade-out, Data Saver bitrate variant selection, Library with free-tier `Entitlement` limits, Surprise me, and clipboard share link.
+- End-to-end play flow test, cold-start/scroll profiling optimizations, `docs/release-android.md`, and verified release `.aab` (`59.7MB`).

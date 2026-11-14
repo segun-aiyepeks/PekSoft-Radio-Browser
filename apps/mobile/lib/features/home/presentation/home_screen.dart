@@ -130,136 +130,162 @@ class HomeScreen extends ConsumerWidget {
 
           final List<Genre> quickGenres = home.genres.take(6).toList();
 
+          final List<Station> visibleStations = home.stations;
+
           return RefreshIndicator(
             onRefresh: () => ref.read(homeViewModelProvider.notifier).refresh(),
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    AppSpacing.sm,
-                    AppSpacing.lg,
-                    AppSpacing.md,
-                  ),
-                  child: Semantics(
-                    button: true,
-                    label: 'Search radio stations, countries, and genres',
-                    child: InkWell(
-                      onTap: () => context.push('/search'),
-                      borderRadius: BorderRadius.circular(AppRadii.full),
-                      child: Container(
-                        constraints: const BoxConstraints(
-                          minHeight: AppSpacing.touchTarget,
+            child: CustomScrollView(
+              slivers: <Widget>[
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg,
+                          AppSpacing.sm,
+                          AppSpacing.lg,
+                          AppSpacing.md,
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(AppRadii.full),
-                          border: Border.all(color: colors.border),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search_rounded, color: colors.textMuted),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                'Search stations worldwide...',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTypography.body.copyWith(
-                                  color: colors.textMuted,
+                        child: Semantics(
+                          button: true,
+                          label: 'Search radio stations, countries, and genres',
+                          child: InkWell(
+                            onTap: () => context.push('/search'),
+                            borderRadius: BorderRadius.circular(AppRadii.full),
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                minHeight: AppSpacing.touchTarget,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.surface,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadii.full,
                                 ),
+                                border: Border.all(color: colors.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    color: colors.textMuted,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Text(
+                                      'Search stations worldwide...',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.body.copyWith(
+                                        color: colors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                      FilterChipBar(
+                        items: [
+                          FilterChipItem(
+                            id: 'all',
+                            label: 'All',
+                            selected: home.selectedGenreId == null,
+                          ),
+                          for (final Genre genre in quickGenres)
+                            FilterChipItem(
+                              id: genre.id,
+                              label: genre.name,
+                              selected: home.selectedGenreId == genre.id,
+                            ),
+                        ],
+                        onToggle: (id) {
+                          ref
+                              .read(homeViewModelProvider.notifier)
+                              .selectGenre(id == 'all' ? null : id);
+                        },
+                      ),
+                      if (home.curatedCollections.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        SectionHeader(
+                          title: 'Curated collections',
+                          actionLabel: 'Explore',
+                          onActionTap: () => context.go('/explore'),
+                        ),
+                        SizedBox(
+                          height: 128,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                            ),
+                            itemCount: home.curatedCollections.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: AppSpacing.md),
+                            itemBuilder: (context, index) {
+                              final Collection col =
+                                  home.curatedCollections[index];
+                              return _CollectionCard(
+                                collection: col,
+                                onTap: () {
+                                  if (col.stationIds.isNotEmpty) {
+                                    context.push(
+                                      '/station/${col.stationIds.first}',
+                                    );
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                      if (home.entitlement.adsEnabled) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        const AdSlotPlaceholder(),
+                      ],
+                      const SizedBox(height: AppSpacing.sm),
+                      SectionHeader(
+                        title: 'Live & working now',
+                        actionLabel: '${home.stations.length} stations',
+                        onActionTap: () => _openFilters(context, ref),
+                      ),
+                    ],
                   ),
                 ),
-                FilterChipBar(
-                  items: [
-                    FilterChipItem(
-                      id: 'all',
-                      label: 'All',
-                      selected: home.selectedGenreId == null,
+                if (visibleStations.isEmpty)
+                  SliverToBoxAdapter(
+                    child: EmptyState(
+                      title: 'No matching stations',
+                      message: 'Try clearing the genre filter or refreshing.',
+                      icon: Icons.radio_rounded,
+                      actionLabel: 'Reset filters',
+                      onAction: () => ref
+                          .read(homeViewModelProvider.notifier)
+                          .selectGenre(null),
                     ),
-                    for (final Genre genre in quickGenres)
-                      FilterChipItem(
-                        id: genre.id,
-                        label: genre.name,
-                        selected: home.selectedGenreId == genre.id,
-                      ),
-                  ],
-                  onToggle: (id) {
-                    ref
-                        .read(homeViewModelProvider.notifier)
-                        .selectGenre(id == 'all' ? null : id);
-                  },
-                ),
-                if (home.curatedCollections.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  SectionHeader(
-                    title: 'Curated collections',
-                    actionLabel: 'Explore',
-                    onActionTap: () => context.go('/explore'),
-                  ),
-                  SizedBox(
-                    height: 128,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                      ),
-                      itemCount: home.curatedCollections.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(width: AppSpacing.md),
-                      itemBuilder: (context, index) {
-                        final Collection col = home.curatedCollections[index];
-                        return _CollectionCard(
-                          collection: col,
-                          onTap: () {
-                            if (col.stationIds.isNotEmpty) {
-                              context.push('/station/${col.stationIds.first}');
-                            }
-                          },
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                    sliver: SliverList.builder(
+                      itemCount: visibleStations.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        final Station station = visibleStations[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.xs,
+                          ),
+                          child: StationListTile(station: station),
                         );
                       },
                     ),
                   ),
-                ],
-                if (home.entitlement.adsEnabled) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  const AdSlotPlaceholder(),
-                ],
-                const SizedBox(height: AppSpacing.sm),
-                SectionHeader(
-                  title: 'Live & working now',
-                  actionLabel: '${home.stations.length} stations',
-                  onActionTap: () => _openFilters(context, ref),
-                ),
-                if (home.stations.isEmpty)
-                  EmptyState(
-                    title: 'No matching stations',
-                    message: 'Try clearing the genre filter or refreshing.',
-                    icon: Icons.radio_rounded,
-                    actionLabel: 'Reset filters',
-                    onAction: () => ref
-                        .read(homeViewModelProvider.notifier)
-                        .selectGenre(null),
-                  )
-                else
-                  for (final Station station in home.stations.take(20))
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: AppSpacing.xs,
-                      ),
-                      child: StationListTile(station: station),
-                    ),
               ],
             ),
           );

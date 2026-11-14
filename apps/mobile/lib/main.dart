@@ -12,8 +12,10 @@ import 'package:peksoft_radio/core/theme/theme_controller.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final AppDatabase database = await AppDatabase.openDefault();
-  final GenreMap genreMap = await _loadGenreMap();
+  final Future<AppDatabase> databaseFuture = AppDatabase.openDefault();
+  final Future<GenreMap> genreMapFuture = _loadGenreMap();
+  final AppDatabase database = await databaseFuture;
+  final GenreMap genreMap = await genreMapFuture;
 
   runApp(
     PekSoftRadioApp(
