@@ -685,3 +685,53 @@ Every mobile screen is built with token-driven dark & light themes, `Semantics`,
 
 ### Decisions and alternatives
 - **Injected `onBackgroundRevalidation` test hook**: Lets deterministic unit tests await background SWR tasks without flaky `Future.delayed` timers.
+
+
+---
+
+## Milestone 2.6 — ViewModels (Phase 2: Mobile data layer)
+
+### What I did
+- Added `flutter_riverpod` (`3.5.0`) to `apps/mobile/pubspec.yaml` and created shared DI providers in `apps/mobile/lib/core/di/providers.dart`.
+- Created immutable state classes and Riverpod `Notifier` / `AsyncNotifier` ViewModels for every Phase 1 screen (without modifying or wiring up any Phase 1 UI):
+  - `SplashViewModel`, `WelcomeViewModel`, `HomeViewModel`, `ExploreViewModel`, `CountryDetailViewModel`, `GenreDetailViewModel`, `SearchViewModel`, `StationDetailViewModel`, `PlayerViewModel`, `LibraryViewModel`, `AuthViewModel`, `SubscriptionViewModel`, `SettingsViewModel`.
+- Documented the screen-to-ViewModel mapping, state fields, and event methods in `docs/viewmodels.md` and linked it from `docs/index.md`.
+- Added unit tests for every ViewModel in `apps/mobile/test/view_models_test.dart` using `ProviderContainer` with fake repositories.
+
+### Why
+- Riverpod `Notifier` and `AsyncNotifier` ViewModels isolate screen state transitions and repository calls from Flutter widgets, making every screen's logic testable without pumping UI.
+
+### How it works (plain English)
+- Each screen reads a single Riverpod provider (`homeViewModelProvider`, `playerViewModelProvider`, etc.) and invokes explicit event methods (`selectGenre`, `playStation`, `toggleFavourite`, etc.) that update immutable state classes.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`, `apps/mobile/pubspec.lock`
+- `apps/mobile/lib/core/di/providers.dart`
+- `apps/mobile/lib/features/*/presentation/view_models/*_view_model.dart` (13 ViewModel files)
+- `apps/mobile/test/view_models_test.dart`
+- `docs/{viewmodels.md,index.md,build-log.md}`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **`ProviderContainer` overrides**: Riverpod lets tests override repository providers with fast in-memory fakes so ViewModels are tested in milliseconds.
+- **Family `AsyncNotifier`**: Parameterized screens (`/country/:code`, `/genre/:id`, `/station/:id`) receive their route argument cleanly via `AsyncNotifierProvider.family`.
+
+### Decisions and alternatives
+- **`@immutable` manual `copyWith` classes for ViewModel states**: Avoids extra `build_runner` overhead while keeping every ViewModel state immutable and explicit; domain entities continue using `@freezed`.
+
+---
+
+## Phase 2 Summary — Ready for Review
+
+**Branch:** `phase/2-mobile-data` → `main`  
+**Milestones completed:** `2.1` Domain Models · `2.2` Radio Browser Data Source · `2.3` Normalisation · `2.4` Local Storage with Drift · `2.5` Repositories · `2.6` ViewModels
+
+The complete mobile MVVM + Riverpod data layer is built and verified offline with zero UI modifications:
+- Pure `@freezed` domain models and sealed `AppFailure`/`Result<T>` (`docs/domain-model.md`)
+- `RadioBrowserClient` on `Dio` with `/json/servers` mirror discovery, 24h mirror cache, exponential back-off retries, failover, `User-Agent`, and click reporting
+- Shared `packages/shared/genre-map.json` + `StationNormaliser` (20 canonical genres, noise stripping, duplicate merging, HTTPS/fallback-logo/working-now flags, sort/filter)
+- Versioned Drift SQLite database (`schemaVersion = 2`) with v1 → v2 migration test and 50-item recents cap
+- Offline-first SWR repositories (`CatalogRepository`, `StationRepository`, `LibraryRepository`, `SettingsRepository`, `EntitlementRepository` stub) with 24h list / 5m search TTLs
+- 13 Riverpod `Notifier`/`AsyncNotifier` ViewModels covering every Phase 1 screen (`docs/viewmodels.md`)
