@@ -1055,3 +1055,63 @@ Phase 4 adds the Node.js/Fastify backend, PostgreSQL persistence, Firebase authe
 
 ### Decisions and alternatives
 - **Shared JSON table (`packages/shared/feature-gates.json`) verified by both Vitest and Flutter test**: Ensures TypeScript (`PLAN_FEATURE_GATES`) and Dart (`PlanFeatureGates`) never drift, while keeping zero runtime file-system overhead in web/mobile bundles.
+
+
+---
+
+## Milestone 5.2 — Ads (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Added `google_mobile_ads: ^9.2.0` to `apps/mobile/pubspec.yaml` and configured `com.google.android.gms.ads.APPLICATION_ID` in `apps/mobile/android/app/src/main/AndroidManifest.xml` + `apps/mobile/android/app/build.gradle.kts` via `manifestPlaceholders["admobAppId"]` (`ADMOB_APP_ID` build property / environment variable, with Google's official test App ID fallback for local/debug builds).
+- Created `AdConfig` (`apps/mobile/lib/core/ads/ad_config.dart`) which reads real AdMob unit IDs from `--dart-define` build variables and falls back to Google's official Android test ad unit IDs (`9214589741`, `2247696110`, `1033173712`, `5224354917`) **only** when `isDebugMode` is `true` (returning `null` in release builds if real IDs are not supplied).
+- Built pure-Dart `AdPolicy` (`apps/mobile/lib/core/ads/ad_policy.dart`) enforcing all UX rules from Section 1 Principle 4 and Journey J7:
+  - Nothing at all for Plus users (paid Plus or active 24h rewarded pass).
+  - No ad before first sound (`hasReachedFirstSound` is recorded by `PlayerViewModel` when audio first reaches `PlaybackStatus.playing`).
+  - Never on onboarding (`/splash`, `/welcome`), auth (`/auth/*`), paywall/billing (`/paywall`, `/subscription`), or player-control surfaces (`/player`, `isNearPlayerControls: true`).
+  - At most 1 interstitial per 10 minutes (`interstitialCooldown = Duration(minutes: 10)`) and only on natural break triggers (`completedBrowseFlow`, `finishedCollectionEdit`, `exitedStationDetailAfterStop` — never on `appLaunch`, `firstPlay`, or `startingPlayback`).
+  - Native ad cards every 8 station rows (`nativeAdInterval = 8`) in long lists (`>= 8` stations).
+- Built `AdService` (`apps/mobile/lib/core/ads/ad_service.dart`) and `AdMobAdService` (`apps/mobile/lib/core/ads/admob_ad_service.dart`) running Google's **User Messaging Platform (UMP)** consent flow at launch (`runConsentFlowIfRequired` in `apps/mobile/lib/main.dart`), displaying policy-checked interstitials, and showing the optional rewarded ad (`showRewardedAdForPlusPass`) wired to `SubscriptionViewModel.watchRewardedAdForPlusPass()`.
+- Added `FakeAdService` (`apps/mobile/test/helpers/fake_ad_service.dart`) and 5 thorough unit tests in `apps/mobile/test/ad_policy_test.dart`, and recorded `ADR-012` in `docs/decisions.md`.
+
+### Why
+- **Why debug builds must use test ad unit IDs**: Tapping or repeatedly loading real production AdMob ads on a developer's own phone or emulator triggers AdMob's automated invalid-traffic detection and can get a publisher account suspended before launch.
+- **Why the 24-hour rewarded ad pass is client-side and expires on its own**:
+  - Unlike a paid Google Play or Paystack subscription (which involves real money, recurring billing, receipts, and cross-device entitlement), watching a 15–30 second rewarded video is an ephemeral, zero-money convenience perk for price-sensitive listeners (Persona Tunde) that works even in **guest mode** without requiring sign-up.
+  - Storing `rewardedPlusExpiresAt = now + 24h` in local SQLite (`AppDatabase`) means it unlocks convenience features (ad removal, custom sleep timer, advanced filters) immediately on that device and automatically expires as soon as `DateTime.now().isAfter(rewardedPlusExpiresAt)` — with zero server cron job needed and zero risk of permanently unlocking a paid account on the backend.
+
+### How it works (plain English)
+- **UMP Consent at Launch**: When the app starts, `AdMobAdService.runConsentFlowIfRequired()` asks Google's UMP SDK whether the user is in a region requiring GDPR/UK consent (EEA/UK). If required, UMP shows Google's certified consent dialog; only after `ConsentInformation.instance.canRequestAds()` returns `true` does the app initialize `MobileAds.instance`.
+- **First-Sound Gate**: `AdPolicy._hasReachedFirstSound` starts `false`. Until `PlayerViewModel` transitions a stream to `PlaybackStatus.playing` and calls `adPolicy.recordFirstSound()`, every ad check (`canShowBanner`, `shouldInsertNativeAdAfterRow`, `canShowInterstitial`) returns `false`.
+- **10-Minute Cooldown & Natural Breaks**: When a user finishes a browse flow or collection edit, `AdPolicy.canShowInterstitial` checks that the trigger is a natural break, the screen is not banned, the user is on Free tier, first sound has occurred, and at least 10 minutes have elapsed since `_lastInterstitialShownAt`.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`
+- `apps/mobile/android/app/build.gradle.kts`
+- `apps/mobile/android/app/src/main/AndroidManifest.xml`
+- `apps/mobile/lib/core/ads/ad_config.dart`
+- `apps/mobile/lib/core/ads/ad_policy.dart`
+- `apps/mobile/lib/core/ads/ad_service.dart`
+- `apps/mobile/lib/core/ads/admob_ad_service.dart`
+- `apps/mobile/lib/core/di/providers.dart`
+- `apps/mobile/lib/features/player/presentation/view_models/player_view_model.dart`
+- `apps/mobile/lib/features/subscription/presentation/view_models/subscription_view_model.dart`
+- `apps/mobile/lib/main.dart`
+- `apps/mobile/test/helpers/fake_ad_service.dart`
+- `apps/mobile/test/helpers/mock_repository_overrides.dart`
+- `apps/mobile/test/ad_policy_test.dart`
+- `docs/decisions.md` (`ADR-012`)
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze && flutter test test/ad_policy_test.dart`
+
+### Concepts worth learning
+- **Ad Formats (Adaptive Banner, Native, Interstitial, Rewarded)**:
+  - **Adaptive Banner**: A fixed-height strip anchored at the bottom of browse screens (never covering the mini-player).
+  - **Native Ad**: Styled to match your own station list cards (`AdSlotPlaceholder` native variant) with a clear `AD` badge every 8 rows, avoiding jarring visual jumps.
+  - **Interstitial**: Full-screen ad shown only between completed tasks with a strict 10-minute frequency cap so the app never feels spammy.
+  - **Rewarded Ad**: Opt-in video ad where the user chooses to watch in exchange for a temporary reward (24 hours of Plus convenience features).
+- **UMP (User Messaging Platform)**: Google's official IAB TCF v2.2 consent management SDK required by Google Play and AdMob for serving ads to EEA and UK users.
+
+### Decisions and alternatives
+- **Pure-Dart `AdPolicy` separated from `AdMobAdService`**: Keeps all business rules (first-sound gate, banned routes, 8-row cadence, 10-minute cooldown, Plus suppression) testable in milliseconds with an injectable clock (`DateTime Function() now`) without spinning up Android platform channels.

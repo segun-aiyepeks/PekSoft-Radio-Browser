@@ -87,6 +87,30 @@ class SubscriptionViewModel extends AsyncNotifier<SubscriptionState> {
     });
   }
 
+  Future<void> watchRewardedAdForPlusPass() async {
+    final SubscriptionState current =
+        state.asData?.value ?? const SubscriptionState();
+    state = AsyncValue<SubscriptionState>.data(
+      current.copyWith(isProcessing: true, clearError: true),
+    );
+    final Result<Entitlement> res = await ref
+        .read(adServiceProvider)
+        .showRewardedAdForPlusPass(
+          entitlementRepository: ref.read(entitlementRepositoryProvider),
+        );
+    state = AsyncValue<SubscriptionState>.data(switch (res) {
+      Success<Entitlement>(:final data) => current.copyWith(
+        entitlement: data,
+        isProcessing: false,
+        statusMessage: '24 hours of Plus convenience features unlocked!',
+      ),
+      Failure<Entitlement>(:final error) => current.copyWith(
+        isProcessing: false,
+        error: error,
+      ),
+    });
+  }
+
   Future<void> refresh() async {
     state = const AsyncValue<SubscriptionState>.loading();
     state = AsyncValue<SubscriptionState>.data(await _load());

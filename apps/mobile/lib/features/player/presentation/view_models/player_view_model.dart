@@ -127,6 +127,10 @@ class PlayerViewModel extends Notifier<PlayerState> {
       return;
     }
 
+    if (snapshot.status == PlaybackStatus.playing) {
+      ref.read(adPolicyProvider).recordFirstSound();
+    }
+
     state = state.copyWith(
       playback: state.playback.copyWith(
         status: snapshot.status,
@@ -343,6 +347,9 @@ class PlayerViewModel extends Notifier<PlayerState> {
     final PlaybackStatus resolvedStatus = snapshotStatus == PlaybackStatus.idle
         ? PlaybackStatus.playing
         : snapshotStatus;
+    if (resolvedStatus == PlaybackStatus.playing) {
+      ref.read(adPolicyProvider).recordFirstSound();
+    }
     state = state.copyWith(
       playback: state.playback.copyWith(status: resolvedStatus, error: null),
       clearError: true,

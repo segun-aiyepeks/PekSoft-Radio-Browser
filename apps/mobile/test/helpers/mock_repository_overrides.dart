@@ -18,6 +18,7 @@ import 'package:peksoft_radio/features/station/domain/station_repository.dart';
 import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
 import 'package:peksoft_radio/mock/mock.dart';
 
+import 'fake_ad_service.dart';
 import 'fake_audio_player_service.dart';
 import 'fake_auth_repository.dart';
 import 'fake_connectivity_service.dart';
@@ -34,6 +35,7 @@ List<Override> mockRepositoryOverrides({
   ReportQueueRepository? reportQueueRepository,
   FakeAuthRepository? authRepository,
   FakeSyncRepository? syncRepository,
+  FakeAdService? adService,
 }) {
   final CatalogRepository catalog =
       catalogRepository ?? _MockCatalogRepository();
@@ -49,6 +51,7 @@ List<Override> mockRepositoryOverrides({
       reportQueueRepository ?? FakeReportQueueRepository();
   final FakeAuthRepository auth = authRepository ?? FakeAuthRepository();
   final FakeSyncRepository sync = syncRepository ?? FakeSyncRepository();
+  final FakeAdService ads = adService ?? FakeAdService();
 
   return <Override>[
     catalogRepositoryProvider.overrideWithValue(catalog),
@@ -63,6 +66,8 @@ List<Override> mockRepositoryOverrides({
     reportQueueRepositoryProvider.overrideWithValue(reportQueue),
     authRepositoryProvider.overrideWithValue(auth),
     syncRepositoryProvider.overrideWithValue(sync),
+    adPolicyProvider.overrideWithValue(ads.policy),
+    adServiceProvider.overrideWithValue(ads),
     playbackRetryDelaysProvider.overrideWithValue(const <Duration>[
       Duration.zero,
       Duration.zero,

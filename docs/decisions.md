@@ -91,3 +91,18 @@ All technology choices below were verified during **Phase 0 (Foundations)** (`20
   - `apps/mobile`: `firebase_core` `5.1.0`, `firebase_auth` `7.0.1`, `google_sign_in` `7.2.0`.
 - **Decision:** Fastify 5 API with `CacheStore` abstraction (`InMemoryLruCache` replaceable by Redis), Prisma 7 + PostgreSQL (`0001_init`), Firebase Admin token verification (`checkRevoked: true`), LWW delta-sync (`POST /v1/sync`) with server-side `Entitlement` enforcement, and Render Web Service + Render Postgres staging via `render.yaml` (`frankfurt` region).
 - **Reason:** Keeps audio streaming direct to broadcasters (zero proxy cost), enforces free-tier limits authoritatively on the server, and provides one-click Render Blueprint staging with automatic `prisma migrate deploy`.
+
+
+---
+
+## ADR-012 — Mobile Ads & Consent (`google_mobile_ads` + Google UMP)
+
+- **Status:** Accepted (Phase 5)
+- **Verified Versions:**
+  - `google_mobile_ads`: `9.2.0` (`webview_flutter: 4.14.1`)
+- **Decision:**
+  - Use `google_mobile_ads` (`^9.2.0`) with Google's built-in **User Messaging Platform (UMP)** (`ConsentInformation` + `ConsentForm`) at launch before initializing `MobileAds.instance`.
+  - Keep real AdMob App IDs and Ad Unit IDs out of source control (`ADMOB_APP_ID` Gradle/env property + `--dart-define=ADMOB_*_AD_UNIT_ID`), falling back to Google's official Android test ad unit IDs **only** in debug builds (`kDebugMode`).
+  - Enforce all UX placement rules in a pure-Dart `AdPolicy` engine (no ad before first sound, none on auth/paywall/player surfaces, 10-minute interstitial cooldown at natural breaks only, native ad card every 8 rows, zero ads for Plus users).
+  - Grant the 24-hour rewarded-ad convenience pass (`EntitlementSource.rewardedAd`) client-side with an automatic 24-hour expiry timestamp (`rewardedPlusExpiresAt`) persisted in `AppDatabase`.
+- **Reason:** Protects AdMob accounts from invalid traffic penalties in development, satisfies EEA/UK GDPR consent rules via UMP, and keeps ad frequency and placement rules 100% unit-testable in pure Dart.

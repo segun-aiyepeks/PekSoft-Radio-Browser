@@ -1,4 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:peksoft_radio/core/ads/ad_config.dart';
+import 'package:peksoft_radio/core/ads/ad_policy.dart';
+import 'package:peksoft_radio/core/ads/ad_service.dart';
+import 'package:peksoft_radio/core/ads/admob_ad_service.dart';
 import 'package:peksoft_radio/core/database/app_database.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/core/network/api_client.dart';
@@ -159,3 +163,18 @@ final Provider<SyncRepository> syncRepositoryProvider =
         reportQueueRepository: ref.watch(reportQueueRepositoryProvider),
       );
     });
+
+final Provider<AdConfig> adConfigProvider = Provider<AdConfig>(
+  (ref) => const AdConfig(),
+);
+
+final Provider<AdPolicy> adPolicyProvider = Provider<AdPolicy>(
+  (ref) => AdPolicy(),
+);
+
+final Provider<AdService> adServiceProvider = Provider<AdService>((ref) {
+  return AdMobAdService(
+    config: ref.watch(adConfigProvider),
+    policy: ref.watch(adPolicyProvider),
+  );
+});
