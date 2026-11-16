@@ -14,6 +14,9 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   APP_VERSION: z.string().min(1).default('0.1.0'),
   DATABASE_URL: z.string().url().optional(),
+  FIREBASE_PROJECT_ID: z.string().min(1).optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().email().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

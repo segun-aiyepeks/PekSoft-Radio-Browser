@@ -788,3 +788,19 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 - Once `DATABASE_URL` is configured:
   - `pnpm --filter @peksoft/api db:migrate:deploy`
   - `pnpm --filter @peksoft/api db:seed`
+
+
+---
+
+## Milestone 4.4 — Authentication (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Installed `firebase-admin` (`14.5.1`) in `apps/api` and allowed `@firebase/util` and `protobufjs` postinstall scripts in `pnpm-workspace.yaml`.
+- Created `AuthProvider` and `FirebaseAuthProvider` in `apps/api/src/auth/firebase-auth.ts` (`verifyIdToken(token, true)` with revocation checking + `deleteUser(uid)`).
+- Created Fastify `preHandler` auth middleware `createRequireAuth` in `apps/api/src/plugins/auth-middleware.ts`, attaching `request.authUser`.
+- Created `UserRepository` / `PrismaUserRepository` (`apps/api/src/repositories/user-repository.ts`) and `UserService` (`apps/api/src/services/user-service.ts`), computing server-side `FREE`/`PLUS` entitlement limits.
+- Added `GET /v1/me` (upserts `User` + default `FREE` `Entitlement` on first call) and `DELETE /v1/me` (deletes PostgreSQL user data + Firebase Auth account) in `apps/api/src/routes/v1/me.ts`.
+- Wired auth + user routes into `apps/api/src/server.ts`, added Firebase env vars to `apps/api/src/config/env.ts` and `apps/api/.env.example`, and wrote 3 tests in `apps/api/src/auth.test.ts` with mocked token verification.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`

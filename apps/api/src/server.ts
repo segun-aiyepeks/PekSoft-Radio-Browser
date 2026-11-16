@@ -4,20 +4,30 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { APP_NAME } from '@peksoft/shared';
 import Fastify, { type FastifyInstance } from 'fastify';
+import type { AuthProvider } from './auth/firebase-auth.js';
+import { FirebaseAuthProvider } from './auth/firebase-auth.js';
 import type { CacheStore } from './cache/cache-store.js';
 import { InMemoryLruCache } from './cache/in-memory-lru-cache.js';
 import { loadEnv, parseCorsOrigins, type Env } from './config/env.js';
+import { createPrismaClient, type DatabaseHandle } from './db/prisma.js';
 import { AppError } from './errors/app-error.js';
+import { createRequireAuth } from './plugins/auth-middleware.js';
 import { registerErrorHandlers } from './plugins/error-handler.js';
 import { buildLoggerOptions } from './plugins/logger.js';
 import {
   RadioBrowserClient,
   type HttpTransport,
 } from './repositories/radio-browser-client.js';
+import {
+  PrismaUserRepository,
+  type UserRepository,
+} from './repositories/user-repository.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerCatalogRoutes } from './routes/v1/catalog.js';
+import { registerMeRoutes } from './routes/v1/me.js';
 import { registerStationRoutes } from './routes/v1/stations.js';
 import { CatalogService } from './services/catalog-service.js';
+import { UserService } from './services/user-service.js';
 
 export interface BuildServerOptions {
   env?: Env;
@@ -25,6 +35,8 @@ export interface BuildServerOptions {
   enableSwaggerUi?: boolean;
   cache?: CacheStore;
   radioBrowserTransport?: HttpTransport;
+  authProvider?: AuthProvider;
+  userRepository?: UserRepository;
   /** Optional hook used by tests to mount ephemeral routes before ready(). */
   registerTestRoutes?: (app: FastifyInstance) => void;
 }
@@ -60,6 +72,7 @@ export async function buildServer(
         { name: 'System', description: 'Health and service diagnostics' },
         { name: 'Catalog', description: 'Countries, genres, and languages' },
         { name: 'Stations', description: 'Search, trending, and station details' },
+        { name: 'Account', description: 'Authenticated user profile and deletion' },
       ],
     },
   });
@@ -96,6 +109,31 @@ export async function buildServer(
   registerHealthRoutes(app, env.APP_VERSION);
   registerCatalogRoutes(app, catalogService);
   registerStationRoutes(app, catalogService);
+
+  let dbHandle: DatabaseHandle | undefined;
+  let userRepository = options.userRepository;
+  if (!userRepository && env.DATABASE_URL) {
+    dbHandle = createPrismaClient(env.DATABASE_URL);
+    userRepository = new PrismaUserRepository(dbHandle.prisma);
+    app.addHook('onClose', async () => {
+      await dbHandle?.close();
+    });
+  }
+
+  let authProvider = options.authProvider;
+  if (!authProvider && env.FIREBASE_PROJECT_ID) {
+    authProvider = new FirebaseAuthProvider({
+      projectId: env.FIREBASE_PROJECT_ID,
+      clientEmail: env.FIREBASE_CLIENT_EMAIL,
+      privateKey: env.FIREBASE_PRIVATE_KEY,
+    });
+  }
+
+  if (authProvider && userRepository) {
+    const requireAuth = createRequireAuth(authProvider);
+    const userService = new UserService(userRepository, authProvider);
+    registerMeRoutes(app, { requireAuth, userService });
+  }
 
   if (options.registerTestRoutes) {
     options.registerTestRoutes(app);
