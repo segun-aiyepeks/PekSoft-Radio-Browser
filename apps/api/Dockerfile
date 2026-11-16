@@ -25,4 +25,4 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:4000/health || exit 1
 
-CMD ["sh", "-c", "set -e; if [ -n \"$DATABASE_URL\" ]; then pnpm exec prisma migrate deploy; fi; exec node dist/index.js"]
+CMD ["sh", "-c", "set -e; if [ -n \"$DATABASE_URL\" ]; then pnpm exec prisma migrate resolve --rolled-back 0001_init || true; pnpm exec prisma migrate deploy; fi; exec node dist/index.js"]
