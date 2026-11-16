@@ -735,3 +735,22 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 - Versioned Drift SQLite database (`schemaVersion = 2`) with v1 → v2 migration test and 50-item recents cap
 - Offline-first SWR repositories (`CatalogRepository`, `StationRepository`, `LibraryRepository`, `SettingsRepository`, `EntitlementRepository` stub) with 24h list / 5m search TTLs
 - 13 Riverpod `Notifier`/`AsyncNotifier` ViewModels covering every Phase 1 screen (`docs/viewmodels.md`)
+
+
+---
+
+## Milestone 4.1 — API scaffold (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Created `apps/api` production scaffold on Fastify 5 + TypeScript:
+  - **Validated config** (`apps/api/src/config/env.ts`): Zod schema validating `PORT`, `HOST`, `NODE_ENV`, `LOG_LEVEL`, `CORS_ORIGINS`, `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`, and `APP_VERSION` at startup.
+  - **Structured logging without PII** (`apps/api/src/plugins/logger.ts`): Pino configuration redacting `authorization`, `cookie`, `x-api-key`, `password`, `token`, `idToken`, and `email` paths, with a custom `req` serializer omitting client IP addresses and raw headers.
+  - **Central error handler & typed errors** (`apps/api/src/errors/app-error.ts`, `apps/api/src/plugins/error-handler.ts`): Consistent `{ error: { code, message, requestId, details? } }` envelope for `AppError`, `ZodError`, Fastify schema validation errors, rate-limit `429` errors, `404` unknown routes, and redacted `500` errors.
+  - **Health endpoint** (`apps/api/src/routes/health.ts`): `GET /health` returning `status`, `service`, `version`, `uptimeSeconds`, and `timestamp`, exempted from rate limiting.
+  - **OpenAPI 3.1 docs**: `@fastify/swagger` (`9.9.4`) at `/docs/json` + `@fastify/swagger-ui` (`6.1.4`) at `/docs`.
+  - **CORS & Rate limiting**: `@fastify/cors` (`11.4.3`) parsed from `CORS_ORIGINS` + `@fastify/rate-limit` (`11.2.2`).
+  - **Container & env template**: Multi-stage Node 22 Alpine `apps/api/Dockerfile` and updated `apps/api/.env.example`.
+- Wrote 6 Vitest tests in `apps/api/src/server.test.ts` using Fastify's built-in `app.inject()`.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
