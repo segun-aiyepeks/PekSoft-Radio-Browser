@@ -33,8 +33,10 @@ import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
 import 'package:peksoft_radio/features/subscription/presentation/view_models/subscription_view_model.dart';
 
 import 'helpers/fake_audio_player_service.dart';
+import 'helpers/fake_auth_repository.dart';
 import 'helpers/fake_connectivity_service.dart';
 import 'helpers/fake_report_queue_repository.dart';
+import 'helpers/fake_sync_repository.dart';
 
 const Station _sampleStation = Station(
   id: 'st-1',
@@ -251,6 +253,8 @@ ProviderContainer _createContainer({
       reportQueueRepositoryProvider.overrideWithValue(
         FakeReportQueueRepository(),
       ),
+      authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+      syncRepositoryProvider.overrideWithValue(FakeSyncRepository()),
       playbackRetryDelaysProvider.overrideWithValue(const <Duration>[
         Duration.zero,
         Duration.zero,
@@ -452,12 +456,12 @@ void main() {
       );
 
       final AuthViewModel auth = container.read(authViewModelProvider.notifier);
-      auth.signInWithEmail('bad-email', '123');
+      await auth.signInWithEmail('bad-email', '123');
       expect(
         container.read(authViewModelProvider).error,
         isA<ValidationFailure>(),
       );
-      auth.signInWithEmail('user@peksoft.dev', 'secret123');
+      await auth.signInWithEmail('user@peksoft.dev', 'secret123');
       expect(container.read(authViewModelProvider).isAuthenticated, isTrue);
 
       final SubscriptionState sub = await container.read(

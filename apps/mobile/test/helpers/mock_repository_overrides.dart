@@ -19,8 +19,10 @@ import 'package:peksoft_radio/features/subscription/data/entitlement_repository_
 import 'package:peksoft_radio/mock/mock.dart';
 
 import 'fake_audio_player_service.dart';
+import 'fake_auth_repository.dart';
 import 'fake_connectivity_service.dart';
 import 'fake_report_queue_repository.dart';
+import 'fake_sync_repository.dart';
 
 /// Converts Phase 1 mock data into fake Riverpod repository overrides for
 /// widget and golden tests (zero network, zero SQLite).
@@ -30,6 +32,8 @@ List<Override> mockRepositoryOverrides({
   FakeAudioPlayerService? audioPlayerService,
   FakeConnectivityService? connectivityService,
   ReportQueueRepository? reportQueueRepository,
+  FakeAuthRepository? authRepository,
+  FakeSyncRepository? syncRepository,
 }) {
   final CatalogRepository catalog =
       catalogRepository ?? _MockCatalogRepository();
@@ -43,6 +47,8 @@ List<Override> mockRepositoryOverrides({
       connectivityService ?? FakeConnectivityService();
   final ReportQueueRepository reportQueue =
       reportQueueRepository ?? FakeReportQueueRepository();
+  final FakeAuthRepository auth = authRepository ?? FakeAuthRepository();
+  final FakeSyncRepository sync = syncRepository ?? FakeSyncRepository();
 
   return <Override>[
     catalogRepositoryProvider.overrideWithValue(catalog),
@@ -55,6 +61,8 @@ List<Override> mockRepositoryOverrides({
     audioPlayerServiceProvider.overrideWithValue(audio),
     connectivityServiceProvider.overrideWithValue(connectivity),
     reportQueueRepositoryProvider.overrideWithValue(reportQueue),
+    authRepositoryProvider.overrideWithValue(auth),
+    syncRepositoryProvider.overrideWithValue(sync),
     playbackRetryDelaysProvider.overrideWithValue(const <Duration>[
       Duration.zero,
       Duration.zero,

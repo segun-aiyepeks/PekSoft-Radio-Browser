@@ -930,3 +930,24 @@ Phase 3 turns the Phase 1 UI + Phase 2 offline-first repositories/ViewModels int
 
 ### How to run and verify
 - `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+
+---
+
+## Milestone 4.6 — Mobile authentication and sync (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Added `firebase_core` (`5.1.0`), `firebase_auth` (`7.0.1`), and `google_sign_in` (`7.2.0`) to `apps/mobile/pubspec.yaml` and safely initialized Firebase in `apps/mobile/lib/main.dart` (falling back to guest mode if `google-services.json` is not present yet).
+- Created `AuthRepository` (`apps/mobile/lib/features/auth/domain/auth_repository.dart`) and `FirebaseAuthRepository` (`apps/mobile/lib/features/auth/data/firebase_auth_repository.dart`) supporting:
+  - Email sign-up with verification email + status reload + resend
+  - Email sign-in and password reset email
+  - Google Sign-In (`google_sign_in` v7)
+  - Shared-email account linking (`AuthAccountLinkRequired` -> `linkPendingCredentialWithPassword`)
+  - Sign out and account deletion
+- Built `ApiClient` (`apps/mobile/lib/core/network/api_client.dart`) wrapping `Dio` with an auth interceptor that attaches `Authorization: Bearer <idToken>` and silently force-refreshes + retries once on HTTP `401`.
+- Added `SyncRepository` / `SyncRepositoryImpl` (`apps/mobile/lib/features/library/domain/sync_repository.dart`, `apps/mobile/lib/features/library/data/sync_repository_impl.dart`) for guest-to-account merge of favourites/recents via `POST /v1/sync` and flushing queued `PendingStationReports` via `POST /v1/reports` (with `markReportSynced` in `AppDatabase` + `DriftReportQueueRepository`).
+- Updated `AuthViewModel` (`apps/mobile/lib/features/auth/presentation/view_models/auth_view_model.dart`) and wired `AuthLandingScreen`, `SignInScreen`, `SignUpScreen`, `VerifyEmailScreen`, `ForgotPasswordScreen`, `ProfileScreen`, and `DeleteAccountScreen`.
+- Added `apps/mobile/test/auth_sync_test.dart`, `FakeAuthRepository`, and `FakeSyncRepository`.
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze && flutter test`

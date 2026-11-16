@@ -33,4 +33,6 @@ abstract interface class ReportQueueRepository {
   });
 
   Future<Result<List<PendingStationReport>>> getPendingReports();
+
+  Future<Result<void>> markReportSynced(String id);
 }

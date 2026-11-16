@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "949308772683",
+    "project_id": "peksoft-radio",
+    "storage_bucket": "peksoft-radio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:949308772683:android:8dff9fcf8cd5175b59d8ce",
+        "android_client_info": {
+          "package_name": "com.peksoft.radio"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "949308772683-pdfk6q7tr064jrmdsa2k324vtvruifi0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.peksoft.radio",
+            "certificate_hash": "eff4a4fba1ada23d741c2f44f124e9ed49ce01b6"
+          }
+        },
+        {
+          "client_id": "949308772683-kc8hiq67t3l98nrs15olvo4oorsefu7j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCoSpRS_Gw3hLdzHWaNANhquSbCD-N3Lo0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "949308772683-kc8hiq67t3l98nrs15olvo4oorsefu7j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

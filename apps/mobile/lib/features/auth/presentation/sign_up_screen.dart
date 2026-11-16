@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/auth/presentation/view_models/auth_view_model.dart';
 
-class SignUpScreen extends StatefulWidget {
+class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -27,18 +29,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      mockSessionController.signInMock(
-        email: _emailController.text.trim(),
-        displayName: _nameController.text.trim(),
-      );
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final bool ok = await ref
+        .read(authViewModelProvider.notifier)
+        .signUpWithEmail(
+          _emailController.text.trim(),
+          _passwordController.text,
+          _nameController.text.trim(),
+        );
+    if (!mounted) return;
+    if (ok) {
       context.push('/auth/verify-email');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final AuthState authState = ref.watch(authViewModelProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Create Account')),
       body: Form(
@@ -46,6 +56,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
+            if (authState.error != null) ...[
+              Text(
+                authState.error!.userMessage,
+                style: AppTypography.bodySmall.copyWith(color: colors.error),
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
             Semantics(
               textField: true,
               label: 'Display name',
@@ -98,7 +115,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            PrimaryButton(label: 'Create Account', onPressed: _submit),
+            PrimaryButton(
+              label: authState.isLoading
+                  ? 'Creating account...'
+                  : 'Create Account',
+              onPressed: authState.isLoading ? null : _submit,
+            ),
           ],
         ),
       ),
