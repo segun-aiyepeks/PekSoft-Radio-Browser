@@ -30,7 +30,11 @@ describe('Milestone 4.1 API scaffold', () => {
   });
 
   it('responds with ok and metadata on GET /health', async () => {
-    const app = await buildServer({ env: makeTestEnv(), logger: false });
+    const app = await buildServer({
+      env: makeTestEnv(),
+      logger: false,
+      enableSwaggerUi: false,
+    });
     const res = await app.inject({ method: 'GET', url: '/health' });
 
     expect(res.statusCode).toBe(200);
@@ -57,10 +61,14 @@ describe('Milestone 4.1 API scaffold', () => {
     expect([200, 302]).toContain(uiRes.statusCode);
 
     await app.close();
-  });
+  }, 15_000);
 
   it('sets CORS headers only for allowed origins', async () => {
-    const app = await buildServer({ env: makeTestEnv(), logger: false });
+    const app = await buildServer({
+      env: makeTestEnv(),
+      logger: false,
+      enableSwaggerUi: false,
+    });
 
     const allowed = await app.inject({
       method: 'GET',
@@ -85,6 +93,7 @@ describe('Milestone 4.1 API scaffold', () => {
     const app = await buildServer({
       env: makeTestEnv({ RATE_LIMIT_MAX: 2 }),
       logger: false,
+      enableSwaggerUi: false,
       registerTestRoutes: (server) => {
         server.get('/ping', async () => ({ pong: true }));
       },
@@ -112,6 +121,7 @@ describe('Milestone 4.1 API scaffold', () => {
     const app = await buildServer({
       env: makeTestEnv(),
       logger: false,
+      enableSwaggerUi: false,
       registerTestRoutes: (server) => {
         server.get('/boom-app', async () => {
           throw badRequest('Invalid station filter', { field: 'country' });

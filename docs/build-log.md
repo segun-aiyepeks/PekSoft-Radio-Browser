@@ -754,3 +754,18 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 
 ### How to run and verify
 - `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+
+---
+
+## Milestone 4.2 — Radio Browser gateway (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Added shared Zod schemas, DTOs, and `createStationNormaliser` in `packages/shared/src/radio.ts` (exported via `packages/shared/src/index.ts`, with `./genre-map.json` exported in `packages/shared/package.json`), enforcing `packages/shared/genre-map.json`, deduplication, `isWorking`, `isHttps`, `isHttpsPlayable` (for web clients), and `usesFallbackLogo`.
+- Added `CacheStore` interface (`apps/api/src/cache/cache-store.ts`) and `InMemoryLruCache` (`apps/api/src/cache/in-memory-lru-cache.ts`) with bounded LRU eviction and per-key TTL so Redis can drop in later without service changes.
+- Added `RadioBrowserClient` (`apps/api/src/repositories/radio-browser-client.ts`) with 24-hour mirror discovery (`/json/servers`), random mirror selection, automatic failover to the next mirror on error, and `User-Agent: PekSoftRadioBrowser/<version>`.
+- Added `CatalogService` (`apps/api/src/services/catalog-service.ts`) and versioned v1 routes in `apps/api/src/routes/v1/catalog.ts` (`/v1/catalog/countries`, `/v1/catalog/genres`, `/v1/catalog/languages`) and `apps/api/src/routes/v1/stations.ts` (`/v1/stations/trending`, `/v1/stations/search`, `/v1/stations/:id`) with `Cache-Control` headers and zero audio proxying.
+- Added unit and injection tests using Phase 0 JSON fixtures in `packages/shared/src/radio.test.ts` and `apps/api/src/gateway.test.ts`.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
