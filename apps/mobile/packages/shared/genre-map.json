@@ -1,0 +1,387 @@
+{
+  "version": 1,
+  "maxGenresPerStation": 2,
+  "noiseTags": [
+    "music",
+    "radio",
+    "fm",
+    "am",
+    "estación",
+    "estacion",
+    "moi merino",
+    "variety",
+    "general",
+    "various",
+    "nigeria",
+    "ibadan",
+    "lagos",
+    "abuja",
+    "live",
+    "online",
+    "streaming",
+    "stream",
+    "web",
+    "webradio",
+    "internet radio",
+    "broadcast",
+    "audio",
+    "sound",
+    "entertainment",
+    "community",
+    "local",
+    "public radio",
+    "commercial",
+    "station"
+  ],
+  "genres": [
+    {
+      "id": "afrobeats",
+      "name": "Afrobeats",
+      "tagline": "Lagos, Accra & diaspora rhythms",
+      "aliases": [
+        "afrobeats",
+        "afrobeat",
+        "afropop",
+        "afro pop",
+        "afro",
+        "african",
+        "africa",
+        "naija",
+        "amapiano",
+        "afro-fusion",
+        "afro fusion"
+      ]
+    },
+    {
+      "id": "highlife",
+      "name": "Highlife",
+      "tagline": "West African guitar & brass classics",
+      "aliases": [
+        "highlife",
+        "high life",
+        "juju",
+        "fuji",
+        "palm wine",
+        "west african"
+      ]
+    },
+    {
+      "id": "pop",
+      "name": "Pop",
+      "tagline": "Chart hits & mainstream radio",
+      "aliases": [
+        "pop",
+        "pop music",
+        "música pop",
+        "musica pop",
+        "hits",
+        "top 40",
+        "top40",
+        "charts",
+        "chart",
+        "mainstream",
+        "adult contemporary",
+        "hot ac",
+        "chr",
+        "contemporary hits"
+      ]
+    },
+    {
+      "id": "news",
+      "name": "News & Talk",
+      "tagline": "Breaking news, current affairs & debate",
+      "aliases": [
+        "news",
+        "talk",
+        "news talk",
+        "news & talk",
+        "local news",
+        "noticias",
+        "information",
+        "info",
+        "current affairs",
+        "politics",
+        "debate",
+        "public",
+        "spoken word",
+        "business news"
+      ]
+    },
+    {
+      "id": "gospel",
+      "name": "Gospel & Christian",
+      "tagline": "Praise, worship & gospel stations",
+      "aliases": [
+        "gospel",
+        "christian",
+        "gospel music",
+        "afro-gospel",
+        "afro gospel",
+        "religion",
+        "religious",
+        "praise",
+        "worship",
+        "catholic",
+        "christian contemporary",
+        "ccm",
+        "bible",
+        "church"
+      ]
+    },
+    {
+      "id": "jazz",
+      "name": "Jazz",
+      "tagline": "Smooth, bebop, contemporary & Tokyo jazz",
+      "aliases": [
+        "jazz",
+        "smooth jazz",
+        "bebop",
+        "swing",
+        "acid jazz",
+        "vocal jazz",
+        "blues",
+        "fusion"
+      ]
+    },
+    {
+      "id": "hiphop",
+      "name": "Hip-Hop & R&B",
+      "tagline": "Rap, R&B, soul & grime",
+      "aliases": [
+        "hip-hop",
+        "hip hop",
+        "hiphop",
+        "rap",
+        "r&b",
+        "rnb",
+        "rhythm and blues",
+        "urban",
+        "trap",
+        "grime",
+        "drill"
+      ]
+    },
+    {
+      "id": "rock",
+      "name": "Rock",
+      "tagline": "Classic, indie & alternative rock",
+      "aliases": [
+        "rock",
+        "classic rock",
+        "indie",
+        "indie rock",
+        "alternative",
+        "alternative rock",
+        "hard rock",
+        "metal",
+        "heavy metal",
+        "punk",
+        "grunge",
+        "soft rock"
+      ]
+    },
+    {
+      "id": "electronic",
+      "name": "Electronic & Dance",
+      "tagline": "House, techno, club & ambient",
+      "aliases": [
+        "electronic",
+        "dance",
+        "edm",
+        "house",
+        "techno",
+        "trance",
+        "club",
+        "electro",
+        "deep house",
+        "drum and bass",
+        "dnb",
+        "dubstep",
+        "synthwave",
+        "dj"
+      ]
+    },
+    {
+      "id": "classical",
+      "name": "Classical",
+      "tagline": "Orchestral, chamber & opera",
+      "aliases": [
+        "classical",
+        "classic",
+        "orchestra",
+        "orchestral",
+        "opera",
+        "symphony",
+        "chamber",
+        "baroque",
+        "piano",
+        "instrumental"
+      ]
+    },
+    {
+      "id": "oldies",
+      "name": "Oldies",
+      "tagline": "70s, 80s & 90s nostalgia",
+      "aliases": [
+        "oldies",
+        "retro",
+        "classic hits",
+        "50s",
+        "60s",
+        "70s",
+        "80s",
+        "90s",
+        "nostalgia",
+        "golden oldies",
+        "evergreens"
+      ]
+    },
+    {
+      "id": "sports",
+      "name": "Sports",
+      "tagline": "Live football commentary & sports talk",
+      "aliases": [
+        "sports",
+        "sport",
+        "football",
+        "soccer",
+        "cricket",
+        "basketball",
+        "sports talk",
+        "deportes"
+      ]
+    },
+    {
+      "id": "lounge",
+      "name": "Lounge & Chill",
+      "tagline": "Downtempo, chillout & study beats",
+      "aliases": [
+        "lounge",
+        "chill",
+        "chillout",
+        "chill out",
+        "ambient",
+        "downtempo",
+        "easy listening",
+        "lo-fi",
+        "lofi",
+        "meditation",
+        "relax"
+      ]
+    },
+    {
+      "id": "reggae",
+      "name": "Reggae & Dancehall",
+      "tagline": "Roots, dub & Caribbean vibes",
+      "aliases": [
+        "reggae",
+        "dancehall",
+        "dub",
+        "ska",
+        "roots",
+        "soca",
+        "calypso",
+        "caribbean"
+      ]
+    },
+    {
+      "id": "latin",
+      "name": "Latin & Samba",
+      "tagline": "Salsa, MPB, samba & reggaeton",
+      "aliases": [
+        "latin",
+        "latino",
+        "salsa",
+        "samba",
+        "mpb",
+        "bossa nova",
+        "reggaeton",
+        "cumbia",
+        "bachata",
+        "merengue",
+        "regional mexican",
+        "regional mexicana",
+        "música popular mexicana",
+        "musica popular mexicana",
+        "mariachi",
+        "tango",
+        "tropical"
+      ]
+    },
+    {
+      "id": "country",
+      "name": "Country",
+      "tagline": "Nashville, Americana & folk",
+      "aliases": [
+        "country",
+        "americana",
+        "folk",
+        "bluegrass",
+        "country music",
+        "acoustic",
+        "singer-songwriter"
+      ]
+    },
+    {
+      "id": "soul",
+      "name": "Soul & Funk",
+      "tagline": "Motown, neo-soul & funk grooves",
+      "aliases": [
+        "soul",
+        "funk",
+        "motown",
+        "neo-soul",
+        "neo soul",
+        "disco",
+        "groove"
+      ]
+    },
+    {
+      "id": "bollywood",
+      "name": "Bollywood & Desi",
+      "tagline": "Hindi film hits & South Asian radio",
+      "aliases": [
+        "bollywood",
+        "desi",
+        "hindi",
+        "punjabi",
+        "bhangra",
+        "indian",
+        "tamil",
+        "filmi"
+      ]
+    },
+    {
+      "id": "jpop",
+      "name": "J-Pop & Anime",
+      "tagline": "Tokyo pop, city pop & soundtracks",
+      "aliases": [
+        "j-pop",
+        "jpop",
+        "j pop",
+        "anime",
+        "city pop",
+        "japanese",
+        "k-pop",
+        "kpop",
+        "vocaloid",
+        "soundtrack",
+        "ost"
+      ]
+    },
+    {
+      "id": "islamic",
+      "name": "Islamic & Quran",
+      "tagline": "Recitations & community broadcasts",
+      "aliases": [
+        "islamic",
+        "islam",
+        "quran",
+        "koran",
+        "nasheed",
+        "ramadan",
+        "muslim"
+      ]
+    }
+  ]
+}

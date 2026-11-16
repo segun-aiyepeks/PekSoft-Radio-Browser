@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
@@ -12,18 +13,23 @@ import 'package:peksoft_radio/features/search/presentation/filters_bottom_sheet.
 import 'package:peksoft_radio/features/search/presentation/search_screen.dart';
 import 'package:peksoft_radio/features/station/presentation/station_detail_screen.dart';
 
+import 'helpers/mock_repository_overrides.dart';
+
 Widget _wrapAtScale13(Widget child) {
-  return MaterialApp(
-    theme: AppTheme.light(),
-    darkTheme: AppTheme.dark(),
-    themeMode: ThemeMode.dark,
-    builder: (context, inner) => MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: const TextScaler.linear(1.3)),
-      child: inner!,
+  return ProviderScope(
+    overrides: mockRepositoryOverrides(),
+    child: MaterialApp(
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.dark,
+      builder: (context, inner) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: const TextScaler.linear(1.3)),
+        child: inner!,
+      ),
+      home: child,
     ),
-    home: child,
   );
 }
 
@@ -83,10 +89,12 @@ void main() {
         expect(find.text('Try searching for'), findsOneWidget);
 
         await tester.enterText(find.byType(TextField), 'Wazobia');
+        await tester.testTextInput.receiveAction(TextInputAction.search);
         await tester.pumpAndSettle();
         expect(find.text('Wazobia FM: Lagos'), findsOneWidget);
 
         await tester.enterText(find.byType(TextField), 'zzzz-no-match');
+        await tester.testTextInput.receiveAction(TextInputAction.search);
         await tester.pumpAndSettle();
         expect(find.text('No stations found'), findsOneWidget);
 
@@ -120,7 +128,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Pause Station'), findsOneWidget);
+      expect(find.text('Play Station'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('Similar stations'), 200);
       expect(find.text('Similar stations'), findsOneWidget);
     });

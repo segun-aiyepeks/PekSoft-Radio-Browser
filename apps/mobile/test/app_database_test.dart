@@ -240,7 +240,7 @@ void main() {
         final sqlite.ResultSet versionRows = verifyRaw.select(
           'PRAGMA user_version;',
         );
-        expect(versionRows.first['user_version'], 2);
+        expect(versionRows.first['user_version'], 3);
 
         final sqlite.ResultSet tableInfo = verifyRaw.select(
           'PRAGMA table_info(collections);',
@@ -249,6 +249,18 @@ void main() {
             .map((sqlite.Row r) => r['name'] as String)
             .toList();
         expect(columnNames, contains('sort_order'));
+
+        final sqlite.ResultSet stationCols = verifyRaw.select(
+          'PRAGMA table_info(cached_stations);',
+        );
+        expect(
+          stationCols.map((sqlite.Row r) => r['name'] as String),
+          contains('fallback_stream_url'),
+        );
+        final sqlite.ResultSet reportTables = verifyRaw.select(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='pending_station_reports';",
+        );
+        expect(reportTables.length, 1);
       } finally {
         verifyRaw.close();
       }

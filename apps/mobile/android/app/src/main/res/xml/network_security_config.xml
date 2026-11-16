@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      Android 9 (API 28+) blocks cleartext HTTP traffic by default.
+      Internet radio stations on Radio Browser come from thousands of independent
+      broadcasters worldwide whose Icecast/Shoutcast streams frequently use plain
+      http:// URLs that cannot be enumerated statically. We permit cleartext
+      traffic here for audio stream playback while keeping Radio Browser API
+      discovery and metadata requests on HTTPS in RadioBrowserClient.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

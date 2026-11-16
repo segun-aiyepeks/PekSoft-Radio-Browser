@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
@@ -14,18 +15,23 @@ import 'package:peksoft_radio/features/subscription/presentation/paywall_screen.
 import 'package:peksoft_radio/features/subscription/presentation/subscription_management_screen.dart';
 import 'package:peksoft_radio/mock/mock.dart';
 
+import 'helpers/mock_repository_overrides.dart';
+
 Widget _wrapAtScale13(Widget child) {
-  return MaterialApp(
-    theme: AppTheme.light(),
-    darkTheme: AppTheme.dark(),
-    themeMode: ThemeMode.dark,
-    builder: (context, inner) => MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: const TextScaler.linear(1.3)),
-      child: inner!,
+  return ProviderScope(
+    overrides: mockRepositoryOverrides(),
+    child: MaterialApp(
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.dark,
+      builder: (context, inner) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: const TextScaler.linear(1.3)),
+        child: inner!,
+      ),
+      home: child,
     ),
-    home: child,
   );
 }
 
@@ -42,10 +48,11 @@ void main() {
       await tester.pumpWidget(_wrapAtScale13(const LibraryScreen()));
       await tester.pumpAndSettle();
       expect(find.text('Go Pro'), findsOneWidget);
+      expect(find.text('0 of 10 free favourites used'), findsOneWidget);
 
       await tester.tap(find.text('Recents'));
       await tester.pumpAndSettle();
-      expect(find.text('Wazobia FM: Lagos'), findsOneWidget);
+      expect(find.text('No recent stations'), findsOneWidget);
 
       await tester.tap(find.text('Collections'));
       await tester.pumpAndSettle();
@@ -53,7 +60,7 @@ void main() {
 
       await tester.tap(find.text('Song History'));
       await tester.pumpAndSettle();
-      expect(find.text('Burna Boy — City Boys'), findsOneWidget);
+      expect(find.text('Free tier keeps last 10 songs'), findsOneWidget);
     });
 
     testWidgets('Auth landing, SignIn, and SignUp validate visually', (

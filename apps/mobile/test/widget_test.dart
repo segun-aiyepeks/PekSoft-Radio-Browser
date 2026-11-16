@@ -3,11 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/main.dart';
 
+import 'helpers/mock_repository_overrides.dart';
+
 void main() {
   testWidgets('Shell renders 4 tabs and persistent mini-player slot', (
     tester,
   ) async {
-    await tester.pumpWidget(const PekSoftRadioApp());
+    await tester.pumpWidget(
+      PekSoftRadioApp(overrides: mockRepositoryOverrides()),
+    );
     await tester.pumpAndSettle();
 
     final navBar = find.byType(NavigationBar);
@@ -27,14 +31,15 @@ void main() {
       find.descendant(of: navBar, matching: find.text('Profile')),
       findsOneWidget,
     );
-    expect(find.text('Wazobia FM: Lagos'), findsWidgets);
+    expect(find.text('PekSoft Radio'), findsWidgets);
+    expect(find.text('Tap a station to listen'), findsOneWidget);
 
     await tester.tap(
       find.descendant(of: navBar, matching: find.text('Explore')),
     );
     await tester.pumpAndSettle();
     expect(find.text('Countries'), findsOneWidget);
-    expect(find.text('Wazobia FM: Lagos'), findsWidgets);
+    expect(find.text('Tap a station to listen'), findsOneWidget);
 
     await tester.tap(
       find.descendant(of: navBar, matching: find.text('Library')),
@@ -50,7 +55,9 @@ void main() {
   });
 
   testWidgets('Dark-first theme uses design tokens', (tester) async {
-    await tester.pumpWidget(const PekSoftRadioApp());
+    await tester.pumpWidget(
+      PekSoftRadioApp(overrides: mockRepositoryOverrides()),
+    );
     await tester.pumpAndSettle();
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
