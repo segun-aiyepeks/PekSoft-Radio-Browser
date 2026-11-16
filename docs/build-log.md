@@ -769,3 +769,22 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 
 ### How to run and verify
 - `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+
+---
+
+## Milestone 4.3 — Database (Prisma + PostgreSQL) (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Installed Prisma `7.10.1` (`prisma`, `@prisma/client`, `@prisma/adapter-pg`) and `pg` (`8.23.1`) in `apps/api`, and added `@prisma/engines` and `prisma` to `allowBuilds` in `pnpm-workspace.yaml`.
+- Created `apps/api/prisma/schema.prisma` and `apps/api/prisma.config.ts` defining 9 PostgreSQL models:
+  - `User` (`users`), `Favorite` (`favorites`), `Collection` (`collections`), `CollectionItem` (`collection_items`), `Recent` (`recents`), `SongHistory` (`song_history`), `Entitlement` (`entitlements`), `WebhookEvent` (`webhook_events`), and `StationReport` (`station_reports`).
+- Generated the initial PostgreSQL SQL migration in `apps/api/prisma/migrations/0001_init/migration.sql` (`migration_lock.toml` locked to `postgresql`).
+- Created `apps/api/src/db/prisma.ts` (`createPrismaClient` using `PrismaPg` + `pg.Pool`) and `apps/api/prisma/seed.ts` (idempotent seed for a demo listener, entitlement, favourite, and collection).
+- Added `db:generate`, `db:migrate:deploy`, `db:seed` scripts to `apps/api/package.json` and `DATABASE_URL` to `apps/api/.env.example` and `apps/api/src/config/env.ts`.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- Once `DATABASE_URL` is configured:
+  - `pnpm --filter @peksoft/api db:migrate:deploy`
+  - `pnpm --filter @peksoft/api db:seed`
