@@ -14,3 +14,4 @@ export const APP_NAME = 'PekSoft Radio Browser';
 export const USER_AGENT_PREFIX = 'PekSoftRadioBrowser';
 
 export * from './radio.js';
+export * from './sync.js';

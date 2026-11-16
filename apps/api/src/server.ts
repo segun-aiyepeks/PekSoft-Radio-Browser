@@ -19,14 +19,26 @@ import {
   type HttpTransport,
 } from './repositories/radio-browser-client.js';
 import {
+  PrismaLibraryRepository,
+  type LibraryRepository,
+} from './repositories/library-repository.js';
+import {
+  PrismaReportRepository,
+  type ReportRepository,
+} from './repositories/report-repository.js';
+import {
   PrismaUserRepository,
   type UserRepository,
 } from './repositories/user-repository.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerCatalogRoutes } from './routes/v1/catalog.js';
+import { registerLibraryRoutes } from './routes/v1/library.js';
 import { registerMeRoutes } from './routes/v1/me.js';
+import { registerReportRoutes } from './routes/v1/reports.js';
 import { registerStationRoutes } from './routes/v1/stations.js';
 import { CatalogService } from './services/catalog-service.js';
+import { LibraryService } from './services/library-service.js';
+import { ReportService } from './services/report-service.js';
 import { UserService } from './services/user-service.js';
 
 export interface BuildServerOptions {
@@ -37,6 +49,8 @@ export interface BuildServerOptions {
   radioBrowserTransport?: HttpTransport;
   authProvider?: AuthProvider;
   userRepository?: UserRepository;
+  libraryRepository?: LibraryRepository;
+  reportRepository?: ReportRepository;
   /** Optional hook used by tests to mount ephemeral routes before ready(). */
   registerTestRoutes?: (app: FastifyInstance) => void;
 }
@@ -73,6 +87,9 @@ export async function buildServer(
         { name: 'Catalog', description: 'Countries, genres, and languages' },
         { name: 'Stations', description: 'Search, trending, and station details' },
         { name: 'Account', description: 'Authenticated user profile and deletion' },
+        { name: 'Library', description: 'Favourites, collections, recents, and song history' },
+        { name: 'Sync', description: 'Delta synchronisation' },
+        { name: 'Reports', description: 'Broken station reporting' },
       ],
     },
   });
@@ -112,9 +129,13 @@ export async function buildServer(
 
   let dbHandle: DatabaseHandle | undefined;
   let userRepository = options.userRepository;
-  if (!userRepository && env.DATABASE_URL) {
+  let libraryRepository = options.libraryRepository;
+  let reportRepository = options.reportRepository;
+  if ((!userRepository || !libraryRepository || !reportRepository) && env.DATABASE_URL) {
     dbHandle = createPrismaClient(env.DATABASE_URL);
-    userRepository = new PrismaUserRepository(dbHandle.prisma);
+    userRepository ??= new PrismaUserRepository(dbHandle.prisma);
+    libraryRepository ??= new PrismaLibraryRepository(dbHandle.prisma);
+    reportRepository ??= new PrismaReportRepository(dbHandle.prisma);
     app.addHook('onClose', async () => {
       await dbHandle?.close();
     });
@@ -133,6 +154,19 @@ export async function buildServer(
     const requireAuth = createRequireAuth(authProvider);
     const userService = new UserService(userRepository, authProvider);
     registerMeRoutes(app, { requireAuth, userService });
+
+    if (libraryRepository) {
+      const libraryService = new LibraryService(
+        userRepository,
+        libraryRepository,
+      );
+      registerLibraryRoutes(app, { requireAuth, libraryService });
+    }
+  }
+
+  if (reportRepository && userRepository) {
+    const reportService = new ReportService(reportRepository, userRepository);
+    registerReportRoutes(app, { reportService, authProvider });
   }
 
   if (options.registerTestRoutes) {

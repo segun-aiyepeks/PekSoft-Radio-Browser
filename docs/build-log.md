@@ -804,3 +804,20 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 
 ### How to run and verify
 - `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+
+---
+
+## Milestone 4.5 — Library sync API & StationReport (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Added shared Zod sync & report schemas in `packages/shared/src/sync.ts` (`favoriteInputSchema`, `collectionInputSchema`, `collectionItemInputSchema`, `recentInputSchema`, `songHistoryInputSchema`, `deltaSyncRequestSchema`, `stationReportInputSchema`).
+- Implemented `LibraryRepository` / `PrismaLibraryRepository` (`apps/api/src/repositories/library-repository.ts`) and `ReportRepository` / `PrismaReportRepository` (`apps/api/src/repositories/report-repository.ts`).
+- Implemented `LibraryService` (`apps/api/src/services/library-service.ts`) and `ReportService` (`apps/api/src/services/report-service.ts`) with:
+  - Per-item `updatedAt` **last-write-wins (LWW)** conflict resolution and soft-delete tombstones (`isDeleted`).
+  - Server-side **free-tier enforcement** from the user's `Entitlement` (`10` favourites, `2` collections, `10` song history entries; unlimited on `PLUS`), returning `403 TIER_LIMIT_REACHED` on direct CRUD and recording `rejected` items in delta-sync.
+- Registered routes in `apps/api/src/routes/v1/library.ts` (favourites, collections, collection items, recents, song history, and `POST /v1/sync`) and `apps/api/src/routes/v1/reports.ts` (`POST /v1/reports` supporting guest or authenticated users).
+- Added 3 comprehensive test suites in `apps/api/src/library-sync.test.ts` verifying LWW, free-tier vs Plus limits, delta-sync `since` filtering, and station reports.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
