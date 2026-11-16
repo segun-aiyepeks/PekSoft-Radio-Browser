@@ -1,5 +1,7 @@
 # Documentation Index
 
+- [API Reference](api.md) — Fastify v1 endpoints, auth, caching headers, and environment variables.
+- [Android Release](release-android.md) — Signing, Play App Signing, application ID, versioning, and `.aab` builds.
 - [Architecture](architecture.md) — System architecture & Mermaid diagram across mobile, web, API, Firebase, Postgres, Radio Browser, payments, and ads.
 - [Domain Model](domain-model.md) — Immutable `@freezed` mobile domain entities and sealed `AppFailure` hierarchy.
 - [Mobile ViewModels](viewmodels.md) — Riverpod `Notifier`/`AsyncNotifier` mapping, state fields, and events per Phase 1 screen.
