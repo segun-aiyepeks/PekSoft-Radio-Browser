@@ -80,6 +80,7 @@ flutter:
 
   assets:
     - ../../packages/shared/genre-map.json
+    - ../../packages/shared/feature-gates.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

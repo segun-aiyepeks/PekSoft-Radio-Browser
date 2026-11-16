@@ -15,6 +15,8 @@ import 'package:peksoft_radio/features/player/domain/playback_state.dart';
 import 'package:peksoft_radio/features/player/domain/stream_variant_selector.dart';
 import 'package:peksoft_radio/features/profile/domain/user_settings.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
+import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Alias matching the Phase 3 specification name (`PlaybackViewModel`).
 typedef PlaybackViewModel = PlayerViewModel;
@@ -28,6 +30,7 @@ class PlayerState {
     this.isFavourite = false,
     this.similarStations = const <Station>[],
     this.reportSubmitted = false,
+    this.entitlement = const Entitlement(),
     this.error,
   });
 
@@ -35,13 +38,17 @@ class PlayerState {
   final bool isFavourite;
   final List<Station> similarStations;
   final bool reportSubmitted;
+  final Entitlement entitlement;
   final AppFailure? error;
+
+  FeatureGate get featureGate => FeatureGate(entitlement);
 
   PlayerState copyWith({
     PlaybackState? playback,
     bool? isFavourite,
     List<Station>? similarStations,
     bool? reportSubmitted,
+    Entitlement? entitlement,
     AppFailure? error,
     bool clearError = false,
   }) {
@@ -50,6 +57,7 @@ class PlayerState {
       isFavourite: isFavourite ?? this.isFavourite,
       similarStations: similarStations ?? this.similarStations,
       reportSubmitted: reportSubmitted ?? this.reportSubmitted,
+      entitlement: entitlement ?? this.entitlement,
       error: clearError ? null : (error ?? this.error),
     );
   }

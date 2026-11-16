@@ -4,6 +4,8 @@ import 'package:peksoft_radio/core/di/providers.dart';
 import 'package:peksoft_radio/core/domain/app_failure.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/features/profile/domain/user_settings.dart';
+import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Immutable state for [ProfileScreen] (`/profile`), [SettingsScreen]
 /// (`/settings`), [DeleteAccountScreen] (`/delete-account`), and
@@ -12,6 +14,7 @@ import 'package:peksoft_radio/features/profile/domain/user_settings.dart';
 class SettingsState {
   const SettingsState({
     this.settings = const UserSettings(),
+    this.entitlement = const Entitlement(),
     this.isOfflineSimulated = false,
     this.isDeletingAccount = false,
     this.accountDeleted = false,
@@ -19,13 +22,17 @@ class SettingsState {
   });
 
   final UserSettings settings;
+  final Entitlement entitlement;
   final bool isOfflineSimulated;
   final bool isDeletingAccount;
   final bool accountDeleted;
   final AppFailure? error;
 
+  FeatureGate get featureGate => FeatureGate(entitlement);
+
   SettingsState copyWith({
     UserSettings? settings,
+    Entitlement? entitlement,
     bool? isOfflineSimulated,
     bool? isDeletingAccount,
     bool? accountDeleted,
@@ -34,6 +41,7 @@ class SettingsState {
   }) {
     return SettingsState(
       settings: settings ?? this.settings,
+      entitlement: entitlement ?? this.entitlement,
       isOfflineSimulated: isOfflineSimulated ?? this.isOfflineSimulated,
       isDeletingAccount: isDeletingAccount ?? this.isDeletingAccount,
       accountDeleted: accountDeleted ?? this.accountDeleted,

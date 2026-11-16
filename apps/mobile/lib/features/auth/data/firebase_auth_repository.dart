@@ -8,12 +8,16 @@ class FirebaseAuthRepository implements AuthRepository {
   FirebaseAuthRepository({
     FirebaseAuth? firebaseAuth,
     GoogleSignIn? googleSignIn,
-  }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
-       _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
+  }) : _firebaseAuthOverride = firebaseAuth,
+       _googleSignInOverride = googleSignIn;
 
-  final FirebaseAuth _auth;
-  final GoogleSignIn _googleSignIn;
+  final FirebaseAuth? _firebaseAuthOverride;
+  final GoogleSignIn? _googleSignInOverride;
   bool _googleInitialized = false;
+
+  FirebaseAuth get _auth => _firebaseAuthOverride ?? FirebaseAuth.instance;
+  GoogleSignIn get _googleSignIn =>
+      _googleSignInOverride ?? GoogleSignIn.instance;
 
   AuthUser? _mapUser(User? user) {
     if (user == null) return null;
@@ -29,11 +33,22 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Stream<AuthUser?> get authStateChanges =>
-      _auth.authStateChanges().map(_mapUser);
+  Stream<AuthUser?> get authStateChanges {
+    try {
+      return _auth.authStateChanges().map(_mapUser);
+    } catch (_) {
+      return Stream<AuthUser?>.value(null);
+    }
+  }
 
   @override
-  AuthUser? get currentUser => _mapUser(_auth.currentUser);
+  AuthUser? get currentUser {
+    try {
+      return _mapUser(_auth.currentUser);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<Result<AuthUser>> signUpWithEmail({

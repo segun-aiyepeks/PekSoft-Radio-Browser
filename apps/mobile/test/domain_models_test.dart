@@ -71,8 +71,9 @@ void main() {
     test('Entitlement defaults to Free tier with free limits', () {
       const Entitlement entitlement = Entitlement();
       expect(entitlement.tier, EntitlementTier.free);
-      expect(entitlement.maxFavourites, 10);
+      expect(entitlement.maxFavourites, 30);
       expect(entitlement.maxCollections, 2);
+      expect(entitlement.maxRecentlyPlayed, 20);
       expect(entitlement.maxSongHistory, 10);
       expect(entitlement.adsEnabled, isTrue);
     });

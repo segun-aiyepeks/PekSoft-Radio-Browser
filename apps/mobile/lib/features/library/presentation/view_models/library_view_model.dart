@@ -7,6 +7,7 @@ import 'package:peksoft_radio/features/library/domain/collection.dart';
 import 'package:peksoft_radio/features/library/domain/song_history_entry.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Immutable state for [LibraryScreen] (`/library`).
 @immutable
@@ -30,6 +31,8 @@ class LibraryState {
   final Entitlement entitlement;
   final EntitlementRequiredFailure? limitReachedFailure;
   final AppFailure? error;
+
+  FeatureGate get featureGate => FeatureGate(entitlement);
 
   LibraryState copyWith({
     int? activeTabIndex,

@@ -7,6 +7,7 @@ import 'package:peksoft_radio/features/library/domain/song_history_entry.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement_repository.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Local-first [LibraryRepository] backed by [AppDatabase] and guarded by
 /// [EntitlementRepository] limits.
@@ -52,9 +53,9 @@ class LibraryRepositoryImpl implements LibraryRepository {
       final List<String> currentIds = await _db.getFavouriteIds();
       if (!currentIds.contains(station.id)) {
         final Entitlement entitlement = await _currentEntitlement();
-        final int maxFavs = entitlement.maxFavourites;
-        if (entitlement.tier == EntitlementTier.free &&
-            currentIds.length >= maxFavs) {
+        final FeatureGate gate = FeatureGate(entitlement, now: _now());
+        if (!gate.canAddFavourite(currentIds.length)) {
+          final int maxFavs = gate.maxFavourites ?? entitlement.maxFavourites;
           return Failure<void>(
             AppFailure.entitlementRequired(
               message:
@@ -87,9 +88,14 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
-  Future<Result<List<Station>>> getRecents({int limit = 50}) async {
+  Future<Result<List<Station>>> getRecents({int limit = 200}) async {
     try {
-      final List<String> ids = await _db.getRecentIds(limit: limit);
+      final Entitlement entitlement = await _currentEntitlement();
+      final FeatureGate gate = FeatureGate(entitlement, now: _now());
+      final int effectiveLimit = gate.maxRecentlyPlayed < limit
+          ? gate.maxRecentlyPlayed
+          : limit;
+      final List<String> ids = await _db.getRecentIds(limit: effectiveLimit);
       return Success<List<Station>>(await _db.getCachedStationsByIds(ids));
     } catch (error) {
       return Failure<List<Station>>(
@@ -136,9 +142,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
         );
         if (!isUpdating) {
           final Entitlement entitlement = await _currentEntitlement();
-          final int maxCols = entitlement.maxCollections;
-          if (entitlement.tier == EntitlementTier.free &&
-              userCollections.length >= maxCols) {
+          final FeatureGate gate = FeatureGate(entitlement, now: _now());
+          if (!gate.canCreateCollection(userCollections.length)) {
+            final int maxCols =
+                gate.maxCollections ?? entitlement.maxCollections;
             return Failure<void>(
               AppFailure.entitlementRequired(
                 message:
@@ -175,10 +182,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }) async {
     try {
       final Entitlement entitlement = await _currentEntitlement();
-      final int effectiveLimit =
-          entitlement.tier == EntitlementTier.free &&
-              entitlement.maxSongHistory < limit
-          ? entitlement.maxSongHistory
+      final FeatureGate gate = FeatureGate(entitlement, now: _now());
+      final int? maxHistory = gate.maxSongHistory;
+      final int effectiveLimit = maxHistory != null && maxHistory < limit
+          ? maxHistory
           : limit;
       return Success<List<SongHistoryEntry>>(
         await _db.getSongHistory(limit: effectiveLimit),

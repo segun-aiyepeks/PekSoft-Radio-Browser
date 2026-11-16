@@ -976,3 +976,82 @@ Phase 4 adds the Node.js/Fastify backend, PostgreSQL persistence, Firebase authe
 - **Auth & Library Sync**: Firebase Admin token verification (`GET /v1/me`, `DELETE /v1/me`), LWW delta-sync (`POST /v1/sync`) with server-side `Entitlement` limit enforcement (`403 TIER_LIMIT_REACHED`), and `POST /v1/reports`.
 - **Mobile Auth & Sync (`apps/mobile`)**: `FirebaseAuthRepository` (email sign-up + verification, sign-in, reset password, Google Sign-In, shared-email account linking, delete account), `ApiClient` (silent 401 token refresh + retry), `SyncRepositoryImpl` (guest-to-account merge + queued report flushing), wired auth/profile screens, and unit tests.
 - **Docs & Staging**: `docs/api.md`, `render.yaml` (Render + Render Postgres staging blueprint), and `ADR-011`.
+
+
+---
+
+## Milestone 5.1 — Entitlements (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Created the canonical Section 7 **Free vs Plus** feature-gate table in `packages/shared/feature-gates.json` (and synced to `apps/mobile/packages/shared/feature-gates.json`), plus typed Zod schemas and helpers in `packages/shared/src/entitlements.ts` (`FEATURE_GATE_TABLE`, `PLAN_FEATURE_GATES`, `getPlanFeatureGate`, `toPrismaEntitlementSource`, `fromPrismaEntitlementSource`).
+- Implemented `EntitlementRepository` / `PrismaEntitlementRepository` (`apps/api/src/repositories/entitlement-repository.ts`) and `EntitlementService` (`apps/api/src/services/entitlement-service.ts`) with:
+  - `getForIdentity`: returns the authenticated user's effective `EntitlementView` (`tier`, `status`, `source`, `adsEnabled`, `expiresAt`, `limits`, `features`) and `plans: PLAN_FEATURE_GATES`.
+  - `grantPlus`: idempotent Plus grant recording the payment provider `source` (`'google_play'` or `'paystack'`), customer/subscription IDs, and `expiresAt` without regressing later expiry dates on duplicate webhook deliveries.
+  - `revokePlus`: idempotent Plus revocation recording the provider `source` (`'google_play'` or `'paystack'`) and status (`'EXPIRED'` or `'CANCELLED'`) while protecting active subscriptions from a different provider.
+- Registered `GET /v1/entitlements` in `apps/api/src/routes/v1/entitlements.ts` and wired `UserService` and `LibraryService` to the shared Section 7 limits (`30` favourites, `2` collections, `20` recents on Free / `200` on Plus, `10` song history entries).
+- Replaced the mobile stub `EntitlementRepositoryImpl` (`apps/mobile/lib/features/subscription/data/entitlement_repository_impl.dart`) with a server-backed implementation (`GET /v1/entitlements`) that caches the latest verified entitlement in `AppDatabase` (`entitlement:current:v1`) for offline launches and supports a local 24-hour rewarded-ad convenience pass (`grantTemporaryRewardedPass`).
+- Added `FeatureGate` and `PlanFeatureGates` (`apps/mobile/lib/features/subscription/domain/feature_gate.dart`) and wired `FeatureGate` across `LibraryRepositoryImpl` and all mobile ViewModels (`SubscriptionViewModel`, `LibraryViewModel`, `HomeViewModel`, `ExploreViewModel`, `SearchViewModel`, `PlayerViewModel`, `SettingsViewModel`) plus `featureGateProvider` in `apps/mobile/lib/core/di/providers.dart`.
+- Added unit tests in `packages/shared/src/entitlements.test.ts`, `apps/api/src/entitlements.test.ts`, and `apps/mobile/test/entitlement_feature_gate_test.dart`.
+
+### Why
+- **Single source of truth for feature gating**: Having one table (`packages/shared/feature-gates.json`) shared by `apps/api` and `apps/mobile` prevents the backend and client UI from ever disagreeing on whether a feature is unlocked or what the Free/Plus caps are.
+- **Server-side verification + idempotency**: Payment webhooks (Google Play Real-Time Developer Notifications and Paystack webhooks) are delivered *at-least-once* and can arrive out of order. Making `grantPlus` and `revokePlus` idempotent ensures duplicate deliveries never corrupt a user's entitlement or overwrite a newer expiry timestamp.
+
+### How it works (plain English)
+- **Entitlement vs Subscription**:
+  - A **subscription** is a billing contract inside a payment provider (Google Play Billing on Android, Paystack on Web).
+  - An **entitlement** is what your app actually cares about: *"Does this user currently have `PLUS` access, until when (`expiresAt`), and which provider (`google_play` or `paystack`) granted it?"*
+- **Feature Gate flow**:
+  1. `packages/shared/feature-gates.json` defines every row from Section 7 of `docs/ux-document.md` (`FREE` vs `PLUS`).
+  2. On the backend, `EntitlementService.computeEntitlementView` checks whether `tier === 'PLUS'`, `status` is `'ACTIVE'` or `'GRACE'`, and `expiresAt > now`. If `expiresAt` has passed, the effective view automatically downgrades to `FREE` (`status: 'EXPIRED'`) without deleting any user library data.
+  3. On mobile, `EntitlementRepositoryImpl` fetches `GET /v1/entitlements`, caches the result in SQLite (`AppDatabase`) so offline launches still know the user's status, and feeds `FeatureGate(entitlement)` into every ViewModel and `LibraryRepositoryImpl`.
+
+### Files created or changed
+- `packages/shared/feature-gates.json`
+- `packages/shared/package.json`
+- `packages/shared/src/entitlements.ts`
+- `packages/shared/src/entitlements.test.ts`
+- `packages/shared/src/index.ts`
+- `apps/api/src/repositories/entitlement-repository.ts`
+- `apps/api/src/services/entitlement-service.ts`
+- `apps/api/src/services/user-service.ts`
+- `apps/api/src/services/library-service.ts`
+- `apps/api/src/routes/v1/entitlements.ts`
+- `apps/api/src/server.ts`
+- `apps/api/src/entitlements.test.ts`
+- `apps/api/src/auth.test.ts`
+- `apps/api/src/library-sync.test.ts`
+- `apps/mobile/packages/shared/feature-gates.json`
+- `apps/mobile/pubspec.yaml`
+- `apps/mobile/lib/core/database/app_database.dart`
+- `apps/mobile/lib/core/di/providers.dart`
+- `apps/mobile/lib/features/subscription/domain/entitlement.dart`
+- `apps/mobile/lib/features/subscription/domain/entitlement.freezed.dart`
+- `apps/mobile/lib/features/subscription/domain/entitlement_repository.dart`
+- `apps/mobile/lib/features/subscription/domain/feature_gate.dart`
+- `apps/mobile/lib/features/subscription/data/entitlement_repository_impl.dart`
+- `apps/mobile/lib/features/library/data/library_repository_impl.dart`
+- `apps/mobile/lib/features/subscription/presentation/view_models/subscription_view_model.dart`
+- `apps/mobile/lib/features/library/presentation/view_models/library_view_model.dart`
+- `apps/mobile/lib/features/home/presentation/view_models/home_view_model.dart`
+- `apps/mobile/lib/features/explore/presentation/view_models/explore_view_model.dart`
+- `apps/mobile/lib/features/search/presentation/view_models/search_view_model.dart`
+- `apps/mobile/lib/features/player/presentation/view_models/player_view_model.dart`
+- `apps/mobile/lib/features/profile/presentation/view_models/settings_view_model.dart`
+- `apps/mobile/test/entitlement_feature_gate_test.dart`
+- `apps/mobile/test/domain_models_test.dart`
+- `apps/mobile/test/repositories_test.dart`
+- `docs/api.md`
+- `docs/build-log.md`
+
+### How to run and verify
+- TypeScript workspaces: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- Mobile (`apps/mobile`): `dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Entitlement abstraction**: Decoupling *how someone paid* (`google_play` vs `paystack`) from *what features they get* (`FeatureGate`) lets one user sign in on Android or Web and enjoy the same Plus features without duplicating billing logic inside UI screens.
+- **Idempotent state transitions**: In distributed billing systems, a webhook or client receipt verification can be sent 2–5 times. Checking whether the target state and expiry are already applied (`applied: false`) makes retries safe.
+- **Graceful expiry (soft lock)**: When `expiresAt` passes, `computeEntitlementView` returns `tier: 'FREE'` and `status: 'EXPIRED'`, locking Plus-only additions while leaving all existing favourites, collections, and history intact in PostgreSQL and SQLite.
+
+### Decisions and alternatives
+- **Shared JSON table (`packages/shared/feature-gates.json`) verified by both Vitest and Flutter test**: Ensures TypeScript (`PLAN_FEATURE_GATES`) and Dart (`PlanFeatureGates`) never drift, while keeping zero runtime file-system overhead in web/mobile bundles.

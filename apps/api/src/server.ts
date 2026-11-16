@@ -19,6 +19,10 @@ import {
   type HttpTransport,
 } from './repositories/radio-browser-client.js';
 import {
+  PrismaEntitlementRepository,
+  type EntitlementRepository,
+} from './repositories/entitlement-repository.js';
+import {
   PrismaLibraryRepository,
   type LibraryRepository,
 } from './repositories/library-repository.js';
@@ -32,11 +36,13 @@ import {
 } from './repositories/user-repository.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerCatalogRoutes } from './routes/v1/catalog.js';
+import { registerEntitlementRoutes } from './routes/v1/entitlements.js';
 import { registerLibraryRoutes } from './routes/v1/library.js';
 import { registerMeRoutes } from './routes/v1/me.js';
 import { registerReportRoutes } from './routes/v1/reports.js';
 import { registerStationRoutes } from './routes/v1/stations.js';
 import { CatalogService } from './services/catalog-service.js';
+import { EntitlementService } from './services/entitlement-service.js';
 import { LibraryService } from './services/library-service.js';
 import { ReportService } from './services/report-service.js';
 import { UserService } from './services/user-service.js';
@@ -49,6 +55,7 @@ export interface BuildServerOptions {
   radioBrowserTransport?: HttpTransport;
   authProvider?: AuthProvider;
   userRepository?: UserRepository;
+  entitlementRepository?: EntitlementRepository;
   libraryRepository?: LibraryRepository;
   reportRepository?: ReportRepository;
   /** Optional hook used by tests to mount ephemeral routes before ready(). */
@@ -129,11 +136,19 @@ export async function buildServer(
 
   let dbHandle: DatabaseHandle | undefined;
   let userRepository = options.userRepository;
+  let entitlementRepository = options.entitlementRepository;
   let libraryRepository = options.libraryRepository;
   let reportRepository = options.reportRepository;
-  if ((!userRepository || !libraryRepository || !reportRepository) && env.DATABASE_URL) {
+  if (
+    (!userRepository ||
+      !entitlementRepository ||
+      !libraryRepository ||
+      !reportRepository) &&
+    env.DATABASE_URL
+  ) {
     dbHandle = createPrismaClient(env.DATABASE_URL);
     userRepository ??= new PrismaUserRepository(dbHandle.prisma);
+    entitlementRepository ??= new PrismaEntitlementRepository(dbHandle.prisma);
     libraryRepository ??= new PrismaLibraryRepository(dbHandle.prisma);
     reportRepository ??= new PrismaReportRepository(dbHandle.prisma);
     app.addHook('onClose', async () => {
@@ -154,6 +169,14 @@ export async function buildServer(
     const requireAuth = createRequireAuth(authProvider);
     const userService = new UserService(userRepository, authProvider);
     registerMeRoutes(app, { requireAuth, userService });
+
+    if (entitlementRepository) {
+      const entitlementService = new EntitlementService(
+        userRepository,
+        entitlementRepository,
+      );
+      registerEntitlementRoutes(app, { requireAuth, entitlementService });
+    }
 
     if (libraryRepository) {
       const libraryService = new LibraryService(

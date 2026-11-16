@@ -5,6 +5,8 @@ import 'package:peksoft_radio/core/domain/app_failure.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/core/normalisation/station_normaliser.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
+import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Immutable state for [SearchScreen] (`/search`) and [FiltersBottomSheet].
 @immutable
@@ -17,6 +19,7 @@ class SearchState {
     this.isLoading = false,
     this.hasSearched = false,
     this.recentQueries = const <String>[],
+    this.entitlement = const Entitlement(),
     this.error,
   });
 
@@ -27,7 +30,10 @@ class SearchState {
   final bool isLoading;
   final bool hasSearched;
   final List<String> recentQueries;
+  final Entitlement entitlement;
   final AppFailure? error;
+
+  FeatureGate get featureGate => FeatureGate(entitlement);
 
   SearchState copyWith({
     String? query,
@@ -37,6 +43,7 @@ class SearchState {
     bool? isLoading,
     bool? hasSearched,
     List<String>? recentQueries,
+    Entitlement? entitlement,
     AppFailure? error,
     bool clearError = false,
   }) {
@@ -48,6 +55,7 @@ class SearchState {
       isLoading: isLoading ?? this.isLoading,
       hasSearched: hasSearched ?? this.hasSearched,
       recentQueries: recentQueries ?? this.recentQueries,
+      entitlement: entitlement ?? this.entitlement,
       error: clearError ? null : (error ?? this.error),
     );
   }

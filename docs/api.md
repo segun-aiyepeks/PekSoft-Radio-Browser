@@ -75,11 +75,15 @@ Upserts the PostgreSQL `User` + default `FREE` `Entitlement` on first call.
 Deletes the user's PostgreSQL records (cascading favourites, collections, recents, song history, entitlement; `station_reports.user_id` set to `NULL`) and deletes the Firebase Auth account.
 - **204 No Content**
 
+### `GET /v1/entitlements` (Auth required)
+Returns the authenticated user's server-verified entitlement view (`tier`, `status`, `source`, `adsEnabled`, `expiresAt`, `limits`, `features`) alongside the canonical Section 7 `FREE` vs `PLUS` feature-gate table (`plans`).
+- **200 OK**: `{ entitlement: { tier, status, source, adsEnabled, expiresAt, limits, features }, plans: { FREE, PLUS } }`
+
 ---
 
 ## 5. Library & Sync Endpoints (`/v1/library/*`, `/v1/sync`)
 
-All library endpoints require `Authorization: Bearer <token>`, use per-item `updatedAt` **last-write-wins (LWW)**, and enforce free-tier limits server-side (`10` favourites, `2` collections, `10` song history entries; `PLUS` is unlimited). Exceeding free-tier limits on direct writes returns `403 TIER_LIMIT_REACHED`.
+All library endpoints require `Authorization: Bearer <token>`, use per-item `updatedAt` **last-write-wins (LWW)**, and enforce free-tier limits server-side from `packages/shared/feature-gates.json` (`30` favourites, `2` collections, `20` recents (`200` on Plus), `10` song history entries; `PLUS` is unlimited for favourites, collections, and song history). Exceeding free-tier limits on direct writes returns `403 TIER_LIMIT_REACHED`.
 
 - `GET /v1/library/favorites` → `{ items }`
 - `PUT /v1/library/favorites/:stationId` → `{ record, applied }`

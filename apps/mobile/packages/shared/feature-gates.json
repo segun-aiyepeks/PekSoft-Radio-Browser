@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "source": "docs/ux-document.md#section-7",
+  "plans": {
+    "FREE": {
+      "tier": "FREE",
+      "browseAndPlayWorldwide": true,
+      "basicSearchAndFilters": true,
+      "adsEnabled": true,
+      "maxFavorites": 30,
+      "maxCollections": 2,
+      "maxRecentlyPlayed": 20,
+      "maxSongHistory": 10,
+      "sleepTimerMode": "presets",
+      "customSleepTimer": false,
+      "sleepTimerFadeOut": false,
+      "alarmClock": false,
+      "equalizerAndBassBoost": false,
+      "advancedFilters": false,
+      "themesAndWidgets": "basic",
+      "allThemesAndWidgets": false,
+      "crossDeviceSync": true,
+      "earlyAccessAndPrioritySupport": false
+    },
+    "PLUS": {
+      "tier": "PLUS",
+      "browseAndPlayWorldwide": true,
+      "basicSearchAndFilters": true,
+      "adsEnabled": false,
+      "maxFavorites": null,
+      "maxCollections": null,
+      "maxRecentlyPlayed": 200,
+      "maxSongHistory": null,
+      "sleepTimerMode": "custom_and_fade_out",
+      "customSleepTimer": true,
+      "sleepTimerFadeOut": true,
+      "alarmClock": true,
+      "equalizerAndBassBoost": true,
+      "advancedFilters": true,
+      "themesAndWidgets": "all",
+      "allThemesAndWidgets": true,
+      "crossDeviceSync": true,
+      "earlyAccessAndPrioritySupport": true
+    }
+  }
+}

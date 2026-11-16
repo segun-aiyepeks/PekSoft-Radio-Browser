@@ -70,9 +70,17 @@ class ApiClient {
   final Dio _dio;
 
   Future<Result<Map<String, dynamic>>> getMe() async {
+    return getJson('/v1/me');
+  }
+
+  Future<Result<Map<String, dynamic>>> getEntitlements() async {
+    return getJson('/v1/entitlements');
+  }
+
+  Future<Result<Map<String, dynamic>>> getJson(String path) async {
     return _guard(() async {
       final Response<Map<String, dynamic>> res = await _dio
-          .get<Map<String, dynamic>>('/v1/me');
+          .get<Map<String, dynamic>>(path);
       return res.data ?? <String, dynamic>{};
     });
   }

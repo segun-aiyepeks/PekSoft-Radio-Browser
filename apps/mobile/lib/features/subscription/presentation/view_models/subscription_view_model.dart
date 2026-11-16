@@ -4,6 +4,7 @@ import 'package:peksoft_radio/core/di/providers.dart';
 import 'package:peksoft_radio/core/domain/app_failure.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Billing period toggle on [PaywallScreen] (`/paywall`).
 enum BillingPeriod { monthly, annual }
@@ -25,6 +26,8 @@ class SubscriptionState {
   final bool isProcessing;
   final String? statusMessage;
   final AppFailure? error;
+
+  FeatureGate get featureGate => FeatureGate(entitlement);
 
   SubscriptionState copyWith({
     Entitlement? entitlement,
@@ -73,7 +76,7 @@ class SubscriptionViewModel extends AsyncNotifier<SubscriptionState> {
       Success<Entitlement>(:final data) => current.copyWith(
         entitlement: data,
         isProcessing: false,
-        statusMessage: data.tier == EntitlementTier.pro
+        statusMessage: FeatureGate(data).isPlus
             ? 'PekSoft Pro restored.'
             : 'No active Pro subscription found.',
       ),

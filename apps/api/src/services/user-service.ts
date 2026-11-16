@@ -1,14 +1,12 @@
 import type { AuthProvider, VerifiedIdentity } from '../auth/firebase-auth.js';
-import type {
-  UserEntitlementRecord,
-  UserRepository,
-} from '../repositories/user-repository.js';
+import type { UserRepository } from '../repositories/user-repository.js';
+import {
+  computeEntitlementView,
+  type EntitlementView,
+  type TierLimits,
+} from './entitlement-service.js';
 
-export interface TierLimits {
-  maxFavorites: number | null;
-  maxCollections: number | null;
-  maxSongHistory: number | null;
-}
+export { computeEntitlementView, type EntitlementView, type TierLimits };
 
 export interface MeResponse {
   user: {
@@ -18,32 +16,7 @@ export interface MeResponse {
     displayName: string | null;
     createdAt: string;
   };
-  entitlement: {
-    tier: 'FREE' | 'PLUS';
-    status: string;
-    adsEnabled: boolean;
-    expiresAt: string | null;
-    limits: TierLimits;
-  };
-}
-
-export function computeEntitlementView(entitlement: UserEntitlementRecord) {
-  const isPlus =
-    entitlement.tier === 'PLUS' &&
-    (entitlement.status === 'ACTIVE' || entitlement.status === 'GRACE') &&
-    (!entitlement.expiresAt || entitlement.expiresAt.getTime() > Date.now());
-
-  return {
-    tier: isPlus ? ('PLUS' as const) : ('FREE' as const),
-    status: entitlement.status,
-    adsEnabled: !isPlus,
-    expiresAt: entitlement.expiresAt
-      ? entitlement.expiresAt.toISOString()
-      : null,
-    limits: isPlus
-      ? { maxFavorites: null, maxCollections: null, maxSongHistory: null }
-      : { maxFavorites: 10, maxCollections: 2, maxSongHistory: 10 },
-  };
+  entitlement: EntitlementView;
 }
 
 export class UserService {
