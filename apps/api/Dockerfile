@@ -18,7 +18,7 @@ FROM deps AS build
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY apps/api apps/api
-RUN pnpm --filter @peksoft/shared build && pnpm --filter @peksoft/api db:generate && pnpm --filter @peksoft/api build
+RUN pnpm --filter @peksoft/shared build && pnpm --filter @peksoft/api run db:generate && pnpm --filter @peksoft/api build
 RUN pnpm --filter @peksoft/api --prod deploy /prod/api
 COPY apps/api/prisma /prod/api/prisma
 COPY apps/api/prisma.config.ts /prod/api/prisma.config.ts
