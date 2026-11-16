@@ -135,7 +135,7 @@ Staging is configured via [`render.yaml`](../render.yaml) in the repository root
    - **`peksoft-radio-db-staging`** (Render Postgres) and injects `DATABASE_URL`.
    - **`peksoft-radio-api-staging`** (Docker Web Service built from `apps/api/Dockerfile`).
 3. Enter your Firebase Admin service account values when prompted (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`).
-4. On every deploy, `preDeployCommand: npx prisma migrate deploy` applies pending migrations in `apps/api/prisma/migrations/` before traffic switches over.
+4. On container startup, `apps/api/Dockerfile` automatically runs `prisma migrate deploy` when `DATABASE_URL` is set before starting the Fastify server.
 5. Verify staging:
    - `GET https://<your-render-service>.onrender.com/health`
    - `GET https://<your-render-service>.onrender.com/docs`
