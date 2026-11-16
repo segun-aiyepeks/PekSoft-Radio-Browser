@@ -735,3 +735,118 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 - Versioned Drift SQLite database (`schemaVersion = 2`) with v1 → v2 migration test and 50-item recents cap
 - Offline-first SWR repositories (`CatalogRepository`, `StationRepository`, `LibraryRepository`, `SettingsRepository`, `EntitlementRepository` stub) with 24h list / 5m search TTLs
 - 13 Riverpod `Notifier`/`AsyncNotifier` ViewModels covering every Phase 1 screen (`docs/viewmodels.md`)
+
+
+---
+
+## Milestone 3.1 — Wire discovery (Phase 3: Wire & Audio)
+
+### What I did
+- Created branch `phase/3-wire-and-audio` from `main`.
+- Updated `apps/mobile/lib/main.dart` to open `AppDatabase.openDefault()`, load `packages/shared/genre-map.json` into `GenreMap`, and wrap `PekSoftRadioApp` in `ProviderScope` (accepting optional test `overrides`).
+- Added `apps/mobile/lib/core/utils/country_flag.dart` (`countryFlagEmoji`) and `apps/mobile/lib/features/station/presentation/station_list_tile.dart` (`StationListTile` backed by `playerViewModelProvider` and `libraryViewModelProvider`).
+- Wired all 8 discovery screens to their Phase 2 Riverpod ViewModels while preserving the Phase 1 UI, `Semantics`, `48dp` touch targets, and `1.3x` text scaling:
+  - `WelcomeScreen` → `welcomeViewModelProvider` + `exploreViewModelProvider`
+  - `HomeScreen` → `homeViewModelProvider` (loading `SkeletonList`, `ErrorState`, `EmptyState`, `AdSlotPlaceholder` gated on `entitlement.adsEnabled`)
+  - `ExploreScreen` → `exploreViewModelProvider` (Countries, Genres, Languages, Map)
+  - `CountryDetailScreen` → `countryDetailViewModelProvider(countryCode)`
+  - `GenreDetailScreen` → `genreDetailViewModelProvider(genreId)`
+  - `SearchScreen` & `FiltersBottomSheet` → `searchViewModelProvider` (`Working now only` ON by default)
+  - `StationDetailScreen` → `stationDetailViewModelProvider(stationId)` + `playerViewModelProvider`
+- Wired `_MobileShellScaffold` in `apps/mobile/lib/core/routing/app_router.dart` to `settingsViewModelProvider` for `OfflineBanner`.
+- Added `apps/mobile/test/helpers/mock_repository_overrides.dart` so mock data acts purely as test fixtures, updated existing Phase 1 widget/golden tests, and added `apps/mobile/test/wired_discovery_test.dart` covering loading, loaded, empty, and error states with fake repositories.
+
+### Why
+- Connecting discovery screens to Riverpod ViewModels replaces mock data calls with real offline-first repositories while keeping the UI layout and accessibility guarantees intact.
+
+### How it works (plain English)
+- Each discovery screen watches its Riverpod provider (`AsyncNotifier` or `Notifier`) and renders `SkeletonList` while loading, `ErrorState` with retry on failure, `EmptyState` when no results match, and `StationListTile` rows on success.
+
+### Files created or changed
+- `apps/mobile/lib/main.dart`, `apps/mobile/lib/core/routing/app_router.dart`
+- `apps/mobile/lib/core/utils/country_flag.dart`
+- `apps/mobile/lib/features/station/presentation/station_list_tile.dart`
+- `apps/mobile/lib/features/onboarding/presentation/welcome_screen.dart`
+- `apps/mobile/lib/features/home/presentation/home_screen.dart`
+- `apps/mobile/lib/features/explore/presentation/{explore_screen.dart,country_detail_screen.dart,genre_detail_screen.dart}`
+- `apps/mobile/lib/features/search/presentation/{search_screen.dart,filters_bottom_sheet.dart}`
+- `apps/mobile/lib/features/station/presentation/station_detail_screen.dart`
+- `apps/mobile/test/{helpers/mock_repository_overrides.dart,wired_discovery_test.dart,discovery_screens_test.dart,widget_test.dart,polish_accessibility_test.dart,golden_screens_test.dart}` + updated goldens
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Mock data as test fixtures**: Wrapping `lib/mock/*` behind `mockRepositoryOverrides()` lets widget and golden tests run deterministically without keeping mock calls in production screens.
+
+### Decisions and alternatives
+- **Kept `PekSoftRadioApp(overrides: ...)` parameter**: Allows `main()` to inject real Drift + `GenreMap` while tests pass fast in-memory repository overrides cleanly.
+
+---
+
+## Milestone 3.2 — Audio engine (Phase 3: Wire & Audio)
+
+### What I did
+- Defined `AudioPlayerService` and `AudioPlaybackSnapshot` in `apps/mobile/lib/features/player/domain/audio_player_service.dart`.
+- Implemented `RadioAudioHandler` (`BaseAudioHandler` using `just_audio`, `audio_service`, and `audio_session`) and `JustAudioPlayerService` in `apps/mobile/lib/features/player/data/`.
+- Configured Android foreground service (`mediaPlayback`), `MediaButtonReceiver`, `WAKE_LOCK`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `POST_NOTIFICATIONS`, `AudioServiceActivity` in `MainActivity.kt`, and `android/app/src/main/res/xml/network_security_config.xml`.
+- Wired `PlayerViewModel` (`PlaybackViewModel` / `playbackViewModelProvider`) to `audioPlayerServiceProvider`, driving both `MiniPlayerSlot` and `NowPlayingScreen` (plus `SleepTimerSheet` and `ReportStationSheet`) with live ICY track title updates and Song History logging.
+- Added `FakeAudioPlayerService` and unit/widget tests in `apps/mobile/test/audio_engine_test.dart`, and updated `player_ui_test.dart`, `widget_test.dart`, and `golden_screens_test.dart`.
+
+### Why Android blocks cleartext traffic by default & what we allowed
+- Since Android 9 (API 28), `usesCleartextTraffic` defaults to `false` to protect users against eavesdropping and tampering on unencrypted `http://` connections.
+- Radio Browser indexes thousands of independent broadcasters worldwide, many of whom serve Shoutcast/Icecast audio streams over plain `http://` rather than `https://`, and those domains cannot be enumerated statically in `<domain-config>`.
+- We added `network_security_config.xml` with `<base-config cleartextTrafficPermitted="true">` (with system trust anchors) for audio stream playback, while `RadioBrowserClient` continues to use `https://` for all Radio Browser API discovery and metadata requests.
+
+---
+
+## Milestone 3.3 — Resilience (UX journey J4) (Phase 3: Wire & Audio)
+
+### What I did
+- Added `connectivity_plus` and `ConnectivityService` (`ConnectivityPlusService`) in `apps/mobile/lib/core/network/connectivity_service.dart`.
+- Preserved `fallbackStreamUrl` (original `url` when distinct from `urlResolved`) on `Station` and in `StationNormaliser.normalize`.
+- Bumped `AppDatabase.schemaVersion` to `3` with migration adding `cached_stations.fallback_stream_url` and `pending_station_reports`, plus `DriftReportQueueRepository` (`ReportQueueRepository`) for locally queuing "Report broken" submissions for Phase 4 backend sync without inventing Radio Browser endpoints.
+- Implemented J4 resilience in `PlayerViewModel`: primary-to-fallback URL failover (`urlResolved -> url`), 3 retries with configurable back-off (`1s, 2s, 4s`), mid-stream drop recovery, automatic reconnect when `connectivity_plus` reports network return, Radio Browser click reporting on every play, and friendly non-blocking `unavailable` banner with similar-station suggestions.
+- Wired `StationDetailViewModel.submitReport` and `PlayerViewModel.reportCurrentStation` to `reportQueueRepositoryProvider`.
+- Added `apps/mobile/test/resilience_test.dart`, `FakeConnectivityService`, `FakeReportQueueRepository`, and updated `app_database_test.dart` migration assertions.
+
+---
+
+## Milestone 3.4 — Listening features (Phase 3: Wire & Audio)
+
+### What I did
+- Implemented sleep timer countdown and smooth volume fade-out (`sleepTimerTickProvider`, `sleepFadeDurationProvider`) in `PlayerViewModel`, pausing playback and restoring volume on expiry or cancellation.
+- Added `selectBitrateVariant` (`apps/mobile/lib/features/player/domain/stream_variant_selector.dart`) and wired Data Saver mode in `PlayerViewModel` + `SettingsScreen` (`settingsViewModelProvider`) to prefer lower-bitrate working variants when available.
+- Wired `LibraryScreen` (Favourites, Recents, Collections, Song History) to `libraryViewModelProvider` and `Entitlement` limits (`maxFavourites`, `maxCollections`, `maxSongHistory`), including `+ New collection`, limit-reached prompts, and `Clear history`.
+- Added `playSurpriseMe` to `PlayerViewModel` and a `Surprise me` action button in `HomeScreen`.
+- Added `Clipboard.setData` for the placeholder share link (`https://peksoft.radio/station/<id>`) in `NowPlayingScreen`.
+- Added `apps/mobile/test/listening_features_test.dart` and updated `account_money_screens_test.dart`.
+
+
+---
+
+## Milestone 3.5 — Tests and release prep (Phase 3: Wire & Audio)
+
+### What I did
+- Added end-to-end play-flow integration test (`apps/mobile/integration_test/play_flow_test.dart`, backed by shared `apps/mobile/test/helpers/play_flow_runner.dart` and `apps/mobile/test/play_flow_integration_test.dart`) exercising `Welcome -> Home -> Play -> MiniPlayer -> Now Playing -> ICY -> Favourite -> Library (Favourites & Song History)` with `FakeAudioPlayerService`.
+- Profiled cold start and list scrolling and applied two targeted optimizations:
+  - Parallelized `AppDatabase.openDefault()` and `_loadGenreMap()` startup futures in `apps/mobile/lib/main.dart`.
+  - Converted `HomeScreen` from an eager `ListView` + `for` loop to a lazy `CustomScrollView` + `SliverToBoxAdapter` + `SliverList.builder` in `apps/mobile/lib/features/home/presentation/home_screen.dart`.
+  - Added `apps/mobile/test/performance_profile_test.dart` verifying lazy viewport materialization (`< 25` of 120 stations built initially) and smooth fling scrolling.
+- Wrote `docs/release-android.md` documenting `applicationId` (`com.peksoft.radio`), `versionName`/`versionCode` mapping, Play App Signing (App Signing Key vs Upload Key), keystore setup, and `flutter build appbundle --release`.
+- Built the Android release App Bundle: `apps/mobile/build/app/outputs/bundle/release/app-release.aab` (`59.7MB`).
+
+---
+
+## Phase 3 Summary — Ready for Review
+
+**Branch:** `phase/3-wire-and-audio` → `main`  
+**Milestones completed:** `3.1` Wire discovery · `3.2` Audio engine · `3.3` Resilience (J4) · `3.4` Listening features · `3.5` Tests & release prep
+
+Phase 3 turns the Phase 1 UI + Phase 2 offline-first repositories/ViewModels into a working Android radio player:
+- All discovery screens (`Welcome`, `Home`, `Explore`, `Search`, `Filters`, `CountryDetail`, `GenreDetail`, `StationDetail`) and `Library` / `Settings` are wired to Riverpod ViewModels with skeleton loading, empty, error, and offline states; mock data remains only in test fixtures.
+- `AudioPlayerService` (`RadioAudioHandler` + `JustAudioPlayerService`) handles background playback, notification/lock-screen controls, audio focus ducking, headphone unplug pause, Bluetooth metadata, MP3/AAC/OGG/HLS streams, live ICY track updates, and cleartext HTTP streams via `network_security_config.xml`.
+- J4 playback resilience (`urlResolved -> url` failover, 3 retries with back-off, `connectivity_plus` auto-reconnect, Radio Browser click reporting, local Drift report queue, and friendly unavailable suggestions).
+- Listening features: sleep timer with fade-out, Data Saver bitrate variant selection, Library with free-tier `Entitlement` limits, Surprise me, and clipboard share link.
+- End-to-end play flow test, cold-start/scroll profiling optimizations, `docs/release-android.md`, and verified release `.aab` (`59.7MB`).

@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:peksoft_radio/core/normalisation/station_normaliser.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
 import 'package:peksoft_radio/features/search/presentation/filters_bottom_sheet.dart';
-import 'package:peksoft_radio/features/station/presentation/mock_station_tile.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/search/presentation/view_models/search_view_model.dart';
+import 'package:peksoft_radio/features/station/domain/station.dart';
+import 'package:peksoft_radio/features/station/presentation/station_list_tile.dart';
 
-/// Search screen covering empty, typing, results, and no-results states.
-class SearchScreen extends StatefulWidget {
+/// Search screen covering empty, typing, loading, results, no-results, and
+/// error states wired to [SearchViewModel].
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key, this.initialQuery = '', this.initialLanguage});
 
   final String initialQuery;
   final String? initialLanguage;
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   late final TextEditingController _controller;
-  late StationFilterState _filters;
 
   static const List<String> _suggestedTerms = <String>[
     'Wazobia',
@@ -35,7 +37,23 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery);
-    _filters = StationFilterState(language: widget.initialLanguage);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final SearchViewModel vm = ref.read(searchViewModelProvider.notifier);
+      if (widget.initialQuery.isNotEmpty) {
+        vm.setQuery(widget.initialQuery);
+      }
+      if (widget.initialLanguage != null) {
+        vm.applyFilter(
+          StationFilter(
+            query: widget.initialQuery,
+            language: widget.initialLanguage,
+          ),
+        );
+      } else if (widget.initialQuery.isNotEmpty) {
+        vm.submitSearch();
+      }
+    });
   }
 
   @override
@@ -45,39 +63,34 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _openFilters() async {
-    final StationFilterState? updated = await showStationFiltersSheet(
+    final SearchState current = ref.read(searchViewModelProvider);
+    final StationFilterSelection? updated = await showStationFiltersSheet(
       context,
-      initial: _filters,
+      initial: StationFilterSelection.fromDomain(
+        current.filter,
+        sort: current.sort,
+      ),
     );
     if (updated != null && mounted) {
-      setState(() => _filters = updated);
+      final SearchViewModel vm = ref.read(searchViewModelProvider.notifier);
+      await vm.applyFilter(updated.toStationFilter());
+      await vm.setSort(updated.sort);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final String query = _controller.text.trim();
-    final bool hasActiveFilters =
-        _filters.genre != null ||
-        _filters.language != null ||
-        _filters.codec != null ||
-        _filters.minBitrateKbps != null ||
-        !_filters.workingOnly;
+    final SearchState state = ref.watch(searchViewModelProvider);
+    final SearchViewModel vm = ref.read(searchViewModelProvider.notifier);
 
-    final bool isEmptyIdle = query.isEmpty && !hasActiveFilters;
+    final StationFilterSelection selection = StationFilterSelection.fromDomain(
+      state.filter,
+      sort: state.sort,
+    );
 
-    final List<MockStation> results = isEmptyIdle
-        ? const <MockStation>[]
-        : searchMockStations(
-            query: query,
-            workingOnly: _filters.workingOnly,
-            genre: _filters.genre,
-            language: _filters.language,
-            codec: _filters.codec,
-            minBitrateKbps: _filters.minBitrateKbps,
-            sort: _filters.sort,
-          );
+    final bool hasActiveFilters = selection.activeFilterCount > 0;
+    final bool isIdle = !state.hasSearched && state.query.trim().isEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -89,14 +102,15 @@ class _SearchScreenState extends State<SearchScreen> {
             controller: _controller,
             autofocus: widget.initialQuery.isEmpty && !hasActiveFilters,
             textInputAction: TextInputAction.search,
-            onChanged: (_) => setState(() {}),
+            onChanged: vm.setQuery,
+            onSubmitted: (_) => vm.submitSearch(),
             decoration: InputDecoration(
               hintText: 'Search stations, countries, genres...',
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
               filled: false,
-              suffixIcon: query.isNotEmpty
+              suffixIcon: state.query.isNotEmpty
                   ? SizedBox(
                       width: AppSpacing.touchTarget,
                       height: AppSpacing.touchTarget,
@@ -105,7 +119,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         icon: const Icon(Icons.close_rounded),
                         onPressed: () {
                           _controller.clear();
-                          setState(() {});
+                          vm.clearQuery();
                         },
                       ),
                     )
@@ -116,178 +130,141 @@ class _SearchScreenState extends State<SearchScreen> {
         actions: [
           Semantics(
             button: true,
-            label: 'Open search filters',
+            label: 'Filter search results',
             child: SizedBox(
               width: AppSpacing.touchTarget,
               height: AppSpacing.touchTarget,
               child: IconButton(
                 tooltip: 'Filters',
-                onPressed: _openFilters,
                 icon: Badge(
-                  isLabelVisible: _filters.activeFilterCount > 0,
-                  label: Text('${_filters.activeFilterCount}'),
+                  isLabelVisible: selection.activeFilterCount > 0,
+                  label: Text('${selection.activeFilterCount}'),
                   child: const Icon(Icons.tune_rounded),
                 ),
+                onPressed: _openFilters,
               ),
             ),
           ),
         ],
       ),
-      body: isEmptyIdle
-          ? _EmptySearchView(
-              suggestedTerms: _suggestedTerms,
-              onSelectTerm: (term) {
-                _controller.text = term;
-                _controller.selection = TextSelection.collapsed(
-                  offset: term.length,
-                );
-                setState(() {});
-              },
-            )
-          : Column(
+      body: Builder(
+        builder: (context) {
+          if (state.isLoading) {
+            return const SkeletonList(itemCount: 6);
+          }
+          if (state.error != null) {
+            return ErrorState(
+              title: 'Search failed',
+              message: state.error!.message,
+              onRetry: vm.submitSearch,
+            );
+          }
+          if (isIdle) {
+            return ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
-                FilterChipBar(
-                  items: [
-                    FilterChipItem(
-                      id: 'working',
-                      label: _filters.workingOnly
-                          ? 'Working now'
-                          : 'All stations',
-                      selected: _filters.workingOnly,
-                    ),
-                    if (_filters.genre != null)
-                      FilterChipItem(
-                        id: 'genre',
-                        label: _filters.genre!,
-                        selected: true,
-                      ),
-                    if (_filters.language != null)
-                      FilterChipItem(
-                        id: 'language',
-                        label: _filters.language!,
-                        selected: true,
-                      ),
-                    if (_filters.codec != null)
-                      FilterChipItem(
-                        id: 'codec',
-                        label: _filters.codec!,
-                        selected: true,
-                      ),
-                    if (_filters.minBitrateKbps != null)
-                      FilterChipItem(
-                        id: 'bitrate',
-                        label: '${_filters.minBitrateKbps}+ kbps',
-                        selected: true,
+                Text(
+                  'Try searching for',
+                  style: AppTypography.title.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    for (final String term in _suggestedTerms)
+                      GenreChip(
+                        label: term,
+                        onTap: () {
+                          _controller.text = term;
+                          vm.setQuery(term);
+                          vm.submitSearch();
+                        },
                       ),
                   ],
-                  onToggle: (_) => _openFilters(),
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                if (results.isEmpty)
-                  Expanded(
-                    child: EmptyState(
-                      title: 'No stations found',
-                      message:
-                          'Try a different search term or adjust your active filters.',
-                      icon: Icons.search_off_rounded,
-                      actionLabel: _filters.workingOnly
-                          ? 'Include offline stations'
-                          : 'Reset filters',
-                      onAction: () => setState(() {
-                        if (_filters.workingOnly) {
-                          _filters = _filters.copyWith(workingOnly: false);
-                        } else {
-                          _controller.clear();
-                          _filters = const StationFilterState();
-                        }
-                      }),
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                      itemCount: results.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg,
-                              vertical: AppSpacing.xs,
-                            ),
-                            child: Text(
-                              '${results.length} ${results.length == 1 ? 'station' : 'stations'} found',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: colors.textMuted,
-                              ),
-                            ),
-                          );
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: AppSpacing.xs,
-                          ),
-                          child: MockStationTile(station: results[index - 1]),
-                        );
-                      },
+                if (state.recentQueries.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    'Recent searches',
+                    style: AppTypography.title.copyWith(
+                      color: colors.textPrimary,
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      for (final String term in state.recentQueries)
+                        GenreChip(
+                          label: term,
+                          onTap: () {
+                            _controller.text = term;
+                            vm.setQuery(term);
+                            vm.submitSearch();
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.xl),
+                const EmptyState(
+                  title: 'Find live radio worldwide',
+                  message:
+                      'Search by station name, country, genre, or open Filters to refine codecs and bitrate.',
+                  icon: Icons.search_rounded,
+                ),
               ],
-            ),
-    );
-  }
-}
-
-class _EmptySearchView extends StatelessWidget {
-  const _EmptySearchView({
-    required this.suggestedTerms,
-    required this.onSelectTerm,
-  });
-
-  final List<String> suggestedTerms;
-  final ValueChanged<String> onSelectTerm;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final List<MockGenre> popularGenres = getMockGenres().take(6).toList();
-
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      children: [
-        Text(
-          'Try searching for',
-          style: AppTypography.title.copyWith(color: colors.textPrimary),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            for (final String term in suggestedTerms)
-              GenreChip(label: term, onTap: () => onSelectTerm(term)),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        Text(
-          'Browse popular genres',
-          style: AppTypography.title.copyWith(color: colors.textPrimary),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            for (final MockGenre g in popularGenres)
-              GenreChip(
-                label: g.name,
-                onTap: () =>
-                    context.push('/genre/${Uri.encodeComponent(g.name)}'),
-              ),
-          ],
-        ),
-      ],
+            );
+          }
+          if (state.hasSearched && state.results.isEmpty) {
+            return EmptyState(
+              title: 'No stations found',
+              message:
+                  'No stations matched your search. Try another term or reset filters.',
+              icon: Icons.search_off_rounded,
+              actionLabel: 'Reset search & filters',
+              onAction: () {
+                _controller.clear();
+                vm.clearQuery();
+                vm.resetFilters();
+              },
+            );
+          }
+          if (!state.hasSearched) {
+            return ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                PrimaryButton(
+                  label: 'Search "${state.query.trim()}"',
+                  icon: Icons.search_rounded,
+                  onPressed: vm.submitSearch,
+                ),
+              ],
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            itemCount: state.results.length + 1,
+            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Text(
+                  '${state.results.length} results',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                );
+              }
+              final Station station = state.results[index - 1];
+              return StationListTile(station: station);
+            },
+          );
+        },
+      ),
     );
   }
 }
