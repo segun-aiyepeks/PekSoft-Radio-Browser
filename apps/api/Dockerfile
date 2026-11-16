@@ -12,7 +12,7 @@ COPY packages/shared/package.json packages/shared/package.json
 COPY packages/design-tokens/package.json packages/design-tokens/package.json
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod=false
 
 FROM deps AS build
 COPY tsconfig.base.json ./
