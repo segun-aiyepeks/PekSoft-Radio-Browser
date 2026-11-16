@@ -951,3 +951,28 @@ Phase 3 turns the Phase 1 UI + Phase 2 offline-first repositories/ViewModels int
 
 ### How to run and verify
 - `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze && flutter test`
+
+
+---
+
+## Milestone 4.7 — Docs and staging (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Wrote `docs/api.md` documenting all system, Radio Browser gateway, account (`/v1/me`), library & delta-sync (`/v1/library/*`, `/v1/sync`), and station-report (`/v1/reports`) endpoints, auth headers, caching, rate limits, and environment variables.
+- Compared Render, Railway, Fly.io, and Google Cloud Run for hosting `apps/api`; per user choice, configured **Render** + **Render Postgres** staging in `render.yaml` (`frankfurt` region, Docker Web Service, `preDeployCommand: npx --yes prisma@7.10.1 migrate deploy`, `/health` check) and updated `apps/api/Dockerfile` to include `prisma/` and `prisma.config.ts`.
+- Recorded verified Phase 4 package versions and hosting choice in `docs/decisions.md` (`ADR-011`) and linked `docs/api.md` + `docs/release-android.md` in `docs/index.md`.
+
+---
+
+## Phase 4 Summary — Ready for Review
+
+**Branch:** `phase/4-backend-auth` → `main`  
+**Milestones completed:** `4.1` API scaffold · `4.2` Radio Browser gateway · `4.3` Database (Prisma + PostgreSQL) · `4.4` Authentication · `4.5` Library sync API · `4.6` Mobile authentication & sync · `4.7` Docs & staging
+
+Phase 4 adds the Node.js/Fastify backend, PostgreSQL persistence, Firebase authentication, and mobile cloud sync:
+- **Fastify 5 API (`apps/api`)**: Zod-validated config, PII-redacted Pino logging, central error envelope, `/health`, OpenAPI 3.1 (`/docs`), CORS, rate limiting, and multi-stage `Dockerfile`.
+- **Radio Browser Gateway**: 24h mirror discovery + failover, shared `packages/shared/genre-map.json` normalisation, `isHttpsPlayable` web flag, `CacheStore` (`InMemoryLruCache`), and `Cache-Control` headers (zero audio proxying).
+- **Database (`Prisma 7` + PostgreSQL)**: 9 models (`User`, `Favorite`, `Collection`, `CollectionItem`, `Recent`, `SongHistory`, `Entitlement`, `WebhookEvent`, `StationReport`), initial SQL migration (`0001_init`), and idempotent `seed.ts`.
+- **Auth & Library Sync**: Firebase Admin token verification (`GET /v1/me`, `DELETE /v1/me`), LWW delta-sync (`POST /v1/sync`) with server-side `Entitlement` limit enforcement (`403 TIER_LIMIT_REACHED`), and `POST /v1/reports`.
+- **Mobile Auth & Sync (`apps/mobile`)**: `FirebaseAuthRepository` (email sign-up + verification, sign-in, reset password, Google Sign-In, shared-email account linking, delete account), `ApiClient` (silent 401 token refresh + retry), `SyncRepositoryImpl` (guest-to-account merge + queued report flushing), wired auth/profile screens, and unit tests.
+- **Docs & Staging**: `docs/api.md`, `render.yaml` (Render + Render Postgres staging blueprint), and `ADR-011`.

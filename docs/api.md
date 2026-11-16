@@ -122,3 +122,21 @@ Submits a broken-stream or metadata report (`reason`: `DEAD_STREAM | WRONG_INFO 
 | `FIREBASE_PROJECT_ID` | For Auth | — | Firebase project ID |
 | `FIREBASE_CLIENT_EMAIL` | For Auth | — | Firebase Admin service account email |
 | `FIREBASE_PRIVATE_KEY` | For Auth | — | Firebase Admin private key (PEM) |
+
+
+---
+
+## 8. Staging Deployment (Render + Render Postgres)
+
+Staging is configured via [`render.yaml`](../render.yaml) in the repository root:
+
+1. In the **Render Dashboard**, click **New → Blueprint** and connect `segun-aiyepeks/PekSoft-Radio-Browser` (branch `phase/4-backend-auth` or `main`).
+2. Render provisions:
+   - **`peksoft-radio-db-staging`** (Render Postgres) and injects `DATABASE_URL`.
+   - **`peksoft-radio-api-staging`** (Docker Web Service built from `apps/api/Dockerfile`).
+3. Enter your Firebase Admin service account values when prompted (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`).
+4. On every deploy, `preDeployCommand: npx prisma migrate deploy` applies pending migrations in `apps/api/prisma/migrations/` before traffic switches over.
+5. Verify staging:
+   - `GET https://<your-render-service>.onrender.com/health`
+   - `GET https://<your-render-service>.onrender.com/docs`
+   - Optional seed: `pnpm --filter @peksoft/api db:seed` (using the Render External Database URL)
