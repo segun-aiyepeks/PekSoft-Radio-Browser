@@ -30,4 +30,10 @@ class FakeReportQueueRepository implements ReportQueueRepository {
       List<PendingStationReport>.unmodifiable(queued),
     );
   }
+
+  @override
+  Future<Result<void>> markReportSynced(String id) async {
+    queued.removeWhere((PendingStationReport r) => r.id == id);
+    return const Success<void>(null);
+  }
 }

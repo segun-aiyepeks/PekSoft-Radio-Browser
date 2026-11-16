@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/auth/presentation/view_models/auth_view_model.dart';
 
-class AuthLandingScreen extends StatelessWidget {
+class AuthLandingScreen extends ConsumerWidget {
   const AuthLandingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.appColors;
+    final AuthState authState = ref.watch(authViewModelProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -45,30 +47,51 @@ class AuthLandingScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Sign in to back up favourites, collections, and Pro status across devices (mock UI).',
+            'Sign in to back up favourites, collections, and Plus status across devices.',
             textAlign: TextAlign.center,
             style: AppTypography.body.copyWith(color: colors.textSecondary),
           ),
+          if (authState.error != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              authState.error!.userMessage,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySmall.copyWith(color: colors.error),
+            ),
+          ],
           const SizedBox(height: AppSpacing.s2xl),
           PrimaryButton(
-            label: 'Continue with Google (Mock)',
+            label: authState.isLoading
+                ? 'Signing in...'
+                : 'Continue with Google',
             icon: Icons.g_mobiledata_rounded,
-            onPressed: () {
-              mockSessionController.signInMock(
-                email: 'listener@peksoft.radio',
-                displayName: 'Google Listener',
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Signed in with Google (mock).')),
-              );
-              context.pop();
-            },
+            onPressed: authState.isLoading
+                ? null
+                : () async {
+                    final bool ok = await ref
+                        .read(authViewModelProvider.notifier)
+                        .signInWithGoogle();
+                    if (!context.mounted) return;
+                    final AuthState next = ref.read(authViewModelProvider);
+                    if (ok) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Signed in and library synced.'),
+                        ),
+                      );
+                      context.pop();
+                    } else if (next.pendingLinkEmail != null) {
+                      context.push('/auth/sign-in');
+                    }
+                  },
           ),
           const SizedBox(height: AppSpacing.md),
           SizedBox(
             height: AppSpacing.touchTarget,
             child: OutlinedButton.icon(
-              onPressed: () => context.push('/auth/sign-in'),
+              onPressed: authState.isLoading
+                  ? null
+                  : () => context.push('/auth/sign-in'),
               icon: const Icon(Icons.email_outlined),
               label: const Text('Sign in with Email'),
             ),
@@ -77,7 +100,9 @@ class AuthLandingScreen extends StatelessWidget {
           SizedBox(
             height: AppSpacing.touchTarget,
             child: TextButton(
-              onPressed: () => context.push('/auth/sign-up'),
+              onPressed: authState.isLoading
+                  ? null
+                  : () => context.push('/auth/sign-up'),
               child: const Text('Create an account'),
             ),
           ),

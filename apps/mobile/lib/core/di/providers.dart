@@ -1,13 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peksoft_radio/core/database/app_database.dart';
+import 'package:peksoft_radio/core/network/api_client.dart';
 import 'package:peksoft_radio/core/network/connectivity_service.dart';
 import 'package:peksoft_radio/core/network/radio_browser_client.dart';
 import 'package:peksoft_radio/core/normalisation/genre_map.dart';
 import 'package:peksoft_radio/core/normalisation/station_normaliser.dart';
+import 'package:peksoft_radio/features/auth/data/firebase_auth_repository.dart';
+import 'package:peksoft_radio/features/auth/domain/auth_repository.dart';
 import 'package:peksoft_radio/features/catalog/data/catalog_repository_impl.dart';
 import 'package:peksoft_radio/features/catalog/domain/catalog_repository.dart';
 import 'package:peksoft_radio/features/library/data/library_repository_impl.dart';
+import 'package:peksoft_radio/features/library/data/sync_repository_impl.dart';
 import 'package:peksoft_radio/features/library/domain/library_repository.dart';
+import 'package:peksoft_radio/features/library/domain/sync_repository.dart';
 import 'package:peksoft_radio/features/player/data/just_audio_player_service.dart';
 import 'package:peksoft_radio/features/player/domain/audio_player_service.dart';
 import 'package:peksoft_radio/features/profile/data/settings_repository_impl.dart';
@@ -118,3 +123,20 @@ final Provider<Duration> sleepTimerTickProvider = Provider<Duration>(
 final Provider<Duration> sleepFadeDurationProvider = Provider<Duration>(
   (ref) => const Duration(seconds: 10),
 );
+
+final Provider<AuthRepository> authRepositoryProvider =
+    Provider<AuthRepository>((ref) => FirebaseAuthRepository());
+
+final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((ref) {
+  final AuthRepository auth = ref.watch(authRepositoryProvider);
+  return ApiClient(getIdToken: auth.getIdToken);
+});
+
+final Provider<SyncRepository> syncRepositoryProvider =
+    Provider<SyncRepository>((ref) {
+      return SyncRepositoryImpl(
+        apiClient: ref.watch(apiClientProvider),
+        libraryRepository: ref.watch(libraryRepositoryProvider),
+        reportQueueRepository: ref.watch(reportQueueRepositoryProvider),
+      );
+    });

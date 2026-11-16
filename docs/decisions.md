@@ -80,3 +80,14 @@ All technology choices below were verified during **Phase 0 (Foundations)** (`20
 - **Context:** Mobile (Flutter) and web (Next.js + Tailwind + shadcn/ui) must share one visual language (dark-first `#0A0F1C`, `#101A2E`, Signal Amber `#FFB020`, Space Grotesk).
 - **Decision:** Maintain all colour, typography, spacing, radius, elevation, and motion tokens in `packages/design-tokens/tokens.json` and generate platform outputs via `scripts/generate.mjs`.
 - **Reason:** Guarantees visual consistency and prevents hard-coded colour drift across platforms.
+
+
+---
+
+## ADR-011 — Phase 4 Backend API, Database, Auth & Staging Hosting
+- **Date:** 2026-11-16
+- **Verified Packages:**
+  - `apps/api`: `@fastify/cors` `11.4.3`, `@fastify/rate-limit` `11.2.2`, `@fastify/swagger` `9.9.4`, `@fastify/swagger-ui` `6.1.4`, `prisma` / `@prisma/client` / `@prisma/adapter-pg` `7.10.1`, `pg` `8.23.1`, `firebase-admin` `14.5.1`.
+  - `apps/mobile`: `firebase_core` `5.1.0`, `firebase_auth` `7.0.1`, `google_sign_in` `7.2.0`.
+- **Decision:** Fastify 5 API with `CacheStore` abstraction (`InMemoryLruCache` replaceable by Redis), Prisma 7 + PostgreSQL (`0001_init`), Firebase Admin token verification (`checkRevoked: true`), LWW delta-sync (`POST /v1/sync`) with server-side `Entitlement` enforcement, and Render Web Service + Render Postgres staging via `render.yaml` (`frankfurt` region).
+- **Reason:** Keeps audio streaming direct to broadcasters (zero proxy cost), enforces free-tier limits authoritatively on the server, and provides one-click Render Blueprint staging with automatic `prisma migrate deploy`.

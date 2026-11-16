@@ -538,4 +538,10 @@ class AppDatabase extends _$AppDatabase {
           ]))
         .get();
   }
+
+  Future<void> markStationReportSynced(String id) async {
+    await (update(pendingStationReports)
+          ..where(($PendingStationReportsTable t) => t.id.equals(id)))
+        .write(const PendingStationReportsCompanion(synced: Value<bool>(true)));
+  }
 }

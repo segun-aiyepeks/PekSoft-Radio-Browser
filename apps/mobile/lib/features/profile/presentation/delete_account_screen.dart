@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
-import 'package:peksoft_radio/mock/mock.dart';
+import 'package:peksoft_radio/features/auth/presentation/view_models/auth_view_model.dart';
 
-class DeleteAccountScreen extends StatefulWidget {
+class DeleteAccountScreen extends ConsumerStatefulWidget {
   const DeleteAccountScreen({super.key});
 
   @override
-  State<DeleteAccountScreen> createState() => _DeleteAccountScreenState();
+  ConsumerState<DeleteAccountScreen> createState() =>
+      _DeleteAccountScreenState();
 }
 
-class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
+class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   final TextEditingController _confirmController = TextEditingController();
 
   @override
@@ -23,7 +25,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final AuthState authState = ref.watch(authViewModelProvider);
     final bool canDelete =
+        !authState.isLoading &&
         _confirmController.text.trim().toUpperCase() == 'DELETE';
 
     return Scaffold(
@@ -42,7 +46,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'This action is permanent (Mock)',
+                  'This action is permanent',
                   style: AppTypography.title.copyWith(color: colors.error),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -55,6 +59,13 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               ],
             ),
           ),
+          if (authState.error != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              authState.error!.userMessage,
+              style: AppTypography.bodySmall.copyWith(color: colors.error),
+            ),
+          ],
           const SizedBox(height: AppSpacing.lg),
           Semantics(
             textField: true,
@@ -77,17 +88,22 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                 foregroundColor: colors.textPrimary,
               ),
               onPressed: canDelete
-                  ? () {
-                      mockSessionController.signOutMock();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Account deleted (mock).'),
-                        ),
-                      );
-                      context.go('/profile');
+                  ? () async {
+                      final bool ok = await ref
+                          .read(authViewModelProvider.notifier)
+                          .deleteAccount();
+                      if (!context.mounted) return;
+                      if (ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Account deleted.')),
+                        );
+                        context.go('/profile');
+                      }
                     }
                   : null,
-              child: const Text('Delete My Account (Mock)'),
+              child: Text(
+                authState.isLoading ? 'Deleting...' : 'Delete My Account',
+              ),
             ),
           ),
         ],

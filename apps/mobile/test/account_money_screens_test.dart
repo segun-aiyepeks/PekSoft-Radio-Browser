@@ -68,7 +68,7 @@ void main() {
     ) async {
       await tester.pumpWidget(_wrapAtScale13(const AuthLandingScreen()));
       await tester.pumpAndSettle();
-      expect(find.text('Continue with Google (Mock)'), findsOneWidget);
+      expect(find.text('Continue with Google'), findsOneWidget);
       expect(find.text('Skip'), findsOneWidget);
 
       await tester.pumpWidget(_wrapAtScale13(const SignInScreen()));
@@ -123,7 +123,7 @@ void main() {
 
         await tester.pumpWidget(_wrapAtScale13(const DeleteAccountScreen()));
         await tester.pumpAndSettle();
-        expect(find.text('This action is permanent (Mock)'), findsOneWidget);
+        expect(find.text('This action is permanent'), findsOneWidget);
 
         await tester.pumpWidget(_wrapAtScale13(const AboutLegalScreen()));
         await tester.pumpAndSettle();

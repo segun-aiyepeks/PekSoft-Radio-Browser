@@ -823,7 +823,6 @@ The complete mobile MVVM + Riverpod data layer is built and verified offline wit
 - Added `Clipboard.setData` for the placeholder share link (`https://peksoft.radio/station/<id>`) in `NowPlayingScreen`.
 - Added `apps/mobile/test/listening_features_test.dart` and updated `account_money_screens_test.dart`.
 
-
 ---
 
 ## Milestone 3.5 — Tests and release prep (Phase 3: Wire & Audio)
@@ -850,3 +849,130 @@ Phase 3 turns the Phase 1 UI + Phase 2 offline-first repositories/ViewModels int
 - J4 playback resilience (`urlResolved -> url` failover, 3 retries with back-off, `connectivity_plus` auto-reconnect, Radio Browser click reporting, local Drift report queue, and friendly unavailable suggestions).
 - Listening features: sleep timer with fade-out, Data Saver bitrate variant selection, Library with free-tier `Entitlement` limits, Surprise me, and clipboard share link.
 - End-to-end play flow test, cold-start/scroll profiling optimizations, `docs/release-android.md`, and verified release `.aab` (`59.7MB`).
+
+---
+
+## Milestone 4.1 — API scaffold (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Created `apps/api` production scaffold on Fastify 5 + TypeScript:
+  - **Validated config** (`apps/api/src/config/env.ts`): Zod schema validating `PORT`, `HOST`, `NODE_ENV`, `LOG_LEVEL`, `CORS_ORIGINS`, `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`, and `APP_VERSION` at startup.
+  - **Structured logging without PII** (`apps/api/src/plugins/logger.ts`): Pino configuration redacting `authorization`, `cookie`, `x-api-key`, `password`, `token`, `idToken`, and `email` paths, with a custom `req` serializer omitting client IP addresses and raw headers.
+  - **Central error handler & typed errors** (`apps/api/src/errors/app-error.ts`, `apps/api/src/plugins/error-handler.ts`): Consistent `{ error: { code, message, requestId, details? } }` envelope for `AppError`, `ZodError`, Fastify schema validation errors, rate-limit `429` errors, `404` unknown routes, and redacted `500` errors.
+  - **Health endpoint** (`apps/api/src/routes/health.ts`): `GET /health` returning `status`, `service`, `version`, `uptimeSeconds`, and `timestamp`, exempted from rate limiting.
+  - **OpenAPI 3.1 docs**: `@fastify/swagger` (`9.9.4`) at `/docs/json` + `@fastify/swagger-ui` (`6.1.4`) at `/docs`.
+  - **CORS & Rate limiting**: `@fastify/cors` (`11.4.3`) parsed from `CORS_ORIGINS` + `@fastify/rate-limit` (`11.2.2`).
+  - **Container & env template**: Multi-stage Node 22 Alpine `apps/api/Dockerfile` and updated `apps/api/.env.example`.
+- Wrote 6 Vitest tests in `apps/api/src/server.test.ts` using Fastify's built-in `app.inject()`.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+---
+
+## Milestone 4.2 — Radio Browser gateway (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Added shared Zod schemas, DTOs, and `createStationNormaliser` in `packages/shared/src/radio.ts` (exported via `packages/shared/src/index.ts`, with `./genre-map.json` exported in `packages/shared/package.json`), enforcing `packages/shared/genre-map.json`, deduplication, `isWorking`, `isHttps`, `isHttpsPlayable` (for web clients), and `usesFallbackLogo`.
+- Added `CacheStore` interface (`apps/api/src/cache/cache-store.ts`) and `InMemoryLruCache` (`apps/api/src/cache/in-memory-lru-cache.ts`) with bounded LRU eviction and per-key TTL so Redis can drop in later without service changes.
+- Added `RadioBrowserClient` (`apps/api/src/repositories/radio-browser-client.ts`) with 24-hour mirror discovery (`/json/servers`), random mirror selection, automatic failover to the next mirror on error, and `User-Agent: PekSoftRadioBrowser/<version>`.
+- Added `CatalogService` (`apps/api/src/services/catalog-service.ts`) and versioned v1 routes in `apps/api/src/routes/v1/catalog.ts` (`/v1/catalog/countries`, `/v1/catalog/genres`, `/v1/catalog/languages`) and `apps/api/src/routes/v1/stations.ts` (`/v1/stations/trending`, `/v1/stations/search`, `/v1/stations/:id`) with `Cache-Control` headers and zero audio proxying.
+- Added unit and injection tests using Phase 0 JSON fixtures in `packages/shared/src/radio.test.ts` and `apps/api/src/gateway.test.ts`.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+---
+
+## Milestone 4.3 — Database (Prisma + PostgreSQL) (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Installed Prisma `7.10.1` (`prisma`, `@prisma/client`, `@prisma/adapter-pg`) and `pg` (`8.23.1`) in `apps/api`, and added `@prisma/engines` and `prisma` to `allowBuilds` in `pnpm-workspace.yaml`.
+- Created `apps/api/prisma/schema.prisma` and `apps/api/prisma.config.ts` defining 9 PostgreSQL models:
+  - `User` (`users`), `Favorite` (`favorites`), `Collection` (`collections`), `CollectionItem` (`collection_items`), `Recent` (`recents`), `SongHistory` (`song_history`), `Entitlement` (`entitlements`), `WebhookEvent` (`webhook_events`), and `StationReport` (`station_reports`).
+- Generated the initial PostgreSQL SQL migration in `apps/api/prisma/migrations/0001_init/migration.sql` (`migration_lock.toml` locked to `postgresql`).
+- Created `apps/api/src/db/prisma.ts` (`createPrismaClient` using `PrismaPg` + `pg.Pool`) and `apps/api/prisma/seed.ts` (idempotent seed for a demo listener, entitlement, favourite, and collection).
+- Added `db:generate`, `db:migrate:deploy`, `db:seed` scripts to `apps/api/package.json` and `DATABASE_URL` to `apps/api/.env.example` and `apps/api/src/config/env.ts`.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- Once `DATABASE_URL` is configured:
+  - `pnpm --filter @peksoft/api db:migrate:deploy`
+  - `pnpm --filter @peksoft/api db:seed`
+
+---
+
+## Milestone 4.4 — Authentication (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Installed `firebase-admin` (`14.5.1`) in `apps/api` and allowed `@firebase/util` and `protobufjs` postinstall scripts in `pnpm-workspace.yaml`.
+- Created `AuthProvider` and `FirebaseAuthProvider` in `apps/api/src/auth/firebase-auth.ts` (`verifyIdToken(token, true)` with revocation checking + `deleteUser(uid)`).
+- Created Fastify `preHandler` auth middleware `createRequireAuth` in `apps/api/src/plugins/auth-middleware.ts`, attaching `request.authUser`.
+- Created `UserRepository` / `PrismaUserRepository` (`apps/api/src/repositories/user-repository.ts`) and `UserService` (`apps/api/src/services/user-service.ts`), computing server-side `FREE`/`PLUS` entitlement limits.
+- Added `GET /v1/me` (upserts `User` + default `FREE` `Entitlement` on first call) and `DELETE /v1/me` (deletes PostgreSQL user data + Firebase Auth account) in `apps/api/src/routes/v1/me.ts`.
+- Wired auth + user routes into `apps/api/src/server.ts`, added Firebase env vars to `apps/api/src/config/env.ts` and `apps/api/.env.example`, and wrote 3 tests in `apps/api/src/auth.test.ts` with mocked token verification.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+---
+
+## Milestone 4.5 — Library sync API & StationReport (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Added shared Zod sync & report schemas in `packages/shared/src/sync.ts` (`favoriteInputSchema`, `collectionInputSchema`, `collectionItemInputSchema`, `recentInputSchema`, `songHistoryInputSchema`, `deltaSyncRequestSchema`, `stationReportInputSchema`).
+- Implemented `LibraryRepository` / `PrismaLibraryRepository` (`apps/api/src/repositories/library-repository.ts`) and `ReportRepository` / `PrismaReportRepository` (`apps/api/src/repositories/report-repository.ts`).
+- Implemented `LibraryService` (`apps/api/src/services/library-service.ts`) and `ReportService` (`apps/api/src/services/report-service.ts`) with:
+  - Per-item `updatedAt` **last-write-wins (LWW)** conflict resolution and soft-delete tombstones (`isDeleted`).
+  - Server-side **free-tier enforcement** from the user's `Entitlement` (`10` favourites, `2` collections, `10` song history entries; unlimited on `PLUS`), returning `403 TIER_LIMIT_REACHED` on direct CRUD and recording `rejected` items in delta-sync.
+- Registered routes in `apps/api/src/routes/v1/library.ts` (favourites, collections, collection items, recents, song history, and `POST /v1/sync`) and `apps/api/src/routes/v1/reports.ts` (`POST /v1/reports` supporting guest or authenticated users).
+- Added 3 comprehensive test suites in `apps/api/src/library-sync.test.ts` verifying LWW, free-tier vs Plus limits, delta-sync `since` filtering, and station reports.
+
+### How to run and verify
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+
+---
+
+## Milestone 4.6 — Mobile authentication and sync (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Added `firebase_core` (`5.1.0`), `firebase_auth` (`7.0.1`), and `google_sign_in` (`7.2.0`) to `apps/mobile/pubspec.yaml` and safely initialized Firebase in `apps/mobile/lib/main.dart` (falling back to guest mode if `google-services.json` is not present yet).
+- Created `AuthRepository` (`apps/mobile/lib/features/auth/domain/auth_repository.dart`) and `FirebaseAuthRepository` (`apps/mobile/lib/features/auth/data/firebase_auth_repository.dart`) supporting:
+  - Email sign-up with verification email + status reload + resend
+  - Email sign-in and password reset email
+  - Google Sign-In (`google_sign_in` v7)
+  - Shared-email account linking (`AuthAccountLinkRequired` -> `linkPendingCredentialWithPassword`)
+  - Sign out and account deletion
+- Built `ApiClient` (`apps/mobile/lib/core/network/api_client.dart`) wrapping `Dio` with an auth interceptor that attaches `Authorization: Bearer <idToken>` and silently force-refreshes + retries once on HTTP `401`.
+- Added `SyncRepository` / `SyncRepositoryImpl` (`apps/mobile/lib/features/library/domain/sync_repository.dart`, `apps/mobile/lib/features/library/data/sync_repository_impl.dart`) for guest-to-account merge of favourites/recents via `POST /v1/sync` and flushing queued `PendingStationReports` via `POST /v1/reports` (with `markReportSynced` in `AppDatabase` + `DriftReportQueueRepository`).
+- Updated `AuthViewModel` (`apps/mobile/lib/features/auth/presentation/view_models/auth_view_model.dart`) and wired `AuthLandingScreen`, `SignInScreen`, `SignUpScreen`, `VerifyEmailScreen`, `ForgotPasswordScreen`, `ProfileScreen`, and `DeleteAccountScreen`.
+- Added `apps/mobile/test/auth_sync_test.dart`, `FakeAuthRepository`, and `FakeSyncRepository`.
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze && flutter test`
+
+
+---
+
+## Milestone 4.7 — Docs and staging (Phase 4: Backend, Auth & Sync)
+
+### What I did
+- Wrote `docs/api.md` documenting all system, Radio Browser gateway, account (`/v1/me`), library & delta-sync (`/v1/library/*`, `/v1/sync`), and station-report (`/v1/reports`) endpoints, auth headers, caching, rate limits, and environment variables.
+- Compared Render, Railway, Fly.io, and Google Cloud Run for hosting `apps/api`; per user choice, configured **Render** + **Render Postgres** staging in `render.yaml` (`frankfurt` region, Docker Web Service, `preDeployCommand: npx --yes prisma@7.10.1 migrate deploy`, `/health` check) and updated `apps/api/Dockerfile` to include `prisma/` and `prisma.config.ts`.
+- Recorded verified Phase 4 package versions and hosting choice in `docs/decisions.md` (`ADR-011`) and linked `docs/api.md` + `docs/release-android.md` in `docs/index.md`.
+
+---
+
+## Phase 4 Summary — Ready for Review
+
+**Branch:** `phase/4-backend-auth` → `main`  
+**Milestones completed:** `4.1` API scaffold · `4.2` Radio Browser gateway · `4.3` Database (Prisma + PostgreSQL) · `4.4` Authentication · `4.5` Library sync API · `4.6` Mobile authentication & sync · `4.7` Docs & staging
+
+Phase 4 adds the Node.js/Fastify backend, PostgreSQL persistence, Firebase authentication, and mobile cloud sync:
+- **Fastify 5 API (`apps/api`)**: Zod-validated config, PII-redacted Pino logging, central error envelope, `/health`, OpenAPI 3.1 (`/docs`), CORS, rate limiting, and multi-stage `Dockerfile`.
+- **Radio Browser Gateway**: 24h mirror discovery + failover, shared `packages/shared/genre-map.json` normalisation, `isHttpsPlayable` web flag, `CacheStore` (`InMemoryLruCache`), and `Cache-Control` headers (zero audio proxying).
+- **Database (`Prisma 7` + PostgreSQL)**: 9 models (`User`, `Favorite`, `Collection`, `CollectionItem`, `Recent`, `SongHistory`, `Entitlement`, `WebhookEvent`, `StationReport`), initial SQL migration (`0001_init`), and idempotent `seed.ts`.
+- **Auth & Library Sync**: Firebase Admin token verification (`GET /v1/me`, `DELETE /v1/me`), LWW delta-sync (`POST /v1/sync`) with server-side `Entitlement` limit enforcement (`403 TIER_LIMIT_REACHED`), and `POST /v1/reports`.
+- **Mobile Auth & Sync (`apps/mobile`)**: `FirebaseAuthRepository` (email sign-up + verification, sign-in, reset password, Google Sign-In, shared-email account linking, delete account), `ApiClient` (silent 401 token refresh + retry), `SyncRepositoryImpl` (guest-to-account merge + queued report flushing), wired auth/profile screens, and unit tests.
+- **Docs & Staging**: `docs/api.md`, `render.yaml` (Render + Render Postgres staging blueprint), and `ADR-011`.

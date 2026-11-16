@@ -57,4 +57,16 @@ class DriftReportQueueRepository implements ReportQueueRepository {
       );
     }
   }
+
+  @override
+  Future<Result<void>> markReportSynced(String id) async {
+    try {
+      await database.markStationReportSynced(id);
+      return const Success<void>(null);
+    } catch (error) {
+      return Failure<void>(
+        AppFailure.storage(message: 'Could not mark report synced: $error'),
+      );
+    }
+  }
 }
