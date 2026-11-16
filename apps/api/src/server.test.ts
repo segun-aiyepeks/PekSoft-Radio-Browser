@@ -20,9 +20,17 @@ function makeTestEnv(overrides: Partial<Env> = {}): Env {
 
 describe('Milestone 4.1 API scaffold', () => {
   it('validates environment variables with Zod', () => {
-    const valid = loadEnv({ PORT: '4500', NODE_ENV: 'production' });
+    const valid = loadEnv({
+      PORT: '4500',
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://peksoft:pass@dpg-internal-a/peksoft_radio',
+      FIREBASE_PROJECT_ID: '',
+      FIREBASE_CLIENT_EMAIL: '',
+      FIREBASE_PRIVATE_KEY: '',
+    });
     expect(valid.PORT).toBe(4500);
     expect(valid.NODE_ENV).toBe('production');
+    expect(valid.FIREBASE_CLIENT_EMAIL).toBeUndefined();
 
     expect(() => loadEnv({ PORT: 'not-a-number' })).toThrow(
       /Invalid environment configuration/,
