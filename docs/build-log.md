@@ -1241,3 +1241,23 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 ### How to run and verify
 - `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
 - Dev gallery: `pnpm --filter @peksoft/web dev` and open `http://localhost:3000/dev/components`
+
+
+---
+
+## Milestone 6.2 — Web UI with mock data (Phase 6: Web App)
+
+### What I did
+- Created deterministic mock data in `apps/web/src/lib/mock-data.ts` (`MOCK_COUNTRIES`, `MOCK_GENRES`, `MOCK_STATIONS`, `MOCK_COLLECTIONS`) and `MockSessionProvider` (`apps/web/src/components/mock-session-provider.tsx`) so clicking Play/Favourite on any station updates the persistent `PlayerBar`, `NowPlayingSheet`, and `Library`.
+- Built product compositions in `apps/web/src/components/radio/`:
+  - `StationArtwork` (station logo with deterministic initials + gradient fallback)
+  - `StationRow` (artwork, `ON AIR` live badge, `"Best in the mobile app"` badge for HTTP-only streams, country flag, up to 2 genres, quality badge, heart, and play/pause `signal` button)
+  - `StationCard` and `CountryCard`
+  - `FilterBar` (`Working now` ON by default, `HTTPS playable`, genre pills, Popular/Trending/A–Z sort)
+  - `PlanToggle` (Monthly vs Annual with `"Save 33%"` badge)
+  - `PlayerBar` + `NowPlayingSheet` (persistent bottom player bar opening the full player `Sheet` with volume slider, sleep timer, share, and report actions)
+  - `AppShell` (desktop left sidebar collapsing to a mobile bottom nav, sticky top search bar, Dark/Light theme toggle, and persistent `PlayerBar`)
+- Built all 10 routes with mock data: `/` (marketing landing), `/home`, `/explore`, `/country/[code]`, `/genre/[slug]`, `/station/[slug]`, `/library`, `/pricing`, `/account`, and `/auth`.
+
+### How to run and verify
+- `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
