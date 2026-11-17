@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { PLAN_FEATURE_GATES } from '@peksoft/shared';
+import { SlidingNumber } from '@/components/motion-primitives/sliding-number';
 import { AppShell } from '@/components/radio/app-shell';
+import { LazyBorderTrail, LazySpotlight } from '@/components/radio/lazy-effects';
 import {
   PlanToggle,
   type WebBillingPeriod,
@@ -24,7 +26,8 @@ export default function PricingPage() {
   const free = PLAN_FEATURE_GATES.FREE;
   const plus = PLAN_FEATURE_GATES.PLUS;
 
-  const priceText = period === 'annual' ? '₦12,000 / year' : '₦1,500 / month';
+  const numericPrice = period === 'annual' ? 12000 : 1500;
+  const priceUnit = period === 'annual' ? '/ year' : '/ month';
 
   const rows: Array<{ feature: string; free: string; plus: string }> = [
     { feature: 'Browse & play every station worldwide', free: 'Yes', plus: 'Yes' },
@@ -70,17 +73,23 @@ export default function PricingPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-[var(--color-accent)]">
-            <CardHeader>
+          <Card className="relative overflow-hidden border-[var(--color-accent)]">
+            <LazyBorderTrail className="bg-[var(--color-accent)]" size={64} />
+            <LazySpotlight className="from-amber-400/15 to-transparent" />
+            <CardHeader className="relative z-10">
               <CardTitle>PekSoft Plus</CardTitle>
               <CardDescription>
                 Ad-free listening, unlimited library, and power controls.
               </CardDescription>
-              <p className="pt-2 font-heading text-3xl font-bold text-[var(--color-accent)]">
-                {priceText}
-              </p>
+              <div className="flex items-baseline gap-1.5 pt-2 font-heading text-3xl font-bold text-[var(--color-accent)]">
+                <span>₦</span>
+                <SlidingNumber value={numericPrice} />
+                <span className="text-base font-medium text-muted-foreground">
+                  {priceUnit}
+                </span>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="relative z-10 space-y-4">
               <ul className="space-y-2 text-sm">
                 {[
                   'Zero banner or audio ads',
@@ -102,7 +111,7 @@ export default function PricingPage() {
                   toast.info('Paystack checkout will be wired in Milestone 6.8')
                 }
               >
-                Upgrade to Plus ({priceText})
+                Upgrade to Plus (₦{numericPrice.toLocaleString()} {priceUnit})
               </Button>
             </CardContent>
           </Card>

@@ -1,40 +1,70 @@
 import Link from 'next/link';
 import { ArrowRight, Globe2, Radio, ShieldCheck, Sparkles } from 'lucide-react';
+import { AnimatedGroup } from '@/components/motion-primitives/animated-group';
+import { InView } from '@/components/motion-primitives/in-view';
+import { Magnetic } from '@/components/motion-primitives/magnetic';
+import { ScrollProgress } from '@/components/motion-primitives/scroll-progress';
+import { SlidingNumber } from '@/components/motion-primitives/sliding-number';
+import { TextEffect } from '@/components/motion-primitives/text-effect';
 import { AppShell } from '@/components/radio/app-shell';
 import { CountryCard } from '@/components/radio/country-card';
+import {
+  LazyBorderTrail,
+  LazyInfiniteSlider,
+  LazySpotlight,
+  LazyTilt,
+} from '@/components/radio/lazy-effects';
 import { StationCard } from '@/components/radio/station-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { FADE_UP_VARIANTS, TRANSITION_NORMAL } from '@/lib/motion';
 import { MOCK_COUNTRIES, MOCK_GENRES, MOCK_STATIONS } from '@/lib/mock-data';
 
 export default function LandingPage() {
   return (
     <AppShell>
+      <ScrollProgress className="fixed top-0 z-50 h-0.5 bg-[var(--color-accent)]" />
       <div className="space-y-12">
-        {/* Hero Banner with Atmospheric Picture-Style Backdrop */}
+        {/* Hero Banner (Signature Motion: TextEffect + Magnetic CTA + Spotlight) */}
         <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#18243E] via-[#101A2E] to-[#0A0F1C] p-6 sm:p-10">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-[var(--color-accent)]/15 blur-3xl"
-          />
+          <LazySpotlight className="from-amber-400/20 via-amber-400/5 to-transparent" />
           <div className="relative z-10 max-w-2xl space-y-5">
-            <Badge variant="live" className="gap-1.5">
-              <Radio className="size-3.5" /> Live Global Radio · Zero Setup
-            </Badge>
-            <h1 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-5xl">
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge variant="live" className="gap-1.5">
+                <Radio className="size-3.5" /> Live Global Radio · Zero Setup
+              </Badge>
+              <span className="inline-flex items-center gap-1.5 text-xs text-slate-300">
+                <SlidingNumber value={32400} />+ stations online
+              </span>
+            </div>
+
+            <TextEffect
+              as="h1"
+              per="word"
+              preset="fade-in-blur"
+              speedReveal={1.4}
+              className="font-heading text-3xl font-bold tracking-tight text-white sm:text-5xl"
+            >
               Every radio station in the world, one tap away.
-            </h1>
+            </TextEffect>
+
             <p className="text-base text-slate-300 sm:text-lg">
               Open PekSoft Radio and hear something you love within 10 seconds.
               Discover verified working stations by country, language, and genre
               with one synced library across Android and Web.
             </p>
+
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Link href="/home">
-                <Button variant="signal" size="lg">
-                  Start Listening Free <ArrowRight className="size-4" />
-                </Button>
-              </Link>
+              <Magnetic>
+                <div className="relative inline-flex rounded-xl p-[1px]">
+                  <LazyBorderTrail className="bg-[var(--color-accent)]" size={44} />
+                  <Link href="/home" className="relative z-10">
+                    <Button variant="signal" size="lg">
+                      Start Listening Free <ArrowRight className="size-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </Magnetic>
               <Link href="/explore">
                 <Button variant="outline" size="lg">
                   Explore 30,000+ Stations
@@ -42,6 +72,23 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
+        </section>
+
+        {/* Flag & Station Marquee (fixed height h-11 -> zero layout shift) */}
+        <section aria-label="Live broadcast ticker" className="h-11 overflow-hidden">
+          <LazyInfiniteSlider gap={16} speed={35} speedOnHover={14}>
+            {MOCK_STATIONS.map((s) => (
+              <Link
+                key={s.id}
+                href={`/station/${s.slug}`}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-xs font-medium whitespace-nowrap text-foreground hover:border-[var(--color-accent)]/50"
+              >
+                <span>{s.countryFlag}</span>
+                <span>{s.name}</span>
+                <span className="text-muted-foreground">{s.codec}</span>
+              </Link>
+            ))}
+          </LazyInfiniteSlider>
         </section>
 
         {/* Trending Now */}
@@ -59,11 +106,23 @@ export default function LandingPage() {
               </Button>
             </Link>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {MOCK_STATIONS.slice(0, 4).map((station) => (
-              <StationCard key={station.id} station={station} />
-            ))}
-          </div>
+          <InView
+            once
+            variants={{
+              hidden: { opacity: 0, y: 12 },
+              visible: { opacity: 1, y: 0 },
+            }}
+            transition={TRANSITION_NORMAL}
+          >
+            <AnimatedGroup
+              variants={FADE_UP_VARIANTS}
+              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            >
+              {MOCK_STATIONS.slice(0, 4).map((station) => (
+                <StationCard key={station.id} station={station} />
+              ))}
+            </AnimatedGroup>
+          </InView>
         </section>
 
         {/* Popular Countries */}
@@ -93,25 +152,30 @@ export default function LandingPage() {
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {MOCK_GENRES.slice(0, 4).map((genre) => (
-                <Link
-                  key={genre.id}
-                  href={`/genre/${genre.slug}`}
-                  className={`block rounded-2xl border border-border bg-gradient-to-br ${genre.gradient} p-5 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-                >
-                  <h3 className="font-heading text-lg font-bold text-white">
-                    {genre.name}
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-200">{genre.tagline}</p>
-                  <p className="mt-3 text-xs font-medium text-[var(--color-accent)]">
-                    {genre.stationCount} stations →
-                  </p>
-                </Link>
+                <LazyTilt key={genre.id} rotationFactor={5}>
+                  <Link
+                    href={`/genre/${genre.slug}`}
+                    className={`relative block overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${genre.gradient} p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+                  >
+                    <LazySpotlight className="from-white/10 to-transparent" />
+                    <h3 className="font-heading text-lg font-bold text-white">
+                      {genre.name}
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-200">
+                      {genre.tagline}
+                    </p>
+                    <p className="mt-3 text-xs font-medium text-[var(--color-accent)]">
+                      {genre.stationCount} stations →
+                    </p>
+                  </Link>
+                </LazyTilt>
               ))}
             </div>
           </div>
 
-          <div className="flex flex-col justify-between rounded-2xl border border-[var(--color-accent)]/40 bg-card p-6">
-            <div className="space-y-3">
+          <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--color-accent)]/40 bg-card p-6">
+            <LazySpotlight className="from-amber-400/15 to-transparent" />
+            <div className="relative z-10 space-y-3">
               <Badge variant="default" className="gap-1">
                 <Sparkles className="size-3" /> PekSoft Plus
               </Badge>
@@ -137,7 +201,7 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-            <Link href="/pricing" className="mt-6 block">
+            <Link href="/pricing" className="relative z-10 mt-6 block">
               <Button variant="signal" className="w-full">
                 See Plus Plans
               </Button>

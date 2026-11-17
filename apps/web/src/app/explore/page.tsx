@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { AnimatedGroup } from '@/components/motion-primitives/animated-group';
+import { ScrollProgress } from '@/components/motion-primitives/scroll-progress';
 import { AppShell } from '@/components/radio/app-shell';
 import { CountryCard } from '@/components/radio/country-card';
 import {
@@ -11,6 +13,7 @@ import {
 import { StationRow } from '@/components/radio/station-row';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FADE_UP_VARIANTS } from '@/lib/motion';
 import {
   MOCK_COUNTRIES,
   MOCK_GENRES,
@@ -47,6 +50,7 @@ export default function ExplorePage() {
 
   return (
     <AppShell>
+      <ScrollProgress className="fixed top-0 z-50 h-0.5 bg-[var(--color-accent)]" />
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -76,17 +80,17 @@ export default function ExplorePage() {
 
           <TabsContent value="stations" className="mt-4 space-y-4">
             <FilterBar value={filter} onChange={setFilter} />
-            <div className="space-y-2.5">
-              {filteredStations.length === 0 ? (
-                <p className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-                  No stations match those filters.
-                </p>
-              ) : (
-                filteredStations.map((station) => (
+            {filteredStations.length === 0 ? (
+              <p className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                No stations match those filters.
+              </p>
+            ) : (
+              <AnimatedGroup variants={FADE_UP_VARIANTS} className="space-y-2.5">
+                {filteredStations.map((station) => (
                   <StationRow key={station.id} station={station} />
-                ))
-              )}
-            </div>
+                ))}
+              </AnimatedGroup>
+            )}
           </TabsContent>
 
           <TabsContent value="countries" className="mt-4">

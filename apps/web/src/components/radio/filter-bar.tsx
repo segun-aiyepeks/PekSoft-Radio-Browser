@@ -1,9 +1,10 @@
 'use client';
 
+import { AnimatedBackground } from '@/components/motion-primitives/animated-background';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { TRANSITION_FAST } from '@/lib/motion';
 
 export type StationSort = 'popular' | 'trending' | 'name';
 
@@ -13,6 +14,8 @@ export interface StationFilterState {
   sort: StationSort;
   genre: string | null;
 }
+
+const constGenres = ['afrobeats', 'jazz', 'news', 'electronic'] as const;
 
 export function FilterBar({
   value,
@@ -76,19 +79,36 @@ export function FilterBar({
         </div>
       </div>
 
-      <ToggleGroup
-        value={[value.sort]}
-        onValueChange={(vals) => {
-          const next = vals[0] as StationSort | undefined;
-          if (next) onChange({ ...value, sort: next });
-        }}
-      >
-        <ToggleGroupItem value="popular">Popular</ToggleGroupItem>
-        <ToggleGroupItem value="trending">Trending</ToggleGroupItem>
-        <ToggleGroupItem value="name">A–Z</ToggleGroupItem>
-      </ToggleGroup>
+      <div className="inline-flex rounded-lg border border-border bg-muted p-0.5">
+        <AnimatedBackground
+          defaultValue={value.sort}
+          onValueChange={(id) => {
+            if (id === 'popular' || id === 'trending' || id === 'name') {
+              onChange({ ...value, sort: id });
+            }
+          }}
+          className="rounded-md bg-card shadow-sm"
+          transition={TRANSITION_FAST}
+        >
+          {(
+            [
+              { id: 'popular', label: 'Popular' },
+              { id: 'trending', label: 'Trending' },
+              { id: 'name', label: 'A–Z' },
+            ] as const
+          ).map((item) => (
+            <button
+              key={item.id}
+              data-id={item.id}
+              type="button"
+              onClick={() => onChange({ ...value, sort: item.id })}
+              className="px-3 py-1 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {item.label}
+            </button>
+          ))}
+        </AnimatedBackground>
+      </div>
     </div>
   );
 }
-
-const constGenres = ['afrobeats', 'jazz', 'news', 'electronic'] as const;

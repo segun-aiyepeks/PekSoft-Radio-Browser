@@ -1261,3 +1261,22 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 
 ### How to run and verify
 - `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
+
+
+---
+
+## Milestone 6.3 — Motion pass (Phase 6: Web App)
+
+### What I did
+- Created `apps/web/src/app/template.tsx` for subtle `120ms` transform+opacity route transitions.
+- Created `apps/web/src/components/radio/lazy-effects.tsx` using `next/dynamic(..., { ssr: false })` to lazy-load `InfiniteSlider`, `Tilt`, `Spotlight`, and `BorderTrail` without blocking SSR or LCP.
+- Applied Motion Primitives across `/`, `/home`, `/explore`, and `/pricing`:
+  - `TextEffect` on the landing hero headline, `Magnetic` + `BorderTrail` on the primary CTA, `InfiniteSlider` flag/station marquee inside a fixed `h-11` slot (zero CLS).
+  - `Tilt` + `Spotlight` on genre/collection/hero cards.
+  - `AnimatedBackground` on `PlanToggle` and `FilterBar` sort pills.
+  - `SlidingNumber` on landing station count and Pricing `₦12,000` / `₦1,500` toggle.
+  - `InView` + `AnimatedGroup` staggered reveals and `ScrollProgress` on long pages.
+- Documented motion rules and observed `next build` bundle measurements (`1,589 KB` total split client chunks) in `docs/motion-report.md`.
+
+### How to run and verify
+- `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
