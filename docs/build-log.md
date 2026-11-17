@@ -1160,3 +1160,34 @@ Phase 4 adds the Node.js/Fastify backend, PostgreSQL persistence, Firebase authe
 ### How to run and verify
 - API (`apps/api`): `pnpm --filter @peksoft/shared build && pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test -- --fileParallelism=false`
 - Mobile (`apps/mobile`): `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze lib/features/subscription test/google_play_billing_test.dart && flutter test test/google_play_billing_test.dart`
+
+
+---
+
+## Milestone 5.4 — Paywall and lifecycle UI (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Extended `SubscriptionViewModel` & `SubscriptionState` (`apps/mobile/lib/features/subscription/presentation/view_models/subscription_view_model.dart`) to load store-provided `StoreProduct` prices (`plus_monthly`, `plus_annual`), listen to `BillingService.purchaseUpdates`, handle `pending` / `verified` / `restored` / `canceled` / `error` states, expose `hasBillingProblem` (`EntitlementStatus.grace`) and `isExpired` (`EntitlementStatus.expired`), and build `manageSubscriptionUri` (`https://play.google.com/store/account/subscriptions?...`).
+- Wired `PaywallScreen` (`apps/mobile/lib/features/subscription/presentation/paywall_screen.dart`) to `subscriptionViewModelProvider` with:
+  - Store-provided local-currency pricing (`₦1,500 / mo`, `₦12,000 / yr`, etc.) and clear Google Play auto-renewal wording.
+  - Purchase-pending banner, error banner, celebratory **PekSoft Plus Active** success screen, **Watch an ad: 24 hours of Plus** option, **Restore Purchases**, Terms/Privacy links, and visible Close button.
+- Wired `SubscriptionManagementScreen` (`apps/mobile/lib/features/subscription/presentation/subscription_management_screen.dart`) with:
+  - **Billing-problem grace banner** (`EntitlementStatus.grace`) with **Fix Payment** action.
+  - **Graceful downgrade notice** (`EntitlementStatus.expired`) reassuring users that all saved favourites, collections, and song history remain safe while Plus extras lock until renewal.
+  - **Manage Subscription** deep link backed by an Android `MethodChannel` (`com.peksoft.radio/links` in `MainActivity.kt`) opening Google Play's subscription management screen.
+- Added widget and database tests in `apps/mobile/test/paywall_lifecycle_test.dart`.
+
+### Why
+- **Local-currency store prices**: Play Console localises prices into each listener's currency (`NGN`, `GBP`, `USD`, etc.). Reading `ProductDetails.price` directly from Google Play ensures the paywall always matches what the Google Play checkout sheet charges.
+- **Graceful downgrade (soft lock)**: Deleting a user's 35 saved favourites when their subscription lapses would feel punitive. Keeping all data intact while locking new Plus-only additions encourages win-back renewals.
+
+### Files created or changed
+- `apps/mobile/lib/features/subscription/presentation/view_models/subscription_view_model.dart`
+- `apps/mobile/lib/features/subscription/presentation/paywall_screen.dart`
+- `apps/mobile/lib/features/subscription/presentation/subscription_management_screen.dart`
+- `apps/mobile/android/app/src/main/kotlin/com/peksoft/peksoft_radio/MainActivity.kt`
+- `apps/mobile/test/paywall_lifecycle_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze lib/features/subscription test/paywall_lifecycle_test.dart && flutter test test/paywall_lifecycle_test.dart test/account_money_screens_test.dart`
