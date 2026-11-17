@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peksoft_radio/core/di/providers.dart';
 import 'package:peksoft_radio/core/domain/app_failure.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
-import 'package:peksoft_radio/features/auth/presentation/view_models/auth_view_model.dart';
 import 'package:peksoft_radio/features/library/presentation/view_models/library_view_model.dart';
 import 'package:peksoft_radio/features/subscription/domain/billing_service.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
@@ -217,7 +216,7 @@ class SubscriptionViewModel extends AsyncNotifier<SubscriptionState> {
       ),
     );
 
-    final String? uid = ref.read(authViewModelProvider).uid;
+    final String? uid = ref.read(authRepositoryProvider).currentUser?.uid;
     try {
       await ref
           .read(billingServiceProvider)

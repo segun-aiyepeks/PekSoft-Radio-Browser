@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:peksoft_radio/core/database/app_database.dart';
-import 'package:peksoft_radio/core/di/providers.dart';
 import 'package:peksoft_radio/core/domain/app_failure.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/features/library/data/library_repository_impl.dart';
 import 'package:peksoft_radio/features/library/domain/collection.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
-import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
 import 'package:peksoft_radio/features/subscription/domain/billing_service.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement_repository.dart';
@@ -66,10 +64,10 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
-              ...mockRepositoryOverrides(billingService: billing),
-              entitlementRepositoryProvider.overrideWithValue(entRepo),
-            ],
+            overrides: mockRepositoryOverrides(
+              billingService: billing,
+              entitlementRepository: entRepo,
+            ),
             child: MaterialApp(
               theme: AppTheme.dark(),
               home: const PaywallScreen(),
@@ -84,15 +82,17 @@ void main() {
 
         // Restore Purchases triggers BillingService.restorePurchases
         await tester.scrollUntilVisible(find.text('Restore Purchases'), 200);
+        await tester.ensureVisible(find.text('Restore Purchases'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Restore Purchases'));
         await tester.pumpAndSettle();
         expect(billing.restoreCalls, 1);
 
         // Purchase Annual Plus -> shows success state immediately
-        await tester.scrollUntilVisible(
+        await tester.ensureVisible(
           find.text('Continue with Annual (₦12,000 / yr)'),
-          -200,
         );
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Continue with Annual (₦12,000 / yr)'));
         await tester.pumpAndSettle();
 
@@ -118,10 +118,9 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
-              ...mockRepositoryOverrides(),
-              entitlementRepositoryProvider.overrideWithValue(graceRepo),
-            ],
+            overrides: mockRepositoryOverrides(
+              entitlementRepository: graceRepo,
+            ),
             child: MaterialApp(
               theme: AppTheme.dark(),
               home: SubscriptionManagementScreen(
@@ -215,10 +214,7 @@ void main() {
         // UI renders the expired notice + Renew Plus CTA
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
-              ...mockRepositoryOverrides(),
-              entitlementRepositoryProvider.overrideWithValue(entRepo),
-            ],
+            overrides: mockRepositoryOverrides(entitlementRepository: entRepo),
             child: MaterialApp(
               theme: AppTheme.dark(),
               home: const SubscriptionManagementScreen(),

@@ -65,7 +65,7 @@ class SubscriptionManagementScreen extends ConsumerWidget {
           if (subState.hasBillingProblem) ...[
             _LifecycleBanner(
               icon: Icons.warning_amber_rounded,
-              borderColor: colors.danger,
+              borderColor: colors.warning,
               title: 'Billing problem — grace period active',
               message:
                   'We could not process your renewal. Update your payment method on Google Play to keep PekSoft Plus uninterrupted.',

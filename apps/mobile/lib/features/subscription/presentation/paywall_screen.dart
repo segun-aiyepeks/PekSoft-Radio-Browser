@@ -125,7 +125,7 @@ class PaywallScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.md),
                   _StatusBanner(
                     icon: Icons.error_outline_rounded,
-                    color: colors.danger,
+                    color: colors.error,
                     message: subState.error!.userMessage,
                   ),
                 ],

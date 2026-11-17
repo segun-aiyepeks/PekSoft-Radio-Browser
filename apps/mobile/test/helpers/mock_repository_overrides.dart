@@ -16,6 +16,7 @@ import 'package:peksoft_radio/features/station/domain/report_queue_repository.da
 import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/features/station/domain/station_repository.dart';
 import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
+import 'package:peksoft_radio/features/subscription/domain/entitlement_repository.dart';
 import 'package:peksoft_radio/mock/mock.dart';
 
 import 'fake_ad_service.dart';
@@ -38,6 +39,7 @@ List<Override> mockRepositoryOverrides({
   FakeSyncRepository? syncRepository,
   FakeAdService? adService,
   FakeBillingService? billingService,
+  EntitlementRepository? entitlementRepository,
 }) {
   final CatalogRepository catalog =
       catalogRepository ?? _MockCatalogRepository();
@@ -55,15 +57,15 @@ List<Override> mockRepositoryOverrides({
   final FakeSyncRepository sync = syncRepository ?? FakeSyncRepository();
   final FakeAdService ads = adService ?? FakeAdService();
   final FakeBillingService billing = billingService ?? FakeBillingService();
+  final EntitlementRepository entitlement =
+      entitlementRepository ?? const EntitlementRepositoryImpl();
 
   return <Override>[
     catalogRepositoryProvider.overrideWithValue(catalog),
     stationRepositoryProvider.overrideWithValue(station),
     libraryRepositoryProvider.overrideWithValue(library),
     settingsRepositoryProvider.overrideWithValue(settings),
-    entitlementRepositoryProvider.overrideWithValue(
-      const EntitlementRepositoryImpl(),
-    ),
+    entitlementRepositoryProvider.overrideWithValue(entitlement),
     audioPlayerServiceProvider.overrideWithValue(audio),
     connectivityServiceProvider.overrideWithValue(connectivity),
     reportQueueRepositoryProvider.overrideWithValue(reportQueue),
