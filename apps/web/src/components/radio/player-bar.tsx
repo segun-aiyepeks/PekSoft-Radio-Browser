@@ -1,7 +1,19 @@
 'use client';
 
-import { Heart, Maximize2, Pause, Play, Volume2 } from 'lucide-react';
+import {
+  Heart,
+  Loader2,
+  Maximize2,
+  Pause,
+  Play,
+  RotateCcw,
+  Smartphone,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import { useMockSession } from '@/components/mock-session-provider';
+import { usePlayer } from '@/components/player/player-provider';
+import { AudioVisualizer } from '@/components/radio/audio-visualizer';
 import { NowPlayingSheet } from '@/components/radio/now-playing-sheet';
 import { StationArtwork } from '@/components/radio/station-artwork';
 import { Badge } from '@/components/ui/badge';
@@ -10,15 +22,22 @@ import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 
 export function PlayerBar() {
+  const { favouriteIds, toggleFavourite } = useMockSession();
   const {
     currentStation,
+    status,
     isPlaying,
+    isBuffering,
+    error,
     volume,
-    favouriteIds,
+    isMuted,
+    corsAnalyserActive,
+    analyserLevels,
     togglePlayPause,
+    retry,
     setVolume,
-    toggleFavourite,
-  } = useMockSession();
+    toggleMute,
+  } = usePlayer();
 
   if (!currentStation) return null;
   const isFav = favouriteIds.includes(currentStation.id);
@@ -46,22 +65,52 @@ export function PlayerBar() {
                     {currentStation.name}
                   </span>
                   {isPlaying && <Badge variant="live">LIVE</Badge>}
+                  {status === 'reconnecting' && (
+                    <Badge variant="outline" className="text-[11px]">
+                      Reconnecting…
+                    </Badge>
+                  )}
+                  {!currentStation.isHttpsPlayable && (
+                    <Badge variant="outline" className="hidden gap-1 sm:inline-flex">
+                      <Smartphone className="size-3" /> Best in the mobile app
+                    </Badge>
+                  )}
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
-                  {currentStation.currentTrack ??
+                  {error ??
+                    currentStation.currentTrack ??
                     `${currentStation.countryFlag} ${currentStation.countryName}`}
                 </p>
               </div>
+              <AudioVisualizer
+                isPlaying={isPlaying}
+                corsAnalyserActive={corsAnalyserActive}
+                levels={analyserLevels}
+                className="hidden sm:flex"
+              />
               <Maximize2 className="hidden size-4 shrink-0 text-muted-foreground sm:block" />
             </button>
           }
         />
 
         <div className="flex shrink-0 items-center gap-2">
-          <div className="hidden w-28 items-center gap-2 lg:flex">
-            <Volume2 className="size-4 text-muted-foreground" />
+          <div className="hidden w-32 items-center gap-1.5 lg:flex">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+              onClick={toggleMute}
+            >
+              {isMuted || volume === 0 ? (
+                <VolumeX className="size-4 text-muted-foreground" />
+              ) : (
+                <Volume2 className="size-4 text-muted-foreground" />
+              )}
+            </Button>
             <Slider
-              value={[volume]}
+              value={[isMuted ? 0 : volume]}
               onValueChange={(val) =>
                 setVolume(Array.isArray(val) ? (val[0] ?? 80) : val)
               }
@@ -77,7 +126,9 @@ export function PlayerBar() {
             size="icon"
             className="size-10"
             aria-label={
-              isFav ? 'Remove current station from favourites' : 'Favourite current station'
+              isFav
+                ? 'Remove current station from favourites'
+                : 'Favourite current station'
             }
             onClick={() => toggleFavourite(currentStation)}
           >
@@ -91,20 +142,41 @@ export function PlayerBar() {
             />
           </Button>
 
-          <Button
-            type="button"
-            variant="signal"
-            size="icon"
-            className="size-11 rounded-full"
-            aria-label={isPlaying ? 'Pause radio' : 'Play radio'}
-            onClick={togglePlayPause}
-          >
-            {isPlaying ? (
-              <Pause className="size-5" />
-            ) : (
-              <Play className="size-5 translate-x-[1px]" />
-            )}
-          </Button>
+          {status === 'unavailable' && currentStation.isHttpsPlayable ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-11 rounded-full"
+              aria-label="Retry stream"
+              onClick={retry}
+            >
+              <RotateCcw className="size-4" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="signal"
+              size="icon"
+              className="size-11 rounded-full"
+              aria-label={
+                isBuffering
+                  ? 'Cancel connecting'
+                  : isPlaying
+                    ? 'Pause radio'
+                    : 'Play radio'
+              }
+              onClick={togglePlayPause}
+            >
+              {isBuffering ? (
+                <Loader2 className="size-5 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="size-5" />
+              ) : (
+                <Play className="size-5 translate-x-[1px]" />
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </aside>

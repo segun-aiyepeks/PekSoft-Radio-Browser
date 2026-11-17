@@ -20,6 +20,7 @@ export interface WebStation {
   slug: string;
   name: string;
   streamUrl: string;
+  fallbackStreamUrl?: string;
   homepage: string;
   faviconUrl: string | null;
   isHttps: boolean;

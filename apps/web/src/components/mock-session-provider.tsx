@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { toast } from 'sonner';
+import { PlayerProvider, usePlayer } from '@/components/player/player-provider';
 import { MOCK_STATIONS, type WebStation } from '@/lib/mock-data';
 
 interface MockSessionContextValue {
@@ -30,57 +31,38 @@ interface MockSessionContextValue {
 
 const MockSessionContext = createContext<MockSessionContextValue | null>(null);
 
-export function MockSessionProvider({
+function MockSessionInner({
   children,
+  favouriteIds,
+  recentIds,
+  dataSaver,
+  workingNowDefault,
+  toggleFavourite,
+  setDataSaver,
+  setWorkingNowDefault,
 }: {
   children: React.ReactNode;
+  favouriteIds: string[];
+  recentIds: string[];
+  dataSaver: boolean;
+  workingNowDefault: boolean;
+  toggleFavourite: (station: WebStation) => void;
+  setDataSaver: (enabled: boolean) => void;
+  setWorkingNowDefault: (enabled: boolean) => void;
 }) {
-  const [currentStation, setCurrentStation] = useState<WebStation | null>(
-    MOCK_STATIONS[0] ?? null,
-  );
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(80);
-  const [favouriteIds, setFavouriteIds] = useState<string[]>([
-    'st-cool-fm',
-    'st-fip-paris',
-  ]);
-  const [recentIds, setRecentIds] = useState<string[]>([
-    'st-cool-fm',
-    'st-bbc-world',
-  ]);
-  const [dataSaver, setDataSaver] = useState(false);
-  const [workingNowDefault, setWorkingNowDefault] = useState(true);
-
-  const playStation = useCallback((station: WebStation) => {
-    setCurrentStation(station);
-    setIsPlaying(true);
-    setRecentIds((prev) => [
-      station.id,
-      ...prev.filter((id) => id !== station.id),
-    ]);
-    if (!station.isHttpsPlayable) {
-      toast.info(`${station.name} is HTTP-only — best in the mobile app.`);
-    }
-  }, []);
-
-  const togglePlayPause = useCallback(() => {
-    setIsPlaying((prev) => !prev);
-  }, []);
-
-  const toggleFavourite = useCallback((station: WebStation) => {
-    setFavouriteIds((prev) => {
-      const exists = prev.includes(station.id);
-      if (exists) {
-        toast('Removed from Favourites');
-        return prev.filter((id) => id !== station.id);
-      }
-      toast.success(`Saved ${station.name} to Favourites`);
-      return [station.id, ...prev];
-    });
-  }, []);
+  const {
+    currentStation,
+    isPlaying,
+    volume,
+    playStation,
+    togglePlayPause,
+    setVolume,
+  } = usePlayer();
 
   const playSurpriseMe = useCallback(() => {
-    const working = MOCK_STATIONS.filter((s) => s.isWorking && s.isHttpsPlayable);
+    const working = MOCK_STATIONS.filter(
+      (s) => s.isWorking && s.isHttpsPlayable,
+    );
     const pool = working.length > 0 ? working : MOCK_STATIONS;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (pick) {
@@ -116,7 +98,10 @@ export function MockSessionProvider({
       workingNowDefault,
       playStation,
       togglePlayPause,
+      setVolume,
       toggleFavourite,
+      setDataSaver,
+      setWorkingNowDefault,
       playSurpriseMe,
     ],
   );
@@ -125,6 +110,61 @@ export function MockSessionProvider({
     <MockSessionContext.Provider value={value}>
       {children}
     </MockSessionContext.Provider>
+  );
+}
+
+export function MockSessionProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [favouriteIds, setFavouriteIds] = useState<string[]>([
+    'st-cool-fm',
+    'st-fip-paris',
+  ]);
+  const [recentIds, setRecentIds] = useState<string[]>([
+    'st-cool-fm',
+    'st-bbc-world',
+  ]);
+  const [dataSaver, setDataSaver] = useState(false);
+  const [workingNowDefault, setWorkingNowDefault] = useState(true);
+
+  const recordRecent = useCallback((station: WebStation) => {
+    setRecentIds((prev) => [
+      station.id,
+      ...prev.filter((id) => id !== station.id),
+    ]);
+  }, []);
+
+  const toggleFavourite = useCallback((station: WebStation) => {
+    setFavouriteIds((prev) => {
+      const exists = prev.includes(station.id);
+      if (exists) {
+        toast('Removed from Favourites');
+        return prev.filter((id) => id !== station.id);
+      }
+      toast.success(`Saved ${station.name} to Favourites`);
+      return [station.id, ...prev];
+    });
+  }, []);
+
+  return (
+    <PlayerProvider
+      initialStation={MOCK_STATIONS[0] ?? null}
+      onStationPlay={recordRecent}
+    >
+      <MockSessionInner
+        favouriteIds={favouriteIds}
+        recentIds={recentIds}
+        dataSaver={dataSaver}
+        workingNowDefault={workingNowDefault}
+        toggleFavourite={toggleFavourite}
+        setDataSaver={setDataSaver}
+        setWorkingNowDefault={setWorkingNowDefault}
+      >
+        {children}
+      </MockSessionInner>
+    </PlayerProvider>
   );
 }
 

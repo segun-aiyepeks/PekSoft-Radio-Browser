@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Pause, Play } from 'lucide-react';
+import { Pause, Play, Smartphone } from 'lucide-react';
 import { useMockSession } from '@/components/mock-session-provider';
 import { StationArtwork } from '@/components/radio/station-artwork';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +69,11 @@ export function StationCard({ station }: { station: WebStation }) {
             {station.codec}
             {station.bitrateKbps > 0 ? ` ${station.bitrateKbps}k` : ''}
           </Badge>
+          {!station.isHttpsPlayable && (
+            <Badge variant="outline" className="gap-1 text-[11px]">
+              <Smartphone className="size-3" /> Best in the mobile app
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>

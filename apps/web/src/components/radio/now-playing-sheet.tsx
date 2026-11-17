@@ -3,15 +3,20 @@
 import {
   Flag,
   Heart,
+  Loader2,
   Pause,
   Play,
+  RotateCcw,
   Share2,
   Smartphone,
   Timer,
   Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMockSession } from '@/components/mock-session-provider';
+import { usePlayer } from '@/components/player/player-provider';
+import { AudioVisualizer } from '@/components/radio/audio-visualizer';
 import { StationArtwork } from '@/components/radio/station-artwork';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,18 +32,36 @@ import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 
 export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
+  const { favouriteIds, toggleFavourite } = useMockSession();
   const {
     currentStation,
+    status,
     isPlaying,
+    isBuffering,
+    error,
     volume,
-    favouriteIds,
+    isMuted,
+    corsAnalyserActive,
+    analyserLevels,
     togglePlayPause,
+    retry,
     setVolume,
-    toggleFavourite,
-  } = useMockSession();
+    toggleMute,
+  } = usePlayer();
 
   if (!currentStation) return null;
   const isFav = favouriteIds.includes(currentStation.id);
+
+  const statusLabel =
+    status === 'playing'
+      ? 'LIVE'
+      : status === 'connecting'
+        ? 'CONNECTING'
+        : status === 'reconnecting'
+          ? 'RECONNECTING'
+          : status === 'unavailable'
+            ? 'UNAVAILABLE'
+            : 'PAUSED';
 
   return (
     <Sheet>
@@ -63,12 +86,12 @@ export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
               {currentStation.name}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              {currentStation.currentTrack ?? 'Live radio broadcast'}
+              {error ?? currentStation.currentTrack ?? 'Live radio broadcast'}
             </p>
 
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
               <Badge variant={isPlaying ? 'live' : 'outline'}>
-                {isPlaying ? 'LIVE' : 'PAUSED'}
+                {statusLabel}
               </Badge>
               <Badge variant="quality">
                 {currentStation.codec} · {currentStation.bitrateKbps} kbps
@@ -78,6 +101,11 @@ export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
                   <Smartphone className="size-3" /> Best in the mobile app
                 </Badge>
               )}
+              <AudioVisualizer
+                isPlaying={isPlaying}
+                corsAnalyserActive={corsAnalyserActive}
+                levels={analyserLevels}
+              />
             </div>
 
             <div className="mt-8 flex items-center gap-4">
@@ -98,20 +126,41 @@ export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
                 />
               </Button>
 
-              <Button
-                type="button"
-                variant="signal"
-                size="icon"
-                className="size-14 rounded-full"
-                aria-label={isPlaying ? 'Pause stream' : 'Play stream'}
-                onClick={togglePlayPause}
-              >
-                {isPlaying ? (
-                  <Pause className="size-6" />
-                ) : (
-                  <Play className="size-6 translate-x-[1px]" />
-                )}
-              </Button>
+              {status === 'unavailable' && currentStation.isHttpsPlayable ? (
+                <Button
+                  type="button"
+                  variant="signal"
+                  size="icon"
+                  className="size-14 rounded-full"
+                  aria-label="Retry stream"
+                  onClick={retry}
+                >
+                  <RotateCcw className="size-6" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="signal"
+                  size="icon"
+                  className="size-14 rounded-full"
+                  aria-label={
+                    isBuffering
+                      ? 'Cancel connecting'
+                      : isPlaying
+                        ? 'Pause stream'
+                        : 'Play stream'
+                  }
+                  onClick={togglePlayPause}
+                >
+                  {isBuffering ? (
+                    <Loader2 className="size-6 animate-spin" />
+                  ) : isPlaying ? (
+                    <Pause className="size-6" />
+                  ) : (
+                    <Play className="size-6 translate-x-[1px]" />
+                  )}
+                </Button>
+              )}
 
               <Button
                 type="button"
@@ -130,9 +179,22 @@ export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
             </div>
 
             <div className="mt-8 flex w-full items-center gap-3 px-2">
-              <Volume2 className="size-4 text-muted-foreground" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0"
+                aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+                onClick={toggleMute}
+              >
+                {isMuted || volume === 0 ? (
+                  <VolumeX className="size-4 text-muted-foreground" />
+                ) : (
+                  <Volume2 className="size-4 text-muted-foreground" />
+                )}
+              </Button>
               <Slider
-                value={[volume]}
+                value={[isMuted ? 0 : volume]}
                 onValueChange={(val) =>
                   setVolume(Array.isArray(val) ? (val[0] ?? 80) : val)
                 }
@@ -141,7 +203,7 @@ export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
                 aria-label="Player volume"
               />
               <span className="w-9 text-right font-mono text-xs text-muted-foreground">
-                {volume}%
+                {isMuted ? 0 : volume}%
               </span>
             </div>
           </div>
