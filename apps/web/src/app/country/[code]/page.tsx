@@ -1,78 +1,38 @@
-'use client';
+import type { Metadata } from 'next';
+import { CountryClient } from '@/app/country/[code]/country-client';
+import { fetchCountryMeta, searchStations } from '@/lib/api-client';
+import { buildMetadata } from '@/lib/seo';
 
-import { use, useMemo, useState } from 'react';
-import { AppShell } from '@/components/radio/app-shell';
-import {
-  FilterBar,
-  type StationFilterState,
-} from '@/components/radio/filter-bar';
-import { StationRow } from '@/components/radio/station-row';
-import { Badge } from '@/components/ui/badge';
-import { getCountryByCode, MOCK_STATIONS } from '@/lib/mock-data';
+export const revalidate = 300;
 
-export default function CountryDetailPage({
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}): Promise<Metadata> {
+  const { code } = await params;
+  const country = await fetchCountryMeta(code);
+  return buildMetadata({
+    title: `${country.name} Radio Stations`,
+    description: `Listen to ${country.workingCount} live radio stations from ${country.name} ${country.flag} in your browser.`,
+    path: `/country/${code.toLowerCase()}`,
+  });
+}
+
+export default async function CountryDetailPage({
   params,
 }: {
   params: Promise<{ code: string }>;
 }) {
-  const { code } = use(params);
-  const country = getCountryByCode(code) ?? {
-    code: code.toUpperCase(),
-    name: code.toUpperCase(),
-    flag: '🌍',
-    stationCount: 0,
-    workingCount: 0,
-  };
+  const { code } = await params;
+  const [country, initialStations] = await Promise.all([
+    fetchCountryMeta(code),
+    searchStations({
+      country: code.toUpperCase(),
+      limit: 40,
+      workingOnly: true,
+    }),
+  ]);
 
-  const [filter, setFilter] = useState<StationFilterState>({
-    workingOnly: true,
-    httpsOnly: false,
-    sort: 'popular',
-    genre: null,
-  });
-
-  const stations = useMemo(() => {
-    return MOCK_STATIONS.filter((s) => {
-      if (s.countryCode.toLowerCase() !== country.code.toLowerCase()) {
-        return false;
-      }
-      if (filter.workingOnly && !s.isWorking) return false;
-      if (filter.httpsOnly && !s.isHttpsPlayable) return false;
-      if (filter.genre && !s.genres.includes(filter.genre)) return false;
-      return true;
-    });
-  }, [country.code, filter]);
-
-  return (
-    <AppShell>
-      <div className="space-y-6">
-        <header className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-6">
-          <span className="flex size-16 items-center justify-center rounded-2xl bg-muted text-4xl">
-            {country.flag}
-          </span>
-          <div>
-            <h1 className="font-heading text-3xl font-bold">{country.name}</h1>
-            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{country.stationCount} total stations</span>
-              <Badge variant="live">{country.workingCount} working now</Badge>
-            </div>
-          </div>
-        </header>
-
-        <FilterBar value={filter} onChange={setFilter} />
-
-        <div className="space-y-2.5">
-          {stations.length === 0 ? (
-            <p className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-              No mock stations for {country.name} match those filters yet.
-            </p>
-          ) : (
-            stations.map((station) => (
-              <StationRow key={station.id} station={station} />
-            ))
-          )}
-        </div>
-      </div>
-    </AppShell>
-  );
+  return <CountryClient country={country} initialStations={initialStations} />;
 }

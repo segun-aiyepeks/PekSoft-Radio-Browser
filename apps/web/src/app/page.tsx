@@ -17,10 +17,33 @@ import {
 import { StationCard } from '@/components/radio/station-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  fetchCountries,
+  fetchGenres,
+  fetchTrendingStations,
+} from '@/lib/api-client';
 import { FADE_UP_VARIANTS, TRANSITION_NORMAL } from '@/lib/motion';
-import { MOCK_COUNTRIES, MOCK_GENRES, MOCK_STATIONS } from '@/lib/mock-data';
+import { buildMetadata } from '@/lib/seo';
 
-export default function LandingPage() {
+export const revalidate = 300;
+
+export const metadata = buildMetadata({
+  title: 'Every radio station in the world, one tap away',
+  description:
+    'Open PekSoft Radio and hear something you love within 10 seconds. Discover verified working stations by country, language, and genre.',
+  path: '/',
+});
+
+export default async function LandingPage() {
+  const [stations, countries, genres] = await Promise.all([
+    fetchTrendingStations({ limit: 8 }),
+    fetchCountries(),
+    fetchGenres(),
+  ]);
+
+  const totalOnline =
+    countries.reduce((sum, c) => sum + c.stationCount, 0) || 32400;
+
   return (
     <AppShell>
       <ScrollProgress className="fixed top-0 z-50 h-0.5 bg-[var(--color-accent)]" />
@@ -34,7 +57,7 @@ export default function LandingPage() {
                 <Radio className="size-3.5" /> Live Global Radio · Zero Setup
               </Badge>
               <span className="inline-flex items-center gap-1.5 text-xs text-slate-300">
-                <SlidingNumber value={32400} />+ stations online
+                <SlidingNumber value={totalOnline} />+ stations online
               </span>
             </div>
 
@@ -57,7 +80,10 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Magnetic>
                 <div className="relative inline-flex rounded-xl p-[1px]">
-                  <LazyBorderTrail className="bg-[var(--color-accent)]" size={44} />
+                  <LazyBorderTrail
+                    className="bg-[var(--color-accent)]"
+                    size={44}
+                  />
                   <Link href="/home" className="relative z-10">
                     <Button variant="signal" size="lg">
                       Start Listening Free <ArrowRight className="size-4" />
@@ -75,9 +101,12 @@ export default function LandingPage() {
         </section>
 
         {/* Flag & Station Marquee (fixed height h-11 -> zero layout shift) */}
-        <section aria-label="Live broadcast ticker" className="h-11 overflow-hidden">
+        <section
+          aria-label="Live broadcast ticker"
+          className="h-11 overflow-hidden"
+        >
           <LazyInfiniteSlider gap={16} speed={35} speedOnHover={14}>
-            {MOCK_STATIONS.map((s) => (
+            {stations.map((s) => (
               <Link
                 key={s.id}
                 href={`/station/${s.slug}`}
@@ -118,7 +147,7 @@ export default function LandingPage() {
               variants={FADE_UP_VARIANTS}
               className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
             >
-              {MOCK_STATIONS.slice(0, 4).map((station) => (
+              {stations.slice(0, 4).map((station) => (
                 <StationCard key={station.id} station={station} />
               ))}
             </AnimatedGroup>
@@ -138,7 +167,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {MOCK_COUNTRIES.slice(0, 4).map((country) => (
+            {countries.slice(0, 4).map((country) => (
               <CountryCard key={country.code} country={country} />
             ))}
           </div>
@@ -151,7 +180,7 @@ export default function LandingPage() {
               Canonical Genres
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              {MOCK_GENRES.slice(0, 4).map((genre) => (
+              {genres.slice(0, 4).map((genre) => (
                 <LazyTilt key={genre.id} rotationFactor={5}>
                   <Link
                     href={`/genre/${genre.slug}`}
