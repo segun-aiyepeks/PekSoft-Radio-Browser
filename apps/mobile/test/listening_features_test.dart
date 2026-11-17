@@ -178,7 +178,7 @@ void main() {
             const Duration(milliseconds: 30),
           ),
           sleepFadeDurationProvider.overrideWithValue(
-            const Duration(milliseconds: 150),
+            const Duration(milliseconds: 180),
           ),
         ],
       );
@@ -190,11 +190,11 @@ void main() {
       await vm.playStation(_hqVariant);
       expect(audio.volume, 1.0);
 
-      vm.setSleepTimer(const Duration(milliseconds: 200));
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      vm.setSleepTimer(const Duration(milliseconds: 210));
+      await Future<void>.delayed(const Duration(milliseconds: 90));
       expect(audio.volume, lessThan(1.0));
 
-      await Future<void>.delayed(const Duration(milliseconds: 220));
+      await Future<void>.delayed(const Duration(milliseconds: 260));
       final PlayerState afterExpiry = container.read(playbackViewModelProvider);
       expect(afterExpiry.playback.status, PlaybackStatus.paused);
       expect(afterExpiry.playback.sleepTimerRemaining, isNull);
@@ -288,19 +288,19 @@ void main() {
         );
         await container.read(libraryViewModelProvider.future);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 30; i++) {
           await libVm.toggleFavourite(
             _hqVariant.copyWith(id: 'fav-$i', name: 'Station $i'),
           );
         }
         await libVm.toggleFavourite(
-          _hqVariant.copyWith(id: 'fav-11', name: 'Station 11'),
+          _hqVariant.copyWith(id: 'fav-31', name: 'Station 31'),
         );
 
         final LibraryState afterFavLimit = container
             .read(libraryViewModelProvider)
             .requireValue;
-        expect(afterFavLimit.favourites.length, 10);
+        expect(afterFavLimit.favourites.length, 30);
         expect(
           afterFavLimit.limitReachedFailure,
           isA<EntitlementRequiredFailure>(),

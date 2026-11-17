@@ -1,5 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:peksoft_radio/core/ads/ad_config.dart';
+import 'package:peksoft_radio/core/ads/ad_policy.dart';
+import 'package:peksoft_radio/core/ads/ad_service.dart';
+import 'package:peksoft_radio/core/ads/admob_ad_service.dart';
+import 'package:peksoft_radio/core/analytics/analytics_service.dart';
+import 'package:peksoft_radio/core/analytics/firebase_analytics_service.dart';
 import 'package:peksoft_radio/core/database/app_database.dart';
+import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/core/network/api_client.dart';
 import 'package:peksoft_radio/core/network/connectivity_service.dart';
 import 'package:peksoft_radio/core/network/radio_browser_client.dart';
@@ -22,7 +29,11 @@ import 'package:peksoft_radio/features/station/data/station_repository_impl.dart
 import 'package:peksoft_radio/features/station/domain/report_queue_repository.dart';
 import 'package:peksoft_radio/features/station/domain/station_repository.dart';
 import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
+import 'package:peksoft_radio/features/subscription/data/google_play_billing_service.dart';
+import 'package:peksoft_radio/features/subscription/domain/billing_service.dart';
+import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement_repository.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// App-wide Riverpod dependency injection providers for Phase 2+ data layer.
 ///
@@ -51,7 +62,23 @@ final Provider<RadioBrowserClient> radioBrowserClientProvider =
 
 final Provider<EntitlementRepository> entitlementRepositoryProvider =
     Provider<EntitlementRepository>((ref) {
-      return const EntitlementRepositoryImpl();
+      return EntitlementRepositoryImpl(
+        apiClient: ref.watch(apiClientProvider),
+        authRepository: ref.watch(authRepositoryProvider),
+        database: ref.watch(appDatabaseProvider),
+      );
+    });
+
+final FutureProvider<FeatureGate> featureGateProvider =
+    FutureProvider<FeatureGate>((ref) async {
+      final Result<Entitlement> res = await ref
+          .watch(entitlementRepositoryProvider)
+          .getEntitlement();
+      final Entitlement entitlement = switch (res) {
+        Success<Entitlement>(:final data) => data,
+        Failure<Entitlement>() => const Entitlement(),
+      };
+      return FeatureGate(entitlement);
     });
 
 final Provider<CatalogRepository> catalogRepositoryProvider =
@@ -140,3 +167,31 @@ final Provider<SyncRepository> syncRepositoryProvider =
         reportQueueRepository: ref.watch(reportQueueRepositoryProvider),
       );
     });
+
+final Provider<AdConfig> adConfigProvider = Provider<AdConfig>(
+  (ref) => const AdConfig(),
+);
+
+final Provider<AdPolicy> adPolicyProvider = Provider<AdPolicy>(
+  (ref) => AdPolicy(),
+);
+
+final Provider<AdService> adServiceProvider = Provider<AdService>((ref) {
+  return AdMobAdService(
+    config: ref.watch(adConfigProvider),
+    policy: ref.watch(adPolicyProvider),
+  );
+});
+
+final Provider<BillingService> billingServiceProvider =
+    Provider<BillingService>((ref) {
+      final GooglePlayBillingService service = GooglePlayBillingService(
+        apiClient: ref.watch(apiClientProvider),
+        entitlementRepository: ref.watch(entitlementRepositoryProvider),
+      );
+      ref.onDispose(service.dispose);
+      return service;
+    });
+
+final Provider<AnalyticsService> analyticsServiceProvider =
+    Provider<AnalyticsService>((ref) => FirebaseAnalyticsService());

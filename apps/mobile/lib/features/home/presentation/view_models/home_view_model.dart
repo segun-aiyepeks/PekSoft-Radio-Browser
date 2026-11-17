@@ -8,6 +8,7 @@ import 'package:peksoft_radio/features/catalog/domain/genre.dart';
 import 'package:peksoft_radio/features/library/domain/collection.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Immutable state for the Home screen (`/home`).
 @immutable
@@ -27,6 +28,8 @@ class HomeState {
   final String? selectedGenreId;
   final Entitlement entitlement;
   final AppFailure? error;
+
+  FeatureGate get featureGate => FeatureGate(entitlement);
 
   HomeState copyWith({
     List<Genre>? genres,

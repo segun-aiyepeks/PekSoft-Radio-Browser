@@ -16,10 +16,14 @@ import 'package:peksoft_radio/features/station/domain/report_queue_repository.da
 import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/features/station/domain/station_repository.dart';
 import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
+import 'package:peksoft_radio/features/subscription/domain/entitlement_repository.dart';
 import 'package:peksoft_radio/mock/mock.dart';
 
+import 'fake_ad_service.dart';
+import 'fake_analytics_service.dart';
 import 'fake_audio_player_service.dart';
 import 'fake_auth_repository.dart';
+import 'fake_billing_service.dart';
 import 'fake_connectivity_service.dart';
 import 'fake_report_queue_repository.dart';
 import 'fake_sync_repository.dart';
@@ -34,6 +38,10 @@ List<Override> mockRepositoryOverrides({
   ReportQueueRepository? reportQueueRepository,
   FakeAuthRepository? authRepository,
   FakeSyncRepository? syncRepository,
+  FakeAdService? adService,
+  FakeBillingService? billingService,
+  EntitlementRepository? entitlementRepository,
+  FakeAnalyticsService? analyticsService,
 }) {
   final CatalogRepository catalog =
       catalogRepository ?? _MockCatalogRepository();
@@ -49,20 +57,28 @@ List<Override> mockRepositoryOverrides({
       reportQueueRepository ?? FakeReportQueueRepository();
   final FakeAuthRepository auth = authRepository ?? FakeAuthRepository();
   final FakeSyncRepository sync = syncRepository ?? FakeSyncRepository();
+  final FakeAdService ads = adService ?? FakeAdService();
+  final FakeBillingService billing = billingService ?? FakeBillingService();
+  final EntitlementRepository entitlement =
+      entitlementRepository ?? const EntitlementRepositoryImpl();
+  final FakeAnalyticsService analytics =
+      analyticsService ?? FakeAnalyticsService();
 
   return <Override>[
     catalogRepositoryProvider.overrideWithValue(catalog),
     stationRepositoryProvider.overrideWithValue(station),
     libraryRepositoryProvider.overrideWithValue(library),
     settingsRepositoryProvider.overrideWithValue(settings),
-    entitlementRepositoryProvider.overrideWithValue(
-      const EntitlementRepositoryImpl(),
-    ),
+    entitlementRepositoryProvider.overrideWithValue(entitlement),
     audioPlayerServiceProvider.overrideWithValue(audio),
     connectivityServiceProvider.overrideWithValue(connectivity),
     reportQueueRepositoryProvider.overrideWithValue(reportQueue),
     authRepositoryProvider.overrideWithValue(auth),
     syncRepositoryProvider.overrideWithValue(sync),
+    adPolicyProvider.overrideWithValue(ads.policy),
+    adServiceProvider.overrideWithValue(ads),
+    billingServiceProvider.overrideWithValue(billing),
+    analyticsServiceProvider.overrideWithValue(analytics),
     playbackRetryDelaysProvider.overrideWithValue(const <Duration>[
       Duration.zero,
       Duration.zero,

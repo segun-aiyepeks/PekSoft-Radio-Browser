@@ -6,6 +6,8 @@ import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/features/catalog/domain/country.dart';
 import 'package:peksoft_radio/features/catalog/domain/genre.dart';
 import 'package:peksoft_radio/features/catalog/domain/language.dart';
+import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Immutable state for the Explore screen (`/explore`).
 @immutable
@@ -15,6 +17,7 @@ class ExploreState {
     this.countries = const <Country>[],
     this.genres = const <Genre>[],
     this.languages = const <Language>[],
+    this.entitlement = const Entitlement(),
     this.error,
   });
 
@@ -22,13 +25,17 @@ class ExploreState {
   final List<Country> countries;
   final List<Genre> genres;
   final List<Language> languages;
+  final Entitlement entitlement;
   final AppFailure? error;
+
+  FeatureGate get featureGate => FeatureGate(entitlement);
 
   ExploreState copyWith({
     int? activeTabIndex,
     List<Country>? countries,
     List<Genre>? genres,
     List<Language>? languages,
+    Entitlement? entitlement,
     AppFailure? error,
     bool clearError = false,
   }) {
@@ -37,6 +44,7 @@ class ExploreState {
       countries: countries ?? this.countries,
       genres: genres ?? this.genres,
       languages: languages ?? this.languages,
+      entitlement: entitlement ?? this.entitlement,
       error: clearError ? null : (error ?? this.error),
     );
   }

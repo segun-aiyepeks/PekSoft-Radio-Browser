@@ -31,6 +31,18 @@ const envSchema = z.object({
   FIREBASE_PROJECT_ID: emptyToUndefined(z.string().min(1).optional()),
   FIREBASE_CLIENT_EMAIL: emptyToUndefined(z.string().email().optional()),
   FIREBASE_PRIVATE_KEY: emptyToUndefined(z.string().min(1).optional()),
+  GOOGLE_PLAY_PACKAGE_NAME: emptyToUndefined(
+    z.string().min(1).default('com.peksoft.radio'),
+  ),
+  GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL: emptyToUndefined(
+    z.string().email().optional(),
+  ),
+  GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY: emptyToUndefined(
+    z.string().min(1).optional(),
+  ),
+  GOOGLE_PLAY_PUBSUB_VERIFICATION_TOKEN: emptyToUndefined(
+    z.string().min(1).optional(),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -48,7 +48,7 @@ void main() {
       await tester.pumpWidget(_wrapAtScale13(const LibraryScreen()));
       await tester.pumpAndSettle();
       expect(find.text('Go Pro'), findsOneWidget);
-      expect(find.text('0 of 10 free favourites used'), findsOneWidget);
+      expect(find.text('0 of 30 free favourites used'), findsOneWidget);
 
       await tester.tap(find.text('Recents'));
       await tester.pumpAndSettle();

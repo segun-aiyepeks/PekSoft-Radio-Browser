@@ -252,19 +252,19 @@ void main() {
         final Result<Entitlement> ent = await entitlements.getEntitlement();
         expect((ent as Success<Entitlement>).data.tier, EntitlementTier.free);
 
-        // Free tier allows 10 favourites; 11th returns EntitlementRequiredFailure.
-        for (int i = 1; i <= 10; i++) {
+        // Free tier allows 30 favourites; 31st returns EntitlementRequiredFailure.
+        for (int i = 1; i <= 30; i++) {
           final Result<void> added = await library.addFavourite(
             _station('s$i'),
           );
           expect(added, isA<Success<void>>());
         }
-        final Result<void> eleventh = await library.addFavourite(
-          _station('s11'),
+        final Result<void> thirtyFirst = await library.addFavourite(
+          _station('s31'),
         );
-        expect(eleventh, isA<Failure<void>>());
+        expect(thirtyFirst, isA<Failure<void>>());
         expect(
-          (eleventh as Failure<void>).error,
+          (thirtyFirst as Failure<void>).error,
           isA<EntitlementRequiredFailure>(),
         );
 

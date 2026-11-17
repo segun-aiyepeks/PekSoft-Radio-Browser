@@ -139,7 +139,7 @@ describe('Milestone 4.4 Authentication & /v1/me', () => {
     expect(firstBody.user.email).toBe('segun@example.com');
     expect(firstBody.entitlement.tier).toBe('FREE');
     expect(firstBody.entitlement.adsEnabled).toBe(true);
-    expect(firstBody.entitlement.limits.maxFavorites).toBe(10);
+    expect(firstBody.entitlement.limits.maxFavorites).toBe(30);
     expect(repo.users.size).toBe(1);
 
     const second = await app.inject({

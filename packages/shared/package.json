@@ -8,7 +8,8 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./genre-map.json": "./genre-map.json"
+    "./genre-map.json": "./genre-map.json",
+    "./feature-gates.json": "./feature-gates.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

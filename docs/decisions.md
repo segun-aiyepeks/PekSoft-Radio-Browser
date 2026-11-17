@@ -91,3 +91,47 @@ All technology choices below were verified during **Phase 0 (Foundations)** (`20
   - `apps/mobile`: `firebase_core` `5.1.0`, `firebase_auth` `7.0.1`, `google_sign_in` `7.2.0`.
 - **Decision:** Fastify 5 API with `CacheStore` abstraction (`InMemoryLruCache` replaceable by Redis), Prisma 7 + PostgreSQL (`0001_init`), Firebase Admin token verification (`checkRevoked: true`), LWW delta-sync (`POST /v1/sync`) with server-side `Entitlement` enforcement, and Render Web Service + Render Postgres staging via `render.yaml` (`frankfurt` region).
 - **Reason:** Keeps audio streaming direct to broadcasters (zero proxy cost), enforces free-tier limits authoritatively on the server, and provides one-click Render Blueprint staging with automatic `prisma migrate deploy`.
+
+
+---
+
+## ADR-012 — Mobile Ads & Consent (`google_mobile_ads` + Google UMP)
+
+- **Status:** Accepted (Phase 5)
+- **Verified Versions:**
+  - `google_mobile_ads`: `9.2.0` (`webview_flutter: 4.14.1`)
+- **Decision:**
+  - Use `google_mobile_ads` (`^9.2.0`) with Google's built-in **User Messaging Platform (UMP)** (`ConsentInformation` + `ConsentForm`) at launch before initializing `MobileAds.instance`.
+  - Keep real AdMob App IDs and Ad Unit IDs out of source control (`ADMOB_APP_ID` Gradle/env property + `--dart-define=ADMOB_*_AD_UNIT_ID`), falling back to Google's official Android test ad unit IDs **only** in debug builds (`kDebugMode`).
+  - Enforce all UX placement rules in a pure-Dart `AdPolicy` engine (no ad before first sound, none on auth/paywall/player surfaces, 10-minute interstitial cooldown at natural breaks only, native ad card every 8 rows, zero ads for Plus users).
+  - Grant the 24-hour rewarded-ad convenience pass (`EntitlementSource.rewardedAd`) client-side with an automatic 24-hour expiry timestamp (`rewardedPlusExpiresAt`) persisted in `AppDatabase`.
+- **Reason:** Protects AdMob accounts from invalid traffic penalties in development, satisfies EEA/UK GDPR consent rules via UMP, and keeps ad frequency and placement rules 100% unit-testable in pure Dart.
+
+
+---
+
+## ADR-013 — Google Play Billing & Server-Side RTDN Verification (`in_app_purchase` + Subscriptions v2)
+
+- **Status:** Accepted (Phase 5)
+- **Verified Versions:**
+  - `in_app_purchase`: `3.3.1` (`in_app_purchase_android: 0.5.5`, `in_app_purchase_platform_interface: 1.4.1`)
+- **Decision:**
+  - Use Flutter's official `in_app_purchase` (`^3.3.1`) plugin with subscription product IDs `plus_monthly` and `plus_annual`.
+  - Verify every purchase and restore server-side on `POST /v1/billing/google-play/verify` using the Google Play Developer API **Subscriptions v2** (`purchases.subscriptionsv2.get`) authenticated via RS256 JWT service-account assertions (`GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY`).
+  - Only call `completePurchase` (acknowledgement) after the backend confirms verification, preventing unverified client-side unlocks.
+  - Process Google Cloud Pub/Sub Real-Time Developer Notifications on `POST /v1/webhooks/google-play` with shared-secret authenticity checking (`GOOGLE_PLAY_PUBSUB_VERIFICATION_TOKEN`) and `WebhookEvent` (`provider + eventId`) idempotency.
+- **Reason:** Google Play refunds unacknowledged purchases after 3 days, client-only receipts can be spoofed, and Pub/Sub delivers notifications at-least-once—making server verification + `WebhookEvent` deduplication mandatory for production billing.
+
+
+---
+
+## ADR-014 — Privacy-Preserving Analytics & Crash Reporting (`firebase_analytics` + `firebase_crashlytics`)
+
+- **Status:** Accepted (Phase 5)
+- **Verified Versions:**
+  - `firebase_analytics`: `13.1.0`
+  - `firebase_crashlytics`: `6.1.0`
+- **Decision:**
+  - Use a shared Section 11 event taxonomy (`packages/shared/src/analytics.ts` and `AnalyticsEvents` in `apps/mobile/lib/core/analytics/analytics_service.dart`: `station_play`, `station_fail`, `favorite_add`, `paywall_view`, `purchase_success`, `first_audio_reached`, `ad_rewarded_completed`, `restore_purchases`).
+  - Route all events and non-fatal/fatal error reports through `AnalyticsService` / `FirebaseAnalyticsService`, gating collection on Google UMP consent (`setConsentGranted`) and scrubbing all PII keys/email patterns via `sanitizeAnalyticsParams`.
+- **Reason:** Satisfies GDPR / UK / Nigeria NDPA 2023 consent and data-minimisation requirements while keeping product funnel and playback-quality metrics consistent across mobile and web.

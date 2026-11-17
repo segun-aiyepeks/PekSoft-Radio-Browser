@@ -976,3 +976,247 @@ Phase 4 adds the Node.js/Fastify backend, PostgreSQL persistence, Firebase authe
 - **Auth & Library Sync**: Firebase Admin token verification (`GET /v1/me`, `DELETE /v1/me`), LWW delta-sync (`POST /v1/sync`) with server-side `Entitlement` limit enforcement (`403 TIER_LIMIT_REACHED`), and `POST /v1/reports`.
 - **Mobile Auth & Sync (`apps/mobile`)**: `FirebaseAuthRepository` (email sign-up + verification, sign-in, reset password, Google Sign-In, shared-email account linking, delete account), `ApiClient` (silent 401 token refresh + retry), `SyncRepositoryImpl` (guest-to-account merge + queued report flushing), wired auth/profile screens, and unit tests.
 - **Docs & Staging**: `docs/api.md`, `render.yaml` (Render + Render Postgres staging blueprint), and `ADR-011`.
+
+
+---
+
+## Milestone 5.1 — Entitlements (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Created the canonical Section 7 **Free vs Plus** feature-gate table in `packages/shared/feature-gates.json` (and synced to `apps/mobile/packages/shared/feature-gates.json`), plus typed Zod schemas and helpers in `packages/shared/src/entitlements.ts` (`FEATURE_GATE_TABLE`, `PLAN_FEATURE_GATES`, `getPlanFeatureGate`, `toPrismaEntitlementSource`, `fromPrismaEntitlementSource`).
+- Implemented `EntitlementRepository` / `PrismaEntitlementRepository` (`apps/api/src/repositories/entitlement-repository.ts`) and `EntitlementService` (`apps/api/src/services/entitlement-service.ts`) with:
+  - `getForIdentity`: returns the authenticated user's effective `EntitlementView` (`tier`, `status`, `source`, `adsEnabled`, `expiresAt`, `limits`, `features`) and `plans: PLAN_FEATURE_GATES`.
+  - `grantPlus`: idempotent Plus grant recording the payment provider `source` (`'google_play'` or `'paystack'`), customer/subscription IDs, and `expiresAt` without regressing later expiry dates on duplicate webhook deliveries.
+  - `revokePlus`: idempotent Plus revocation recording the provider `source` (`'google_play'` or `'paystack'`) and status (`'EXPIRED'` or `'CANCELLED'`) while protecting active subscriptions from a different provider.
+- Registered `GET /v1/entitlements` in `apps/api/src/routes/v1/entitlements.ts` and wired `UserService` and `LibraryService` to the shared Section 7 limits (`30` favourites, `2` collections, `20` recents on Free / `200` on Plus, `10` song history entries).
+- Replaced the mobile stub `EntitlementRepositoryImpl` (`apps/mobile/lib/features/subscription/data/entitlement_repository_impl.dart`) with a server-backed implementation (`GET /v1/entitlements`) that caches the latest verified entitlement in `AppDatabase` (`entitlement:current:v1`) for offline launches and supports a local 24-hour rewarded-ad convenience pass (`grantTemporaryRewardedPass`).
+- Added `FeatureGate` and `PlanFeatureGates` (`apps/mobile/lib/features/subscription/domain/feature_gate.dart`) and wired `FeatureGate` across `LibraryRepositoryImpl` and all mobile ViewModels (`SubscriptionViewModel`, `LibraryViewModel`, `HomeViewModel`, `ExploreViewModel`, `SearchViewModel`, `PlayerViewModel`, `SettingsViewModel`) plus `featureGateProvider` in `apps/mobile/lib/core/di/providers.dart`.
+- Added unit tests in `packages/shared/src/entitlements.test.ts`, `apps/api/src/entitlements.test.ts`, and `apps/mobile/test/entitlement_feature_gate_test.dart`.
+
+### Why
+- **Single source of truth for feature gating**: Having one table (`packages/shared/feature-gates.json`) shared by `apps/api` and `apps/mobile` prevents the backend and client UI from ever disagreeing on whether a feature is unlocked or what the Free/Plus caps are.
+- **Server-side verification + idempotency**: Payment webhooks (Google Play Real-Time Developer Notifications and Paystack webhooks) are delivered *at-least-once* and can arrive out of order. Making `grantPlus` and `revokePlus` idempotent ensures duplicate deliveries never corrupt a user's entitlement or overwrite a newer expiry timestamp.
+
+### How it works (plain English)
+- **Entitlement vs Subscription**:
+  - A **subscription** is a billing contract inside a payment provider (Google Play Billing on Android, Paystack on Web).
+  - An **entitlement** is what your app actually cares about: *"Does this user currently have `PLUS` access, until when (`expiresAt`), and which provider (`google_play` or `paystack`) granted it?"*
+- **Feature Gate flow**:
+  1. `packages/shared/feature-gates.json` defines every row from Section 7 of `docs/ux-document.md` (`FREE` vs `PLUS`).
+  2. On the backend, `EntitlementService.computeEntitlementView` checks whether `tier === 'PLUS'`, `status` is `'ACTIVE'` or `'GRACE'`, and `expiresAt > now`. If `expiresAt` has passed, the effective view automatically downgrades to `FREE` (`status: 'EXPIRED'`) without deleting any user library data.
+  3. On mobile, `EntitlementRepositoryImpl` fetches `GET /v1/entitlements`, caches the result in SQLite (`AppDatabase`) so offline launches still know the user's status, and feeds `FeatureGate(entitlement)` into every ViewModel and `LibraryRepositoryImpl`.
+
+### Files created or changed
+- `packages/shared/feature-gates.json`
+- `packages/shared/package.json`
+- `packages/shared/src/entitlements.ts`
+- `packages/shared/src/entitlements.test.ts`
+- `packages/shared/src/index.ts`
+- `apps/api/src/repositories/entitlement-repository.ts`
+- `apps/api/src/services/entitlement-service.ts`
+- `apps/api/src/services/user-service.ts`
+- `apps/api/src/services/library-service.ts`
+- `apps/api/src/routes/v1/entitlements.ts`
+- `apps/api/src/server.ts`
+- `apps/api/src/entitlements.test.ts`
+- `apps/api/src/auth.test.ts`
+- `apps/api/src/library-sync.test.ts`
+- `apps/mobile/packages/shared/feature-gates.json`
+- `apps/mobile/pubspec.yaml`
+- `apps/mobile/lib/core/database/app_database.dart`
+- `apps/mobile/lib/core/di/providers.dart`
+- `apps/mobile/lib/features/subscription/domain/entitlement.dart`
+- `apps/mobile/lib/features/subscription/domain/entitlement.freezed.dart`
+- `apps/mobile/lib/features/subscription/domain/entitlement_repository.dart`
+- `apps/mobile/lib/features/subscription/domain/feature_gate.dart`
+- `apps/mobile/lib/features/subscription/data/entitlement_repository_impl.dart`
+- `apps/mobile/lib/features/library/data/library_repository_impl.dart`
+- `apps/mobile/lib/features/subscription/presentation/view_models/subscription_view_model.dart`
+- `apps/mobile/lib/features/library/presentation/view_models/library_view_model.dart`
+- `apps/mobile/lib/features/home/presentation/view_models/home_view_model.dart`
+- `apps/mobile/lib/features/explore/presentation/view_models/explore_view_model.dart`
+- `apps/mobile/lib/features/search/presentation/view_models/search_view_model.dart`
+- `apps/mobile/lib/features/player/presentation/view_models/player_view_model.dart`
+- `apps/mobile/lib/features/profile/presentation/view_models/settings_view_model.dart`
+- `apps/mobile/test/entitlement_feature_gate_test.dart`
+- `apps/mobile/test/domain_models_test.dart`
+- `apps/mobile/test/repositories_test.dart`
+- `docs/api.md`
+- `docs/build-log.md`
+
+### How to run and verify
+- TypeScript workspaces: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- Mobile (`apps/mobile`): `dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze && flutter test`
+
+### Concepts worth learning
+- **Entitlement abstraction**: Decoupling *how someone paid* (`google_play` vs `paystack`) from *what features they get* (`FeatureGate`) lets one user sign in on Android or Web and enjoy the same Plus features without duplicating billing logic inside UI screens.
+- **Idempotent state transitions**: In distributed billing systems, a webhook or client receipt verification can be sent 2–5 times. Checking whether the target state and expiry are already applied (`applied: false`) makes retries safe.
+- **Graceful expiry (soft lock)**: When `expiresAt` passes, `computeEntitlementView` returns `tier: 'FREE'` and `status: 'EXPIRED'`, locking Plus-only additions while leaving all existing favourites, collections, and history intact in PostgreSQL and SQLite.
+
+### Decisions and alternatives
+- **Shared JSON table (`packages/shared/feature-gates.json`) verified by both Vitest and Flutter test**: Ensures TypeScript (`PLAN_FEATURE_GATES`) and Dart (`PlanFeatureGates`) never drift, while keeping zero runtime file-system overhead in web/mobile bundles.
+
+
+---
+
+## Milestone 5.2 — Ads (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Added `google_mobile_ads: ^9.2.0` to `apps/mobile/pubspec.yaml` and configured `com.google.android.gms.ads.APPLICATION_ID` in `apps/mobile/android/app/src/main/AndroidManifest.xml` + `apps/mobile/android/app/build.gradle.kts` via `manifestPlaceholders["admobAppId"]` (`ADMOB_APP_ID` build property / environment variable, with Google's official test App ID fallback for local/debug builds).
+- Created `AdConfig` (`apps/mobile/lib/core/ads/ad_config.dart`) which reads real AdMob unit IDs from `--dart-define` build variables and falls back to Google's official Android test ad unit IDs (`9214589741`, `2247696110`, `1033173712`, `5224354917`) **only** when `isDebugMode` is `true` (returning `null` in release builds if real IDs are not supplied).
+- Built pure-Dart `AdPolicy` (`apps/mobile/lib/core/ads/ad_policy.dart`) enforcing all UX rules from Section 1 Principle 4 and Journey J7:
+  - Nothing at all for Plus users (paid Plus or active 24h rewarded pass).
+  - No ad before first sound (`hasReachedFirstSound` is recorded by `PlayerViewModel` when audio first reaches `PlaybackStatus.playing`).
+  - Never on onboarding (`/splash`, `/welcome`), auth (`/auth/*`), paywall/billing (`/paywall`, `/subscription`), or player-control surfaces (`/player`, `isNearPlayerControls: true`).
+  - At most 1 interstitial per 10 minutes (`interstitialCooldown = Duration(minutes: 10)`) and only on natural break triggers (`completedBrowseFlow`, `finishedCollectionEdit`, `exitedStationDetailAfterStop` — never on `appLaunch`, `firstPlay`, or `startingPlayback`).
+  - Native ad cards every 8 station rows (`nativeAdInterval = 8`) in long lists (`>= 8` stations).
+- Built `AdService` (`apps/mobile/lib/core/ads/ad_service.dart`) and `AdMobAdService` (`apps/mobile/lib/core/ads/admob_ad_service.dart`) running Google's **User Messaging Platform (UMP)** consent flow at launch (`runConsentFlowIfRequired` in `apps/mobile/lib/main.dart`), displaying policy-checked interstitials, and showing the optional rewarded ad (`showRewardedAdForPlusPass`) wired to `SubscriptionViewModel.watchRewardedAdForPlusPass()`.
+- Added `FakeAdService` (`apps/mobile/test/helpers/fake_ad_service.dart`) and 5 thorough unit tests in `apps/mobile/test/ad_policy_test.dart`, and recorded `ADR-012` in `docs/decisions.md`.
+
+### Why
+- **Why debug builds must use test ad unit IDs**: Tapping or repeatedly loading real production AdMob ads on a developer's own phone or emulator triggers AdMob's automated invalid-traffic detection and can get a publisher account suspended before launch.
+- **Why the 24-hour rewarded ad pass is client-side and expires on its own**:
+  - Unlike a paid Google Play or Paystack subscription (which involves real money, recurring billing, receipts, and cross-device entitlement), watching a 15–30 second rewarded video is an ephemeral, zero-money convenience perk for price-sensitive listeners (Persona Tunde) that works even in **guest mode** without requiring sign-up.
+  - Storing `rewardedPlusExpiresAt = now + 24h` in local SQLite (`AppDatabase`) means it unlocks convenience features (ad removal, custom sleep timer, advanced filters) immediately on that device and automatically expires as soon as `DateTime.now().isAfter(rewardedPlusExpiresAt)` — with zero server cron job needed and zero risk of permanently unlocking a paid account on the backend.
+
+### How it works (plain English)
+- **UMP Consent at Launch**: When the app starts, `AdMobAdService.runConsentFlowIfRequired()` asks Google's UMP SDK whether the user is in a region requiring GDPR/UK consent (EEA/UK). If required, UMP shows Google's certified consent dialog; only after `ConsentInformation.instance.canRequestAds()` returns `true` does the app initialize `MobileAds.instance`.
+- **First-Sound Gate**: `AdPolicy._hasReachedFirstSound` starts `false`. Until `PlayerViewModel` transitions a stream to `PlaybackStatus.playing` and calls `adPolicy.recordFirstSound()`, every ad check (`canShowBanner`, `shouldInsertNativeAdAfterRow`, `canShowInterstitial`) returns `false`.
+- **10-Minute Cooldown & Natural Breaks**: When a user finishes a browse flow or collection edit, `AdPolicy.canShowInterstitial` checks that the trigger is a natural break, the screen is not banned, the user is on Free tier, first sound has occurred, and at least 10 minutes have elapsed since `_lastInterstitialShownAt`.
+
+### Files created or changed
+- `apps/mobile/pubspec.yaml`
+- `apps/mobile/android/app/build.gradle.kts`
+- `apps/mobile/android/app/src/main/AndroidManifest.xml`
+- `apps/mobile/lib/core/ads/ad_config.dart`
+- `apps/mobile/lib/core/ads/ad_policy.dart`
+- `apps/mobile/lib/core/ads/ad_service.dart`
+- `apps/mobile/lib/core/ads/admob_ad_service.dart`
+- `apps/mobile/lib/core/di/providers.dart`
+- `apps/mobile/lib/features/player/presentation/view_models/player_view_model.dart`
+- `apps/mobile/lib/features/subscription/presentation/view_models/subscription_view_model.dart`
+- `apps/mobile/lib/main.dart`
+- `apps/mobile/test/helpers/fake_ad_service.dart`
+- `apps/mobile/test/helpers/mock_repository_overrides.dart`
+- `apps/mobile/test/ad_policy_test.dart`
+- `docs/decisions.md` (`ADR-012`)
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze && flutter test test/ad_policy_test.dart`
+
+### Concepts worth learning
+- **Ad Formats (Adaptive Banner, Native, Interstitial, Rewarded)**:
+  - **Adaptive Banner**: A fixed-height strip anchored at the bottom of browse screens (never covering the mini-player).
+  - **Native Ad**: Styled to match your own station list cards (`AdSlotPlaceholder` native variant) with a clear `AD` badge every 8 rows, avoiding jarring visual jumps.
+  - **Interstitial**: Full-screen ad shown only between completed tasks with a strict 10-minute frequency cap so the app never feels spammy.
+  - **Rewarded Ad**: Opt-in video ad where the user chooses to watch in exchange for a temporary reward (24 hours of Plus convenience features).
+- **UMP (User Messaging Platform)**: Google's official IAB TCF v2.2 consent management SDK required by Google Play and AdMob for serving ads to EEA and UK users.
+
+### Decisions and alternatives
+- **Pure-Dart `AdPolicy` separated from `AdMobAdService`**: Keeps all business rules (first-sound gate, banned routes, 8-row cadence, 10-minute cooldown, Plus suppression) testable in milliseconds with an injectable clock (`DateTime Function() now`) without spinning up Android platform channels.
+
+
+---
+
+## Milestone 5.3 — Google Play Billing (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Added shared billing constants and Zod schemas in `packages/shared/src/billing.ts` (`GOOGLE_PLAY_PRODUCT_IDS`: `plus_monthly`, `plus_annual`, `googlePlayVerifyPurchaseRequestSchema`, and `GOOGLE_PLAY_SUBSCRIPTION_NOTIFICATION_TYPES`).
+- Implemented server-side Google Play Developer API verification in `apps/api`:
+  - `HttpGooglePlayClient` (`apps/api/src/billing/google-play-client.ts`): signs RS256 JWT service-account assertions for `androidpublisher` OAuth2 tokens and queries `purchases.subscriptionsv2.get`.
+  - `PrismaWebhookEventRepository` (`apps/api/src/repositories/webhook-event-repository.ts`): persists and deduplicates webhook deliveries in PostgreSQL (`webhook_events` unique `(provider, event_id)`).
+  - `GooglePlayBillingService` (`apps/api/src/services/google-play-billing-service.ts`): handles `POST /v1/billing/google-play/verify` and `POST /v1/webhooks/google-play` (authenticity token verification via `timingSafeEqual`, `WebhookEvent` idempotency, and full RTDN lifecycle handling for purchase, renewal, cancellation, grace period, account hold, expiry, and refund/voided purchase).
+  - Registered routes in `apps/api/src/routes/v1/billing.ts` and `apps/api/src/server.ts`, plus env vars in `apps/api/src/config/env.ts` and `apps/api/.env.example`.
+  - Added recorded sample Pub/Sub & Subscriptions v2 payload tests in `apps/api/src/google-play-billing.test.ts` (all 21 API tests passing).
+- Implemented mobile Google Play Billing in `apps/mobile`:
+  - Added `in_app_purchase: ^3.3.1` to `apps/mobile/pubspec.yaml` and recorded `ADR-013` in `docs/decisions.md`.
+  - Created `BillingService` (`apps/mobile/lib/features/subscription/domain/billing_service.dart`) and `GooglePlayBillingService` (`apps/mobile/lib/features/subscription/data/google_play_billing_service.dart`) supporting product loading (`plus_monthly`, `plus_annual`), purchase initiation (`buyNonConsumable`), server-side verification (`ApiClient.verifyGooglePlayPurchase`), purchase acknowledgement (`completePurchase`), and `restorePurchases()`.
+  - Added `FakeBillingService` and `apps/mobile/test/google_play_billing_test.dart`.
+
+### Why
+- **Why server-side verification & acknowledgement matter**: Google Play automatically refunds any subscription that is not acknowledged within 3 days, and client-side purchase callbacks can be spoofed on rooted devices. Verifying the `purchaseToken` from our Node API using a Google Cloud service account before calling `completePurchase` ensures only genuine Play Store purchases unlock Plus.
+- **Why Pub/Sub RTDN + `WebhookEvent` idempotency matter**: Purchases don't stay static—users cancel, cards fail (entering Google's Grace Period or Account Hold), renew monthly, or request refunds. Pub/Sub delivers Real-Time Developer Notifications *at-least-once*, so recording `messageId` in `WebhookEvent` guarantees duplicate pushes are safely ignored.
+
+### How it works (plain English)
+1. **Purchase flow**: Mobile loads `plus_monthly` and `plus_annual` from Play Store -> user completes Google Play sheet -> `GooglePlayBillingService` sends `purchaseToken` to `POST /v1/billing/google-play/verify` -> API verifies with Google Play Developer API -> API grants `PLUS` (`source: 'google_play'`) -> Mobile calls `completePurchase` to acknowledge and refreshes `EntitlementRepository`.
+2. **Lifecycle webhooks**: Google Play pushes Pub/Sub messages to `POST /v1/webhooks/google-play?token=...` -> API verifies the token, checks `WebhookEvent` for `messageId`, queries `subscriptionsv2.get` for the authoritative state, and updates the user's `Entitlement` (`ACTIVE`, `GRACE`, `EXPIRED`, or `CANCELLED`).
+
+### Files created or changed
+- `packages/shared/src/billing.ts`, `packages/shared/src/index.ts`
+- `apps/api/src/billing/google-play-client.ts`
+- `apps/api/src/repositories/webhook-event-repository.ts`
+- `apps/api/src/repositories/entitlement-repository.ts`
+- `apps/api/src/services/google-play-billing-service.ts`
+- `apps/api/src/routes/v1/billing.ts`
+- `apps/api/src/config/env.ts`, `apps/api/.env.example`, `apps/api/src/server.ts`
+- `apps/api/src/google-play-billing.test.ts`, `apps/api/src/entitlements.test.ts`
+- `apps/mobile/pubspec.yaml`, `apps/mobile/lib/core/network/api_client.dart`, `apps/mobile/lib/core/di/providers.dart`
+- `apps/mobile/lib/features/subscription/domain/billing_service.dart`
+- `apps/mobile/lib/features/subscription/data/google_play_billing_service.dart`
+- `apps/mobile/test/helpers/fake_billing_service.dart`, `apps/mobile/test/helpers/mock_repository_overrides.dart`, `apps/mobile/test/google_play_billing_test.dart`
+- `docs/api.md`, `docs/decisions.md` (`ADR-013`), `docs/build-log.md`
+
+### How to run and verify
+- API (`apps/api`): `pnpm --filter @peksoft/shared build && pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test -- --fileParallelism=false`
+- Mobile (`apps/mobile`): `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze lib/features/subscription test/google_play_billing_test.dart && flutter test test/google_play_billing_test.dart`
+
+
+---
+
+## Milestone 5.4 — Paywall and lifecycle UI (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Extended `SubscriptionViewModel` & `SubscriptionState` (`apps/mobile/lib/features/subscription/presentation/view_models/subscription_view_model.dart`) to load store-provided `StoreProduct` prices (`plus_monthly`, `plus_annual`), listen to `BillingService.purchaseUpdates`, handle `pending` / `verified` / `restored` / `canceled` / `error` states, expose `hasBillingProblem` (`EntitlementStatus.grace`) and `isExpired` (`EntitlementStatus.expired`), and build `manageSubscriptionUri` (`https://play.google.com/store/account/subscriptions?...`).
+- Wired `PaywallScreen` (`apps/mobile/lib/features/subscription/presentation/paywall_screen.dart`) to `subscriptionViewModelProvider` with:
+  - Store-provided local-currency pricing (`₦1,500 / mo`, `₦12,000 / yr`, etc.) and clear Google Play auto-renewal wording.
+  - Purchase-pending banner, error banner, celebratory **PekSoft Plus Active** success screen, **Watch an ad: 24 hours of Plus** option, **Restore Purchases**, Terms/Privacy links, and visible Close button.
+- Wired `SubscriptionManagementScreen` (`apps/mobile/lib/features/subscription/presentation/subscription_management_screen.dart`) with:
+  - **Billing-problem grace banner** (`EntitlementStatus.grace`) with **Fix Payment** action.
+  - **Graceful downgrade notice** (`EntitlementStatus.expired`) reassuring users that all saved favourites, collections, and song history remain safe while Plus extras lock until renewal.
+  - **Manage Subscription** deep link backed by an Android `MethodChannel` (`com.peksoft.radio/links` in `MainActivity.kt`) opening Google Play's subscription management screen.
+- Added widget and database tests in `apps/mobile/test/paywall_lifecycle_test.dart`.
+
+### Why
+- **Local-currency store prices**: Play Console localises prices into each listener's currency (`NGN`, `GBP`, `USD`, etc.). Reading `ProductDetails.price` directly from Google Play ensures the paywall always matches what the Google Play checkout sheet charges.
+- **Graceful downgrade (soft lock)**: Deleting a user's 35 saved favourites when their subscription lapses would feel punitive. Keeping all data intact while locking new Plus-only additions encourages win-back renewals.
+
+### Files created or changed
+- `apps/mobile/lib/features/subscription/presentation/view_models/subscription_view_model.dart`
+- `apps/mobile/lib/features/subscription/presentation/paywall_screen.dart`
+- `apps/mobile/lib/features/subscription/presentation/subscription_management_screen.dart`
+- `apps/mobile/android/app/src/main/kotlin/com/peksoft/peksoft_radio/MainActivity.kt`
+- `apps/mobile/test/paywall_lifecycle_test.dart`
+- `docs/build-log.md`
+
+### How to run and verify
+- `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze lib/features/subscription test/paywall_lifecycle_test.dart && flutter test test/paywall_lifecycle_test.dart test/account_money_screens_test.dart`
+
+
+---
+
+## Milestone 5.5 — Analytics (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Defined the shared Section 11 event taxonomy in `packages/shared/src/analytics.ts` (`station_play`, `station_fail`, `favorite_add`, `paywall_view`, `purchase_success`, `first_audio_reached`, `ad_rewarded_completed`, `restore_purchases`) and `FORBIDDEN_ANALYTICS_PII_KEYS`.
+- Added `firebase_analytics: ^13.1.0` and `firebase_crashlytics: ^6.1.0` to `apps/mobile/pubspec.yaml` and recorded `ADR-014` in `docs/decisions.md`.
+- Implemented `AnalyticsService` (`apps/mobile/lib/core/analytics/analytics_service.dart`) and `FirebaseAnalyticsService` (`apps/mobile/lib/core/analytics/firebase_analytics_service.dart`) with:
+  - Strict **consent gating** (`setConsentGranted`) wired from Google UMP at app launch in `apps/mobile/lib/main.dart`, disabling Firebase Analytics and Crashlytics collection until consent is granted/not required.
+  - **PII scrubbing** (`sanitizeAnalyticsParams`) stripping email, name, displayName, uid, phone, token, password, and email-like strings before any event leaves the device.
+  - Crashlytics `FlutterError.onError` and `PlatformDispatcher.instance.onError` hooks in `apps/mobile/lib/main.dart`.
+- Wired Section 11 events into `PlayerViewModel` (`station_play`, `station_fail`), `LibraryViewModel` (`favorite_add`), and `SubscriptionViewModel` (`paywall_view`, `purchase_success`, `ad_rewarded_completed`).
+- Added `FakeAnalyticsService` and unit tests in `apps/mobile/test/analytics_service_test.dart`.
+
+---
+
+## Phase 5 Summary — Ready for Review
+
+**Branch:** `phase/5-monetisation` → `main`  
+**Milestones completed:** `5.1` Entitlements · `5.2` Ads · `5.3` Google Play Billing · `5.4` Paywall & Lifecycle UI · `5.5` Analytics
+
+Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad policy enforcement, and privacy-respecting telemetry:
+- **Shared Feature Gates & Entitlements (`5.1`)**: Canonical Section 7 Free vs Plus table (`packages/shared/feature-gates.json`), `EntitlementService` + `GET /v1/entitlements` with idempotent `google_play` / `paystack` grant & revoke, and mobile `FeatureGate` + SQLite-cached `EntitlementRepositoryImpl`.
+- **AdMob & UMP Consent (`5.2`)**: `google_mobile_ads` (`^9.2.0`), build-configured unit IDs with debug-only Google test IDs, launch UMP consent flow, pure-Dart `AdPolicy` (first-sound gate, banned routes, 10-minute natural-break interstitial cooldown, 8-row native card cadence, Plus suppression), and optional 24-hour rewarded ad pass.
+- **Google Play Billing & RTDN Webhooks (`5.3`)**: `in_app_purchase` (`^3.3.1`) for `plus_monthly` and `plus_annual`, server-side verification via Google Play Developer API Subscriptions v2 (`POST /v1/billing/google-play/verify`), purchase acknowledgement (`completePurchase`), and idempotent Pub/Sub push webhook (`POST /v1/webhooks/google-play`) handling purchase, renewal, cancellation, grace period, account hold, expiry, and refund via `WebhookEvent`.
+- **Paywall & Lifecycle UI (`5.4`)**: `PaywallScreen` wired to store-provided local-currency prices, purchase pending/success states, restore flow, and rewarded 24h pass; `SubscriptionManagementScreen` with billing-problem grace banner, Google Play `Manage Subscription` deep link, and graceful downgrade preserving user library data.
+- **Analytics & Crashlytics (`5.5`)**: `AnalyticsService` / `FirebaseAnalyticsService` using the Section 11 taxonomy with PII scrubbing and UMP consent enforcement.

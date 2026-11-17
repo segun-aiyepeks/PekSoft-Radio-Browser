@@ -227,7 +227,9 @@ export class LibraryService {
 
   async listRecents(identity: VerifiedIdentity): Promise<RecentRecord[]> {
     const user = await this.resolveUser(identity);
-    return this.library.listRecents(user.id);
+    const limits = computeEntitlementView(user.entitlement).limits;
+    const items = await this.library.listRecents(user.id);
+    return items.slice(0, limits.maxRecentlyPlayed);
   }
 
   async upsertRecent(

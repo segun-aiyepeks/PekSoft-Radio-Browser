@@ -15,6 +15,8 @@ import 'package:peksoft_radio/features/player/domain/playback_state.dart';
 import 'package:peksoft_radio/features/player/domain/stream_variant_selector.dart';
 import 'package:peksoft_radio/features/profile/domain/user_settings.dart';
 import 'package:peksoft_radio/features/station/domain/station.dart';
+import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
+import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
 
 /// Alias matching the Phase 3 specification name (`PlaybackViewModel`).
 typedef PlaybackViewModel = PlayerViewModel;
@@ -28,6 +30,7 @@ class PlayerState {
     this.isFavourite = false,
     this.similarStations = const <Station>[],
     this.reportSubmitted = false,
+    this.entitlement = const Entitlement(),
     this.error,
   });
 
@@ -35,13 +38,17 @@ class PlayerState {
   final bool isFavourite;
   final List<Station> similarStations;
   final bool reportSubmitted;
+  final Entitlement entitlement;
   final AppFailure? error;
+
+  FeatureGate get featureGate => FeatureGate(entitlement);
 
   PlayerState copyWith({
     PlaybackState? playback,
     bool? isFavourite,
     List<Station>? similarStations,
     bool? reportSubmitted,
+    Entitlement? entitlement,
     AppFailure? error,
     bool clearError = false,
   }) {
@@ -50,6 +57,7 @@ class PlayerState {
       isFavourite: isFavourite ?? this.isFavourite,
       similarStations: similarStations ?? this.similarStations,
       reportSubmitted: reportSubmitted ?? this.reportSubmitted,
+      entitlement: entitlement ?? this.entitlement,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -117,6 +125,10 @@ class PlayerViewModel extends Notifier<PlayerState> {
       final int requestId = ++_playRequestId;
       unawaited(_recoverMidStream(station, requestId));
       return;
+    }
+
+    if (snapshot.status == PlaybackStatus.playing) {
+      ref.read(adPolicyProvider).recordFirstSound();
     }
 
     state = state.copyWith(
@@ -287,6 +299,15 @@ class PlayerViewModel extends Notifier<PlayerState> {
         message:
             'Could not connect to ${station.name}. Try a similar station below or tap Retry.',
       );
+      unawaited(
+        ref
+            .read(analyticsServiceProvider)
+            .logStationFail(
+              stationId: station.id,
+              countryCode: station.countryCode,
+              reason: 'stream_unavailable',
+            ),
+      );
       state = state.copyWith(
         playback: state.playback.copyWith(
           status: PlaybackStatus.unavailable,
@@ -335,6 +356,23 @@ class PlayerViewModel extends Notifier<PlayerState> {
     final PlaybackStatus resolvedStatus = snapshotStatus == PlaybackStatus.idle
         ? PlaybackStatus.playing
         : snapshotStatus;
+    if (resolvedStatus == PlaybackStatus.playing) {
+      ref.read(adPolicyProvider).recordFirstSound();
+      final Station? station = state.playback.currentStation;
+      if (station != null) {
+        unawaited(
+          ref
+              .read(analyticsServiceProvider)
+              .logStationPlay(
+                stationId: station.id,
+                countryCode: station.countryCode,
+                codec: station.codec,
+                bitrateKbps: station.bitrateKbps,
+                isHls: station.isHls,
+              ),
+        );
+      }
+    }
     state = state.copyWith(
       playback: state.playback.copyWith(status: resolvedStatus, error: null),
       clearError: true,

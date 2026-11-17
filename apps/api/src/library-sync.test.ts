@@ -419,8 +419,8 @@ describe('Milestone 4.5 Library sync API & StationReport', () => {
     expect(staleRes.json().applied).toBe(false);
     expect(staleRes.json().record.stationName).toBe('FIP Newer');
 
-    // Fill remaining 9 free favourite slots (total 10)
-    for (let i = 2; i <= 10; i++) {
+    // Fill remaining 29 free favourite slots (total 30 per UX doc section 7)
+    for (let i = 2; i <= 30; i++) {
       const res = await app.inject({
         method: 'PUT',
         url: `/v1/library/favorites/st-${i}`,
@@ -434,19 +434,19 @@ describe('Milestone 4.5 Library sync API & StationReport', () => {
       expect(res.statusCode).toBe(200);
     }
 
-    // 11th favourite is blocked by server-side free-tier limit
-    const eleventh = await app.inject({
+    // 31st favourite is blocked by server-side free-tier limit
+    const thirtyFirst = await app.inject({
       method: 'PUT',
-      url: '/v1/library/favorites/st-11',
+      url: '/v1/library/favorites/st-31',
       headers: { authorization: 'Bearer free-user' },
       payload: {
-        stationName: 'Station 11',
-        streamUrl: 'https://stream.example.com/11.mp3',
+        stationName: 'Station 31',
+        streamUrl: 'https://stream.example.com/31.mp3',
         countryCode: 'NG',
       },
     });
-    expect(eleventh.statusCode).toBe(403);
-    expect(eleventh.json().error.code).toBe('TIER_LIMIT_REACHED');
+    expect(thirtyFirst.statusCode).toBe(403);
+    expect(thirtyFirst.json().error.code).toBe('TIER_LIMIT_REACHED');
 
     // Soft-deleting one frees a slot
     await app.inject({
@@ -454,17 +454,17 @@ describe('Milestone 4.5 Library sync API & StationReport', () => {
       url: '/v1/library/favorites/st-2',
       headers: { authorization: 'Bearer free-user' },
     });
-    const retry11 = await app.inject({
+    const retry31 = await app.inject({
       method: 'PUT',
-      url: '/v1/library/favorites/st-11',
+      url: '/v1/library/favorites/st-31',
       headers: { authorization: 'Bearer free-user' },
       payload: {
-        stationName: 'Station 11',
-        streamUrl: 'https://stream.example.com/11.mp3',
+        stationName: 'Station 31',
+        streamUrl: 'https://stream.example.com/31.mp3',
         countryCode: 'NG',
       },
     });
-    expect(retry11.statusCode).toBe(200);
+    expect(retry31.statusCode).toBe(200);
 
     await app.close();
   });

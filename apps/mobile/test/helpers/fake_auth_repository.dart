@@ -9,7 +9,8 @@ class FakeAuthRepository implements AuthRepository {
     this.googleRequiresLink = false,
     this.tokenValue = 'fake-id-token-1',
     this.refreshedTokenValue = 'fake-id-token-2',
-  });
+    AuthUser? initialUser,
+  }) : _current = initialUser;
 
   final bool googleRequiresLink;
   final String tokenValue;
