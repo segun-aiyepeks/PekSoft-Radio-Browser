@@ -121,3 +121,17 @@ All technology choices below were verified during **Phase 0 (Foundations)** (`20
   - Only call `completePurchase` (acknowledgement) after the backend confirms verification, preventing unverified client-side unlocks.
   - Process Google Cloud Pub/Sub Real-Time Developer Notifications on `POST /v1/webhooks/google-play` with shared-secret authenticity checking (`GOOGLE_PLAY_PUBSUB_VERIFICATION_TOKEN`) and `WebhookEvent` (`provider + eventId`) idempotency.
 - **Reason:** Google Play refunds unacknowledged purchases after 3 days, client-only receipts can be spoofed, and Pub/Sub delivers notifications at-least-once—making server verification + `WebhookEvent` deduplication mandatory for production billing.
+
+
+---
+
+## ADR-014 — Privacy-Preserving Analytics & Crash Reporting (`firebase_analytics` + `firebase_crashlytics`)
+
+- **Status:** Accepted (Phase 5)
+- **Verified Versions:**
+  - `firebase_analytics`: `13.1.0`
+  - `firebase_crashlytics`: `6.1.0`
+- **Decision:**
+  - Use a shared Section 11 event taxonomy (`packages/shared/src/analytics.ts` and `AnalyticsEvents` in `apps/mobile/lib/core/analytics/analytics_service.dart`: `station_play`, `station_fail`, `favorite_add`, `paywall_view`, `purchase_success`, `first_audio_reached`, `ad_rewarded_completed`, `restore_purchases`).
+  - Route all events and non-fatal/fatal error reports through `AnalyticsService` / `FirebaseAnalyticsService`, gating collection on Google UMP consent (`setConsentGranted`) and scrubbing all PII keys/email patterns via `sanitizeAnalyticsParams`.
+- **Reason:** Satisfies GDPR / UK / Nigeria NDPA 2023 consent and data-minimisation requirements while keeping product funnel and playback-quality metrics consistent across mobile and web.

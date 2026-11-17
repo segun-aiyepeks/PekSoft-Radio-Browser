@@ -17,3 +17,4 @@ export * from './radio.js';
 export * from './sync.js';
 export * from './entitlements.js';
 export * from './billing.js';
+export * from './analytics.js';

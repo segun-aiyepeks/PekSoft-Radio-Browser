@@ -1191,3 +1191,32 @@ Phase 4 adds the Node.js/Fastify backend, PostgreSQL persistence, Firebase authe
 
 ### How to run and verify
 - `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze lib/features/subscription test/paywall_lifecycle_test.dart && flutter test test/paywall_lifecycle_test.dart test/account_money_screens_test.dart`
+
+
+---
+
+## Milestone 5.5 — Analytics (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Defined the shared Section 11 event taxonomy in `packages/shared/src/analytics.ts` (`station_play`, `station_fail`, `favorite_add`, `paywall_view`, `purchase_success`, `first_audio_reached`, `ad_rewarded_completed`, `restore_purchases`) and `FORBIDDEN_ANALYTICS_PII_KEYS`.
+- Added `firebase_analytics: ^13.1.0` and `firebase_crashlytics: ^6.1.0` to `apps/mobile/pubspec.yaml` and recorded `ADR-014` in `docs/decisions.md`.
+- Implemented `AnalyticsService` (`apps/mobile/lib/core/analytics/analytics_service.dart`) and `FirebaseAnalyticsService` (`apps/mobile/lib/core/analytics/firebase_analytics_service.dart`) with:
+  - Strict **consent gating** (`setConsentGranted`) wired from Google UMP at app launch in `apps/mobile/lib/main.dart`, disabling Firebase Analytics and Crashlytics collection until consent is granted/not required.
+  - **PII scrubbing** (`sanitizeAnalyticsParams`) stripping email, name, displayName, uid, phone, token, password, and email-like strings before any event leaves the device.
+  - Crashlytics `FlutterError.onError` and `PlatformDispatcher.instance.onError` hooks in `apps/mobile/lib/main.dart`.
+- Wired Section 11 events into `PlayerViewModel` (`station_play`, `station_fail`), `LibraryViewModel` (`favorite_add`), and `SubscriptionViewModel` (`paywall_view`, `purchase_success`, `ad_rewarded_completed`).
+- Added `FakeAnalyticsService` and unit tests in `apps/mobile/test/analytics_service_test.dart`.
+
+---
+
+## Phase 5 Summary — Ready for Review
+
+**Branch:** `phase/5-monetisation` → `main`  
+**Milestones completed:** `5.1` Entitlements · `5.2` Ads · `5.3` Google Play Billing · `5.4` Paywall & Lifecycle UI · `5.5` Analytics
+
+Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad policy enforcement, and privacy-respecting telemetry:
+- **Shared Feature Gates & Entitlements (`5.1`)**: Canonical Section 7 Free vs Plus table (`packages/shared/feature-gates.json`), `EntitlementService` + `GET /v1/entitlements` with idempotent `google_play` / `paystack` grant & revoke, and mobile `FeatureGate` + SQLite-cached `EntitlementRepositoryImpl`.
+- **AdMob & UMP Consent (`5.2`)**: `google_mobile_ads` (`^9.2.0`), build-configured unit IDs with debug-only Google test IDs, launch UMP consent flow, pure-Dart `AdPolicy` (first-sound gate, banned routes, 10-minute natural-break interstitial cooldown, 8-row native card cadence, Plus suppression), and optional 24-hour rewarded ad pass.
+- **Google Play Billing & RTDN Webhooks (`5.3`)**: `in_app_purchase` (`^3.3.1`) for `plus_monthly` and `plus_annual`, server-side verification via Google Play Developer API Subscriptions v2 (`POST /v1/billing/google-play/verify`), purchase acknowledgement (`completePurchase`), and idempotent Pub/Sub push webhook (`POST /v1/webhooks/google-play`) handling purchase, renewal, cancellation, grace period, account hold, expiry, and refund via `WebhookEvent`.
+- **Paywall & Lifecycle UI (`5.4`)**: `PaywallScreen` wired to store-provided local-currency prices, purchase pending/success states, restore flow, and rewarded 24h pass; `SubscriptionManagementScreen` with billing-problem grace banner, Google Play `Manage Subscription` deep link, and graceful downgrade preserving user library data.
+- **Analytics & Crashlytics (`5.5`)**: `AnalyticsService` / `FirebaseAnalyticsService` using the Section 11 taxonomy with PII scrubbing and UMP consent enforcement.

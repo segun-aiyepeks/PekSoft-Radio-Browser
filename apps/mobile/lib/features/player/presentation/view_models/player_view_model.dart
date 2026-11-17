@@ -299,6 +299,15 @@ class PlayerViewModel extends Notifier<PlayerState> {
         message:
             'Could not connect to ${station.name}. Try a similar station below or tap Retry.',
       );
+      unawaited(
+        ref
+            .read(analyticsServiceProvider)
+            .logStationFail(
+              stationId: station.id,
+              countryCode: station.countryCode,
+              reason: 'stream_unavailable',
+            ),
+      );
       state = state.copyWith(
         playback: state.playback.copyWith(
           status: PlaybackStatus.unavailable,
@@ -349,6 +358,20 @@ class PlayerViewModel extends Notifier<PlayerState> {
         : snapshotStatus;
     if (resolvedStatus == PlaybackStatus.playing) {
       ref.read(adPolicyProvider).recordFirstSound();
+      final Station? station = state.playback.currentStation;
+      if (station != null) {
+        unawaited(
+          ref
+              .read(analyticsServiceProvider)
+              .logStationPlay(
+                stationId: station.id,
+                countryCode: station.countryCode,
+                codec: station.codec,
+                bitrateKbps: station.bitrateKbps,
+                isHls: station.isHls,
+              ),
+        );
+      }
     }
     state = state.copyWith(
       playback: state.playback.copyWith(status: resolvedStatus, error: null),

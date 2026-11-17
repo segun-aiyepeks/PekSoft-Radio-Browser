@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peksoft_radio/core/di/providers.dart';
@@ -86,6 +88,16 @@ class LibraryViewModel extends AsyncNotifier<LibraryState> {
 
     switch (res) {
       case Success<void>():
+        if (!exists) {
+          unawaited(
+            ref
+                .read(analyticsServiceProvider)
+                .logFavoriteAdd(
+                  stationId: station.id,
+                  countryCode: station.countryCode,
+                ),
+          );
+        }
         state = AsyncValue<LibraryState>.data(
           await _load(activeTabIndex: current.activeTabIndex),
         );

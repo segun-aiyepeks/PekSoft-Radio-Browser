@@ -124,6 +124,14 @@ class SubscriptionViewModel extends AsyncNotifier<SubscriptionState> {
         );
       case BillingPurchaseState.verified:
         final Entitlement nextEnt = update.entitlement ?? current.entitlement;
+        unawaited(
+          ref
+              .read(analyticsServiceProvider)
+              .logPurchaseSuccess(
+                productId: update.productId ?? current.selectedProductId,
+                source: 'google_play',
+              ),
+        );
         state = AsyncValue<SubscriptionState>.data(
           current.copyWith(
             entitlement: nextEnt,
@@ -182,6 +190,12 @@ class SubscriptionViewModel extends AsyncNotifier<SubscriptionState> {
     );
     ref.invalidate(libraryViewModelProvider);
     ref.invalidate(featureGateProvider);
+  }
+
+  void recordPaywallView({String trigger = 'paywall_screen'}) {
+    unawaited(
+      ref.read(analyticsServiceProvider).logPaywallView(trigger: trigger),
+    );
   }
 
   void selectBillingPeriod(BillingPeriod period) {
@@ -279,11 +293,14 @@ class SubscriptionViewModel extends AsyncNotifier<SubscriptionState> {
           entitlementRepository: ref.read(entitlementRepositoryProvider),
         );
     state = AsyncValue<SubscriptionState>.data(switch (res) {
-      Success<Entitlement>(:final data) => current.copyWith(
-        entitlement: data,
-        isProcessing: false,
-        statusMessage: '24 hours of Plus convenience features unlocked!',
-      ),
+      Success<Entitlement>(:final data) => () {
+        unawaited(ref.read(analyticsServiceProvider).logRewardedAdCompleted());
+        return current.copyWith(
+          entitlement: data,
+          isProcessing: false,
+          statusMessage: '24 hours of Plus convenience features unlocked!',
+        );
+      }(),
       Failure<Entitlement>(:final error) => current.copyWith(
         isProcessing: false,
         error: error,

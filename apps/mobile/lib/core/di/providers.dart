@@ -3,6 +3,8 @@ import 'package:peksoft_radio/core/ads/ad_config.dart';
 import 'package:peksoft_radio/core/ads/ad_policy.dart';
 import 'package:peksoft_radio/core/ads/ad_service.dart';
 import 'package:peksoft_radio/core/ads/admob_ad_service.dart';
+import 'package:peksoft_radio/core/analytics/analytics_service.dart';
+import 'package:peksoft_radio/core/analytics/firebase_analytics_service.dart';
 import 'package:peksoft_radio/core/database/app_database.dart';
 import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/core/network/api_client.dart';
@@ -190,3 +192,6 @@ final Provider<BillingService> billingServiceProvider =
       ref.onDispose(service.dispose);
       return service;
     });
+
+final Provider<AnalyticsService> analyticsServiceProvider =
+    Provider<AnalyticsService>((ref) => FirebaseAnalyticsService());
