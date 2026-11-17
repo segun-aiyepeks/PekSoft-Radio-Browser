@@ -94,6 +94,21 @@ class InMemoryUserEntitlementStore
     return this.entitlementsByUserId.get(userId) ?? null;
   }
 
+  async findByExternalSubscriptionId(
+    source: EntitlementRecord['source'],
+    externalSubscriptionId: string,
+  ): Promise<EntitlementRecord | null> {
+    for (const ent of this.entitlementsByUserId.values()) {
+      if (
+        ent.source === source &&
+        ent.externalSubscriptionId === externalSubscriptionId
+      ) {
+        return ent;
+      }
+    }
+    return null;
+  }
+
   async upsertByUserId(
     userId: string,
     input: UpsertEntitlementInput,

@@ -1115,3 +1115,48 @@ Phase 4 adds the Node.js/Fastify backend, PostgreSQL persistence, Firebase authe
 
 ### Decisions and alternatives
 - **Pure-Dart `AdPolicy` separated from `AdMobAdService`**: Keeps all business rules (first-sound gate, banned routes, 8-row cadence, 10-minute cooldown, Plus suppression) testable in milliseconds with an injectable clock (`DateTime Function() now`) without spinning up Android platform channels.
+
+
+---
+
+## Milestone 5.3 — Google Play Billing (Phase 5: Monetisation on Mobile)
+
+### What I did
+- Added shared billing constants and Zod schemas in `packages/shared/src/billing.ts` (`GOOGLE_PLAY_PRODUCT_IDS`: `plus_monthly`, `plus_annual`, `googlePlayVerifyPurchaseRequestSchema`, and `GOOGLE_PLAY_SUBSCRIPTION_NOTIFICATION_TYPES`).
+- Implemented server-side Google Play Developer API verification in `apps/api`:
+  - `HttpGooglePlayClient` (`apps/api/src/billing/google-play-client.ts`): signs RS256 JWT service-account assertions for `androidpublisher` OAuth2 tokens and queries `purchases.subscriptionsv2.get`.
+  - `PrismaWebhookEventRepository` (`apps/api/src/repositories/webhook-event-repository.ts`): persists and deduplicates webhook deliveries in PostgreSQL (`webhook_events` unique `(provider, event_id)`).
+  - `GooglePlayBillingService` (`apps/api/src/services/google-play-billing-service.ts`): handles `POST /v1/billing/google-play/verify` and `POST /v1/webhooks/google-play` (authenticity token verification via `timingSafeEqual`, `WebhookEvent` idempotency, and full RTDN lifecycle handling for purchase, renewal, cancellation, grace period, account hold, expiry, and refund/voided purchase).
+  - Registered routes in `apps/api/src/routes/v1/billing.ts` and `apps/api/src/server.ts`, plus env vars in `apps/api/src/config/env.ts` and `apps/api/.env.example`.
+  - Added recorded sample Pub/Sub & Subscriptions v2 payload tests in `apps/api/src/google-play-billing.test.ts` (all 21 API tests passing).
+- Implemented mobile Google Play Billing in `apps/mobile`:
+  - Added `in_app_purchase: ^3.3.1` to `apps/mobile/pubspec.yaml` and recorded `ADR-013` in `docs/decisions.md`.
+  - Created `BillingService` (`apps/mobile/lib/features/subscription/domain/billing_service.dart`) and `GooglePlayBillingService` (`apps/mobile/lib/features/subscription/data/google_play_billing_service.dart`) supporting product loading (`plus_monthly`, `plus_annual`), purchase initiation (`buyNonConsumable`), server-side verification (`ApiClient.verifyGooglePlayPurchase`), purchase acknowledgement (`completePurchase`), and `restorePurchases()`.
+  - Added `FakeBillingService` and `apps/mobile/test/google_play_billing_test.dart`.
+
+### Why
+- **Why server-side verification & acknowledgement matter**: Google Play automatically refunds any subscription that is not acknowledged within 3 days, and client-side purchase callbacks can be spoofed on rooted devices. Verifying the `purchaseToken` from our Node API using a Google Cloud service account before calling `completePurchase` ensures only genuine Play Store purchases unlock Plus.
+- **Why Pub/Sub RTDN + `WebhookEvent` idempotency matter**: Purchases don't stay static—users cancel, cards fail (entering Google's Grace Period or Account Hold), renew monthly, or request refunds. Pub/Sub delivers Real-Time Developer Notifications *at-least-once*, so recording `messageId` in `WebhookEvent` guarantees duplicate pushes are safely ignored.
+
+### How it works (plain English)
+1. **Purchase flow**: Mobile loads `plus_monthly` and `plus_annual` from Play Store -> user completes Google Play sheet -> `GooglePlayBillingService` sends `purchaseToken` to `POST /v1/billing/google-play/verify` -> API verifies with Google Play Developer API -> API grants `PLUS` (`source: 'google_play'`) -> Mobile calls `completePurchase` to acknowledge and refreshes `EntitlementRepository`.
+2. **Lifecycle webhooks**: Google Play pushes Pub/Sub messages to `POST /v1/webhooks/google-play?token=...` -> API verifies the token, checks `WebhookEvent` for `messageId`, queries `subscriptionsv2.get` for the authoritative state, and updates the user's `Entitlement` (`ACTIVE`, `GRACE`, `EXPIRED`, or `CANCELLED`).
+
+### Files created or changed
+- `packages/shared/src/billing.ts`, `packages/shared/src/index.ts`
+- `apps/api/src/billing/google-play-client.ts`
+- `apps/api/src/repositories/webhook-event-repository.ts`
+- `apps/api/src/repositories/entitlement-repository.ts`
+- `apps/api/src/services/google-play-billing-service.ts`
+- `apps/api/src/routes/v1/billing.ts`
+- `apps/api/src/config/env.ts`, `apps/api/.env.example`, `apps/api/src/server.ts`
+- `apps/api/src/google-play-billing.test.ts`, `apps/api/src/entitlements.test.ts`
+- `apps/mobile/pubspec.yaml`, `apps/mobile/lib/core/network/api_client.dart`, `apps/mobile/lib/core/di/providers.dart`
+- `apps/mobile/lib/features/subscription/domain/billing_service.dart`
+- `apps/mobile/lib/features/subscription/data/google_play_billing_service.dart`
+- `apps/mobile/test/helpers/fake_billing_service.dart`, `apps/mobile/test/helpers/mock_repository_overrides.dart`, `apps/mobile/test/google_play_billing_test.dart`
+- `docs/api.md`, `docs/decisions.md` (`ADR-013`), `docs/build-log.md`
+
+### How to run and verify
+- API (`apps/api`): `pnpm --filter @peksoft/shared build && pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test -- --fileParallelism=false`
+- Mobile (`apps/mobile`): `cd apps/mobile && dart format --output=none --set-exit-if-changed lib test integration_test && flutter analyze lib/features/subscription test/google_play_billing_test.dart && flutter test test/google_play_billing_test.dart`

@@ -27,6 +27,8 @@ import 'package:peksoft_radio/features/station/data/station_repository_impl.dart
 import 'package:peksoft_radio/features/station/domain/report_queue_repository.dart';
 import 'package:peksoft_radio/features/station/domain/station_repository.dart';
 import 'package:peksoft_radio/features/subscription/data/entitlement_repository_impl.dart';
+import 'package:peksoft_radio/features/subscription/data/google_play_billing_service.dart';
+import 'package:peksoft_radio/features/subscription/domain/billing_service.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement_repository.dart';
 import 'package:peksoft_radio/features/subscription/domain/feature_gate.dart';
@@ -178,3 +180,13 @@ final Provider<AdService> adServiceProvider = Provider<AdService>((ref) {
     policy: ref.watch(adPolicyProvider),
   );
 });
+
+final Provider<BillingService> billingServiceProvider =
+    Provider<BillingService>((ref) {
+      final GooglePlayBillingService service = GooglePlayBillingService(
+        apiClient: ref.watch(apiClientProvider),
+        entitlementRepository: ref.watch(entitlementRepositoryProvider),
+      );
+      ref.onDispose(service.dispose);
+      return service;
+    });

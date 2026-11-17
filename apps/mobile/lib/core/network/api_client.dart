@@ -77,6 +77,23 @@ class ApiClient {
     return getJson('/v1/entitlements');
   }
 
+  Future<Result<Map<String, dynamic>>> verifyGooglePlayPurchase({
+    required String productId,
+    required String purchaseToken,
+  }) async {
+    return _guard(() async {
+      final Response<Map<String, dynamic>> res = await _dio
+          .post<Map<String, dynamic>>(
+            '/v1/billing/google-play/verify',
+            data: <String, dynamic>{
+              'productId': productId,
+              'purchaseToken': purchaseToken,
+            },
+          );
+      return res.data ?? <String, dynamic>{};
+    });
+  }
+
   Future<Result<Map<String, dynamic>>> getJson(String path) async {
     return _guard(() async {
       final Response<Map<String, dynamic>> res = await _dio

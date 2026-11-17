@@ -16,3 +16,4 @@ export const USER_AGENT_PREFIX = 'PekSoftRadioBrowser';
 export * from './radio.js';
 export * from './sync.js';
 export * from './entitlements.js';
+export * from './billing.js';

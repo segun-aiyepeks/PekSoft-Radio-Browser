@@ -29,6 +29,10 @@ export interface UpsertEntitlementInput {
 
 export interface EntitlementRepository {
   findByUserId(userId: string): Promise<EntitlementRecord | null>;
+  findByExternalSubscriptionId(
+    source: EntitlementSource,
+    externalSubscriptionId: string,
+  ): Promise<EntitlementRecord | null>;
   upsertByUserId(
     userId: string,
     input: UpsertEntitlementInput,
@@ -41,6 +45,18 @@ export class PrismaEntitlementRepository implements EntitlementRepository {
   async findByUserId(userId: string): Promise<EntitlementRecord | null> {
     return this.prisma.entitlement.findUnique({
       where: { userId },
+    });
+  }
+
+  async findByExternalSubscriptionId(
+    source: EntitlementSource,
+    externalSubscriptionId: string,
+  ): Promise<EntitlementRecord | null> {
+    return this.prisma.entitlement.findFirst({
+      where: {
+        source,
+        externalSubscriptionId,
+      },
     });
   }
 

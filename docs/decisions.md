@@ -106,3 +106,18 @@ All technology choices below were verified during **Phase 0 (Foundations)** (`20
   - Enforce all UX placement rules in a pure-Dart `AdPolicy` engine (no ad before first sound, none on auth/paywall/player surfaces, 10-minute interstitial cooldown at natural breaks only, native ad card every 8 rows, zero ads for Plus users).
   - Grant the 24-hour rewarded-ad convenience pass (`EntitlementSource.rewardedAd`) client-side with an automatic 24-hour expiry timestamp (`rewardedPlusExpiresAt`) persisted in `AppDatabase`.
 - **Reason:** Protects AdMob accounts from invalid traffic penalties in development, satisfies EEA/UK GDPR consent rules via UMP, and keeps ad frequency and placement rules 100% unit-testable in pure Dart.
+
+
+---
+
+## ADR-013 — Google Play Billing & Server-Side RTDN Verification (`in_app_purchase` + Subscriptions v2)
+
+- **Status:** Accepted (Phase 5)
+- **Verified Versions:**
+  - `in_app_purchase`: `3.3.1` (`in_app_purchase_android: 0.5.5`, `in_app_purchase_platform_interface: 1.4.1`)
+- **Decision:**
+  - Use Flutter's official `in_app_purchase` (`^3.3.1`) plugin with subscription product IDs `plus_monthly` and `plus_annual`.
+  - Verify every purchase and restore server-side on `POST /v1/billing/google-play/verify` using the Google Play Developer API **Subscriptions v2** (`purchases.subscriptionsv2.get`) authenticated via RS256 JWT service-account assertions (`GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY`).
+  - Only call `completePurchase` (acknowledgement) after the backend confirms verification, preventing unverified client-side unlocks.
+  - Process Google Cloud Pub/Sub Real-Time Developer Notifications on `POST /v1/webhooks/google-play` with shared-secret authenticity checking (`GOOGLE_PLAY_PUBSUB_VERIFICATION_TOKEN`) and `WebhookEvent` (`provider + eventId`) idempotency.
+- **Reason:** Google Play refunds unacknowledged purchases after 3 days, client-only receipts can be spoofed, and Pub/Sub delivers notifications at-least-once—making server verification + `WebhookEvent` deduplication mandatory for production billing.

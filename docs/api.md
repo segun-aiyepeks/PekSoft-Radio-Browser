@@ -79,6 +79,14 @@ Deletes the user's PostgreSQL records (cascading favourites, collections, recent
 Returns the authenticated user's server-verified entitlement view (`tier`, `status`, `source`, `adsEnabled`, `expiresAt`, `limits`, `features`) alongside the canonical Section 7 `FREE` vs `PLUS` feature-gate table (`plans`).
 - **200 OK**: `{ entitlement: { tier, status, source, adsEnabled, expiresAt, limits, features }, plans: { FREE, PLUS } }`
 
+### `POST /v1/billing/google-play/verify` (Auth required)
+Verifies a client-submitted Google Play purchase token (`productId`: `plus_monthly | plus_annual`, `purchaseToken`) server-side with the Google Play Developer API (`purchases.subscriptionsv2.get`) and idempotently grants/updates the user's `PLUS` entitlement with `source: "google_play"`.
+- **200 OK**: `{ entitlement, applied }`
+
+### `POST /v1/webhooks/google-play` (Pub/Sub Push Authenticity Token)
+Receives Google Play Real-Time Developer Notifications (RTDN) via Google Cloud Pub/Sub push (`?token=` or `x-goog-pubsub-token` / Bearer matching `GOOGLE_PLAY_PUBSUB_VERIFICATION_TOKEN`). Deduplicates `message.messageId` in the `WebhookEvent` table (`provider = "google_play"`) and handles purchase, renewal, cancellation, grace period, account hold, expiry, and refund/voided purchases.
+- **200 OK**: `{ received: true, duplicate, eventType, applied }`
+
 ---
 
 ## 5. Library & Sync Endpoints (`/v1/library/*`, `/v1/sync`)

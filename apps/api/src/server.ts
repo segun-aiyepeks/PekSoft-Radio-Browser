@@ -6,6 +6,10 @@ import { APP_NAME } from '@peksoft/shared';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { AuthProvider } from './auth/firebase-auth.js';
 import { FirebaseAuthProvider } from './auth/firebase-auth.js';
+import {
+  HttpGooglePlayClient,
+  type GooglePlayVerifier,
+} from './billing/google-play-client.js';
 import type { CacheStore } from './cache/cache-store.js';
 import { InMemoryLruCache } from './cache/in-memory-lru-cache.js';
 import { loadEnv, parseCorsOrigins, type Env } from './config/env.js';
@@ -34,7 +38,12 @@ import {
   PrismaUserRepository,
   type UserRepository,
 } from './repositories/user-repository.js';
+import {
+  PrismaWebhookEventRepository,
+  type WebhookEventRepository,
+} from './repositories/webhook-event-repository.js';
 import { registerHealthRoutes } from './routes/health.js';
+import { registerBillingRoutes } from './routes/v1/billing.js';
 import { registerCatalogRoutes } from './routes/v1/catalog.js';
 import { registerEntitlementRoutes } from './routes/v1/entitlements.js';
 import { registerLibraryRoutes } from './routes/v1/library.js';
@@ -43,6 +52,7 @@ import { registerReportRoutes } from './routes/v1/reports.js';
 import { registerStationRoutes } from './routes/v1/stations.js';
 import { CatalogService } from './services/catalog-service.js';
 import { EntitlementService } from './services/entitlement-service.js';
+import { GooglePlayBillingService } from './services/google-play-billing-service.js';
 import { LibraryService } from './services/library-service.js';
 import { ReportService } from './services/report-service.js';
 import { UserService } from './services/user-service.js';
@@ -58,6 +68,8 @@ export interface BuildServerOptions {
   entitlementRepository?: EntitlementRepository;
   libraryRepository?: LibraryRepository;
   reportRepository?: ReportRepository;
+  webhookEventRepository?: WebhookEventRepository;
+  googlePlayVerifier?: GooglePlayVerifier;
   /** Optional hook used by tests to mount ephemeral routes before ready(). */
   registerTestRoutes?: (app: FastifyInstance) => void;
 }
@@ -139,11 +151,13 @@ export async function buildServer(
   let entitlementRepository = options.entitlementRepository;
   let libraryRepository = options.libraryRepository;
   let reportRepository = options.reportRepository;
+  let webhookEventRepository = options.webhookEventRepository;
   if (
     (!userRepository ||
       !entitlementRepository ||
       !libraryRepository ||
-      !reportRepository) &&
+      !reportRepository ||
+      !webhookEventRepository) &&
     env.DATABASE_URL
   ) {
     dbHandle = createPrismaClient(env.DATABASE_URL);
@@ -151,6 +165,7 @@ export async function buildServer(
     entitlementRepository ??= new PrismaEntitlementRepository(dbHandle.prisma);
     libraryRepository ??= new PrismaLibraryRepository(dbHandle.prisma);
     reportRepository ??= new PrismaReportRepository(dbHandle.prisma);
+    webhookEventRepository ??= new PrismaWebhookEventRepository(dbHandle.prisma);
     app.addHook('onClose', async () => {
       await dbHandle?.close();
     });
@@ -165,8 +180,21 @@ export async function buildServer(
     });
   }
 
-  if (authProvider && userRepository) {
-    const requireAuth = createRequireAuth(authProvider);
+  let googlePlayVerifier = options.googlePlayVerifier;
+  if (
+    !googlePlayVerifier &&
+    env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL &&
+    env.GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY
+  ) {
+    googlePlayVerifier = new HttpGooglePlayClient({
+      serviceAccountEmail: env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL,
+      privateKey: env.GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY,
+    });
+  }
+
+  const requireAuth = authProvider ? createRequireAuth(authProvider) : undefined;
+
+  if (authProvider && userRepository && requireAuth) {
     const userService = new UserService(userRepository, authProvider);
     registerMeRoutes(app, { requireAuth, userService });
 
@@ -185,6 +213,31 @@ export async function buildServer(
       );
       registerLibraryRoutes(app, { requireAuth, libraryService });
     }
+  }
+
+  if (
+    googlePlayVerifier &&
+    userRepository &&
+    entitlementRepository &&
+    webhookEventRepository
+  ) {
+    const entitlementService = new EntitlementService(
+      userRepository,
+      entitlementRepository,
+    );
+    const googlePlayBillingService = new GooglePlayBillingService({
+      packageName: env.GOOGLE_PLAY_PACKAGE_NAME,
+      pubSubVerificationToken: env.GOOGLE_PLAY_PUBSUB_VERIFICATION_TOKEN,
+      verifier: googlePlayVerifier,
+      users: userRepository,
+      entitlements: entitlementRepository,
+      entitlementService,
+      webhookEvents: webhookEventRepository,
+    });
+    registerBillingRoutes(app, {
+      googlePlayBillingService,
+      requireAuth,
+    });
   }
 
   if (reportRepository && userRepository) {
