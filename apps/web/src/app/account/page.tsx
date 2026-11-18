@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useAuth } from '@/components/auth/auth-provider';
 import { useMockSession } from '@/components/mock-session-provider';
 import { AppShell } from '@/components/radio/app-shell';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -10,12 +11,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 
 export default function AccountPage() {
+  const { user, isPlus, signOut } = useAuth();
   const {
     dataSaver,
     workingNowDefault,
     setDataSaver,
     setWorkingNowDefault,
   } = useMockSession();
+
+  const displayName = user?.displayName || user?.email || 'Guest Listener';
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
     <AppShell>
@@ -28,29 +33,45 @@ export default function AccountPage() {
           <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
             <div className="flex items-center gap-4">
               <Avatar className="size-14">
-                <AvatarFallback>GL</AvatarFallback>
+                <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-heading text-lg font-semibold">
-                    Guest Listener
+                    {displayName}
                   </h2>
-                  <Badge variant="outline">Free Plan</Badge>
+                  <Badge variant={isPlus ? 'default' : 'outline'}>
+                    {isPlus ? 'PekSoft Plus' : 'Free Plan'}
+                  </Badge>
+                  {user && (
+                    <Badge variant={user.emailVerified ? 'live' : 'outline'}>
+                      {user.emailVerified ? 'Verified' : 'Unverified'}
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Sign in to sync favourites and collections across Android and
-                  Web.
+                  {user
+                    ? 'Your favourites and collections sync across Android and Web.'
+                    : 'Sign in to sync favourites and collections across Android and Web.'}
                 </p>
               </div>
             </div>
 
             <div className="flex gap-2">
-              <Link href="/auth">
-                <Button variant="signal">Sign In</Button>
-              </Link>
-              <Link href="/pricing">
-                <Button variant="outline">Upgrade</Button>
-              </Link>
+              {user ? (
+                <Button variant="outline" onClick={() => void signOut()}>
+                  Sign Out
+                </Button>
+              ) : (
+                <Link href="/auth">
+                  <Button variant="signal">Sign In</Button>
+                </Link>
+              )}
+              {!isPlus && (
+                <Link href="/pricing">
+                  <Button variant="outline">Upgrade</Button>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>
