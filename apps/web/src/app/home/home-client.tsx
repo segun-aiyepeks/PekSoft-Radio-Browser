@@ -6,6 +6,7 @@ import { AnimatedGroup } from '@/components/motion-primitives/animated-group';
 import { InView } from '@/components/motion-primitives/in-view';
 import { ScrollProgress } from '@/components/motion-primitives/scroll-progress';
 import { useMockSession } from '@/components/mock-session-provider';
+import { AdSlot } from '@/components/ads/ad-slot';
 import { AppShell } from '@/components/radio/app-shell';
 import { LazySpotlight, LazyTilt } from '@/components/radio/lazy-effects';
 import { StationCard } from '@/components/radio/station-card';
@@ -157,6 +158,8 @@ export function HomeClient({
             ))}
           </div>
         </section>
+
+        <AdSlot variant="banner" />
       </div>
     </AppShell>
   );

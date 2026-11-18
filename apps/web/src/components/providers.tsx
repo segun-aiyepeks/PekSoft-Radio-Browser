@@ -1,6 +1,7 @@
 'use client';
 
 import { MotionConfig } from 'motion/react';
+import { AdConsentProvider } from '@/components/ads/ad-consent-provider';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { MockSessionProvider } from '@/components/mock-session-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -11,7 +12,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <MotionConfig reducedMotion="user">
       <TooltipProvider>
         <AuthProvider>
-          <MockSessionProvider>{children}</MockSessionProvider>
+          <AdConsentProvider>
+            <MockSessionProvider>{children}</MockSessionProvider>
+          </AdConsentProvider>
         </AuthProvider>
         <Toaster position="bottom-right" />
       </TooltipProvider>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { LanguageDto } from '@peksoft/shared';
 import { AnimatedGroup } from '@/components/motion-primitives/animated-group';
 import { ScrollProgress } from '@/components/motion-primitives/scroll-progress';
+import { AdSlot } from '@/components/ads/ad-slot';
 import { AppShell } from '@/components/radio/app-shell';
 import { CountryCard } from '@/components/radio/country-card';
 import {
@@ -98,6 +99,7 @@ export function ExploreClient({
                 ))}
               </AnimatedGroup>
             )}
+            <AdSlot variant="card" />
           </TabsContent>
 
           <TabsContent value="countries" className="mt-4">
