@@ -135,3 +135,19 @@ All technology choices below were verified during **Phase 0 (Foundations)** (`20
   - Use a shared Section 11 event taxonomy (`packages/shared/src/analytics.ts` and `AnalyticsEvents` in `apps/mobile/lib/core/analytics/analytics_service.dart`: `station_play`, `station_fail`, `favorite_add`, `paywall_view`, `purchase_success`, `first_audio_reached`, `ad_rewarded_completed`, `restore_purchases`).
   - Route all events and non-fatal/fatal error reports through `AnalyticsService` / `FirebaseAnalyticsService`, gating collection on Google UMP consent (`setConsentGranted`) and scrubbing all PII keys/email patterns via `sanitizeAnalyticsParams`.
 - **Reason:** Satisfies GDPR / UK / Nigeria NDPA 2023 consent and data-minimisation requirements while keeping product funnel and playback-quality metrics consistent across mobile and web.
+
+
+---
+
+## ADR-015 — Web UI & Motion Stack (`shadcn/ui` + Tailwind CSS v4 + `motion` + Motion Primitives)
+
+- **Status:** Accepted (Phase 6)
+- **Verified Versions:**
+  - `next`: `16.4.6` · `react` / `react-dom`: `19.3.1` · `tailwindcss`: `4.3.5`
+  - `motion`: `14.14.0` · `lucide-react`: `1.73.0` · `react-use-measure`: `2.1.7`
+  - `shadcn/ui`: Base UI (`@base-ui/react`) + `class-variance-authority` + `tw-animate-css`
+- **Decision:**
+  - Initialise `shadcn/ui` in `apps/web/src/components/ui/` with `--radius: 0.875rem`, dark-first theme mapped directly to `packages/design-tokens` CSS variables (`tokens.css` -> `globals.css`), and `Space Grotesk` + `Inter` loaded via `next/font/google`.
+  - Add custom `signal` button variant and `live` / `quality` badge variants.
+  - Install `motion` (`14.14.0`) and copy 13 Motion Primitives (`text-effect`, `animated-group`, `in-view`, `infinite-slider`, `magnetic`, `border-trail`, `spotlight`, `tilt`, `animated-background`, `sliding-number`, `morphing-dialog`, `scroll-progress`, `text-shimmer`) into `src/components/motion-primitives/`, governed by shared tokens in `src/lib/motion.ts` and `<MotionConfig reducedMotion="user">`.
+- **Reason:** Owning the UI and motion source files inside `apps/web/src/components/` gives zero black-box styling lock-in, automatic propagation of token updates from `packages/design-tokens`, and strict reduced-motion / zero-layout-shift control.

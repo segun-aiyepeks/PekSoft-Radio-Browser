@@ -50,9 +50,12 @@ import { registerLibraryRoutes } from './routes/v1/library.js';
 import { registerMeRoutes } from './routes/v1/me.js';
 import { registerReportRoutes } from './routes/v1/reports.js';
 import { registerStationRoutes } from './routes/v1/stations.js';
+import { registerWebBillingRoutes } from './routes/v1/web-billing.js';
 import { CatalogService } from './services/catalog-service.js';
 import { EntitlementService } from './services/entitlement-service.js';
 import { GooglePlayBillingService } from './services/google-play-billing-service.js';
+import { PaystackProvider } from './services/payment-provider.js';
+import { WebBillingService } from './services/web-billing-service.js';
 import { LibraryService } from './services/library-service.js';
 import { ReportService } from './services/report-service.js';
 import { UserService } from './services/user-service.js';
@@ -236,6 +239,33 @@ export async function buildServer(
     });
     registerBillingRoutes(app, {
       googlePlayBillingService,
+      requireAuth,
+    });
+  }
+
+  if (
+    env.PAYSTACK_SECRET_KEY &&
+    userRepository &&
+    entitlementRepository &&
+    webhookEventRepository
+  ) {
+    const entitlementService = new EntitlementService(
+      userRepository,
+      entitlementRepository,
+    );
+    const paystackProvider = new PaystackProvider({
+      secretKey: env.PAYSTACK_SECRET_KEY,
+      planMonthly: env.PAYSTACK_PLAN_MONTHLY,
+      planAnnual: env.PAYSTACK_PLAN_ANNUAL,
+    });
+    const webBillingService = new WebBillingService({
+      provider: paystackProvider,
+      users: userRepository,
+      entitlementService,
+      webhookEvents: webhookEventRepository,
+    });
+    registerWebBillingRoutes(app, {
+      webBillingService,
       requireAuth,
     });
   }

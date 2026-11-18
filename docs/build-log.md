@@ -1220,3 +1220,63 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 - **Google Play Billing & RTDN Webhooks (`5.3`)**: `in_app_purchase` (`^3.3.1`) for `plus_monthly` and `plus_annual`, server-side verification via Google Play Developer API Subscriptions v2 (`POST /v1/billing/google-play/verify`), purchase acknowledgement (`completePurchase`), and idempotent Pub/Sub push webhook (`POST /v1/webhooks/google-play`) handling purchase, renewal, cancellation, grace period, account hold, expiry, and refund via `WebhookEvent`.
 - **Paywall & Lifecycle UI (`5.4`)**: `PaywallScreen` wired to store-provided local-currency prices, purchase pending/success states, restore flow, and rewarded 24h pass; `SubscriptionManagementScreen` with billing-problem grace banner, Google Play `Manage Subscription` deep link, and graceful downgrade preserving user library data.
 - **Analytics & Crashlytics (`5.5`)**: `AnalyticsService` / `FirebaseAnalyticsService` using the Section 11 taxonomy with PII scrubbing and UMP consent enforcement.
+
+
+---
+
+## Milestone 6.1 — Design system setup (Phase 6: Web App)
+
+### What I did
+- Created branch `phase/6-web` from `main`.
+- Initialised `shadcn/ui` in `apps/web` (`components.json`, `src/lib/utils.ts`) and added all 20 base components (`button`, `card`, `badge`, `avatar`, `input`, `tabs`, `toggle-group`, `dialog`, `sheet`, `drawer`, `popover`, `dropdown-menu`, `tooltip`, `skeleton`, `sonner`, `slider`, `scroll-area`, `separator`, `switch`, plus `toggle`).
+- Mapped `packages/design-tokens` (`tokens.css`) onto `shadcn/ui` CSS variables in `apps/web/src/app/globals.css` (dark by default, light supported, `--radius: 0.875rem`), loaded `Space Grotesk` and `Inter` via `next/font/google` in `apps/web/src/app/layout.tsx`, and added the `signal` button variant plus `live` and `quality` badge variants.
+- Installed `motion` (`14.14.0`), `lucide-react` (`1.73.0`), and `react-use-measure` (`2.1.7`), verified the Motion Primitives catalog via `npx motion-primitives@latest list`, and added all 13 requested Motion Primitives (`text-effect`, `animated-group`, `in-view`, `infinite-slider`, `magnetic`, `border-trail`, `spotlight`, `tilt`, `animated-background`, `sliding-number`, `morphing-dialog`, `scroll-progress`, `text-shimmer`).
+- Created `apps/web/src/lib/motion.ts` (durations, easings, springs, stagger tokens) and wrapped the app in `<MotionConfig reducedMotion="user">` in `apps/web/src/components/providers.tsx`.
+- Built the dev-only `/dev/components` gallery (`apps/web/src/app/dev/components/page.tsx`, `components-gallery.tsx`) showcasing every restyled component and motion preset in both Dark and Light themes.
+
+### Why
+- **Why `shadcn/ui` components are code we own**: Unlike a traditional `node_modules` component library, `shadcn/ui` copies the actual TSX source into `apps/web/src/components/ui/`. We can add product-specific variants (`signal`, `live`, `quality`) or accessibility tweaks directly without fighting library overrides.
+- **Why we restyle through CSS tokens instead of editing each component**: Every component references semantic CSS variables (`--background`, `--card`, `--primary`, `--border`, `--radius`) mapped to `tokens.css`. Changing a brand colour or switching between Dark and Light themes updates all 20+ components in one place with zero per-file edits.
+
+### How to run and verify
+- `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
+- Dev gallery: `pnpm --filter @peksoft/web dev` and open `http://localhost:3000/dev/components`
+
+
+---
+
+## Milestone 6.2 — Web UI with mock data (Phase 6: Web App)
+
+### What I did
+- Created deterministic mock data in `apps/web/src/lib/mock-data.ts` (`MOCK_COUNTRIES`, `MOCK_GENRES`, `MOCK_STATIONS`, `MOCK_COLLECTIONS`) and `MockSessionProvider` (`apps/web/src/components/mock-session-provider.tsx`) so clicking Play/Favourite on any station updates the persistent `PlayerBar`, `NowPlayingSheet`, and `Library`.
+- Built product compositions in `apps/web/src/components/radio/`:
+  - `StationArtwork` (station logo with deterministic initials + gradient fallback)
+  - `StationRow` (artwork, `ON AIR` live badge, `"Best in the mobile app"` badge for HTTP-only streams, country flag, up to 2 genres, quality badge, heart, and play/pause `signal` button)
+  - `StationCard` and `CountryCard`
+  - `FilterBar` (`Working now` ON by default, `HTTPS playable`, genre pills, Popular/Trending/A–Z sort)
+  - `PlanToggle` (Monthly vs Annual with `"Save 33%"` badge)
+  - `PlayerBar` + `NowPlayingSheet` (persistent bottom player bar opening the full player `Sheet` with volume slider, sleep timer, share, and report actions)
+  - `AppShell` (desktop left sidebar collapsing to a mobile bottom nav, sticky top search bar, Dark/Light theme toggle, and persistent `PlayerBar`)
+- Built all 10 routes with mock data: `/` (marketing landing), `/home`, `/explore`, `/country/[code]`, `/genre/[slug]`, `/station/[slug]`, `/library`, `/pricing`, `/account`, and `/auth`.
+
+### How to run and verify
+- `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
+
+
+---
+
+## Milestone 6.3 — Motion pass (Phase 6: Web App)
+
+### What I did
+- Created `apps/web/src/app/template.tsx` for subtle `120ms` transform+opacity route transitions.
+- Created `apps/web/src/components/radio/lazy-effects.tsx` using `next/dynamic(..., { ssr: false })` to lazy-load `InfiniteSlider`, `Tilt`, `Spotlight`, and `BorderTrail` without blocking SSR or LCP.
+- Applied Motion Primitives across `/`, `/home`, `/explore`, and `/pricing`:
+  - `TextEffect` on the landing hero headline, `Magnetic` + `BorderTrail` on the primary CTA, `InfiniteSlider` flag/station marquee inside a fixed `h-11` slot (zero CLS).
+  - `Tilt` + `Spotlight` on genre/collection/hero cards.
+  - `AnimatedBackground` on `PlanToggle` and `FilterBar` sort pills.
+  - `SlidingNumber` on landing station count and Pricing `₦12,000` / `₦1,500` toggle.
+  - `InView` + `AnimatedGroup` staggered reveals and `ScrollProgress` on long pages.
+- Documented motion rules and observed `next build` bundle measurements (`1,589 KB` total split client chunks) in `docs/motion-report.md`.
+
+### How to run and verify
+- `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`

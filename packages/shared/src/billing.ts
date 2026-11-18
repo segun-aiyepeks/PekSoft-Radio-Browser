@@ -45,3 +45,30 @@ export const GOOGLE_PLAY_SUBSCRIPTION_NOTIFICATION_TYPES = {
 
 export type GooglePlaySubscriptionNotificationType =
   (typeof GOOGLE_PLAY_SUBSCRIPTION_NOTIFICATION_TYPES)[keyof typeof GOOGLE_PLAY_SUBSCRIPTION_NOTIFICATION_TYPES];
+
+/**
+ * Feature flags shared across API, Web, and Mobile.
+ * `crossPlatformEntitlements` defaults to OFF until Google Play policy for
+ * cross-platform web-purchased subscriptions is confirmed.
+ */
+export const FEATURE_FLAGS = {
+  crossPlatformEntitlements: false,
+} as const;
+
+export const billingPlanPeriodSchema = z.enum(['monthly', 'annual']);
+export type BillingPlanPeriod = z.infer<typeof billingPlanPeriodSchema>;
+
+export const webCheckoutInitRequestSchema = z.object({
+  period: billingPlanPeriodSchema,
+  callbackUrl: z.string().url().max(1000),
+});
+export type WebCheckoutInitRequest = z.infer<
+  typeof webCheckoutInitRequestSchema
+>;
+
+export const webCheckoutVerifyRequestSchema = z.object({
+  reference: z.string().trim().min(4).max(200),
+});
+export type WebCheckoutVerifyRequest = z.infer<
+  typeof webCheckoutVerifyRequestSchema
+>;

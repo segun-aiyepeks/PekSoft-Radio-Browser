@@ -43,6 +43,9 @@ const envSchema = z.object({
   GOOGLE_PLAY_PUBSUB_VERIFICATION_TOKEN: emptyToUndefined(
     z.string().min(1).optional(),
   ),
+  PAYSTACK_SECRET_KEY: emptyToUndefined(z.string().min(1).optional()),
+  PAYSTACK_PLAN_MONTHLY: emptyToUndefined(z.string().min(1).optional()),
+  PAYSTACK_PLAN_ANNUAL: emptyToUndefined(z.string().min(1).optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;
