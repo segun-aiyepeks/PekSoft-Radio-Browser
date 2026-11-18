@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/auth-provider';
 import { PlayerProvider, usePlayer } from '@/components/player/player-provider';
+import { PwaProvider } from '@/components/pwa/pwa-provider';
 import {
   deltaSyncLibrary,
   deleteLibraryFavorite,
@@ -279,7 +280,7 @@ export function MockSessionProvider({
         setWorkingNowDefault={setWorkingNowDefault}
         syncNow={syncNow}
       >
-        {children}
+        <PwaProvider>{children}</PwaProvider>
       </MockSessionInner>
     </PlayerProvider>
   );
