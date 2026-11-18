@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Check } from 'lucide-react';
-import { toast } from 'sonner';
 import { PLAN_FEATURE_GATES } from '@peksoft/shared';
 import { SlidingNumber } from '@/components/motion-primitives/sliding-number';
 import { AppShell } from '@/components/radio/app-shell';
@@ -103,16 +103,11 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Button
-                variant="signal"
-                size="lg"
-                className="w-full"
-                onClick={() =>
-                  toast.info('Paystack checkout will be wired in Milestone 6.8')
-                }
-              >
-                Upgrade to Plus (₦{numericPrice.toLocaleString()} {priceUnit})
-              </Button>
+              <Link href={`/checkout?period=${period}`} className="block">
+                <Button variant="signal" size="lg" className="w-full">
+                  Upgrade to Plus (₦{numericPrice.toLocaleString()} {priceUnit})
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

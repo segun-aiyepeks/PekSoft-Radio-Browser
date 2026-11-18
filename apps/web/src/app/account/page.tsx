@@ -1,6 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { FEATURE_FLAGS } from '@peksoft/shared';
+import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useMockSession } from '@/components/mock-session-provider';
 import { AppShell } from '@/components/radio/app-shell';
@@ -9,9 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { cancelPaystackSubscription } from '@/lib/billing-api';
 
 export default function AccountPage() {
-  const { user, isPlus, signOut } = useAuth();
+  const { user, isPlus, entitlement, getIdToken, refreshEntitlement, signOut } =
+    useAuth();
   const {
     dataSaver,
     workingNowDefault,
@@ -19,8 +24,28 @@ export default function AccountPage() {
     setWorkingNowDefault,
   } = useMockSession();
 
+  const [cancelling, setCancelling] = useState(false);
+
   const displayName = user?.displayName || user?.email || 'Guest Listener';
   const initials = displayName.slice(0, 2).toUpperCase();
+
+  const handleCancelSubscription = async () => {
+    if (!user) return;
+    setCancelling(true);
+    try {
+      const token = await getIdToken();
+      if (!token) throw new Error('Not authenticated');
+      await cancelPaystackSubscription(token);
+      await refreshEntitlement();
+      toast.success('Subscription cancelled.');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Unable to cancel subscription.',
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -70,6 +95,46 @@ export default function AccountPage() {
               {!isPlus && (
                 <Link href="/pricing">
                   <Button variant="outline">Upgrade</Button>
+                </Link>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Subscription &amp; Billing</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1 text-sm">
+              <p className="font-medium">
+                Current plan: {isPlus ? 'PekSoft Plus' : 'Free'}
+                {entitlement?.source ? ` (${entitlement.source})` : ''}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {entitlement?.expiresAt
+                  ? `Renews / expires: ${new Date(entitlement.expiresAt).toLocaleDateString()}`
+                  : 'Every station stays free forever.'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Cross-platform Android unlock flag:{' '}
+                {FEATURE_FLAGS.crossPlatformEntitlements ? 'ON' : 'OFF'}
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              {isPlus ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={cancelling}
+                  onClick={handleCancelSubscription}
+                >
+                  {cancelling ? 'Cancelling…' : 'Cancel Subscription'}
+                </Button>
+              ) : (
+                <Link href="/checkout">
+                  <Button variant="signal">Subscribe to Plus</Button>
                 </Link>
               )}
             </div>
