@@ -5,6 +5,7 @@ export interface WebGenre {
   tagline: string;
   stationCount: number;
   gradient: string;
+  imageUrl: string;
 }
 
 export interface WebCountry {
@@ -67,6 +68,7 @@ export const MOCK_GENRES: WebGenre[] = [
     tagline: 'Lagos, Accra & diaspora rhythms',
     stationCount: 184,
     gradient: 'from-amber-500/35 via-orange-600/20 to-slate-900',
+    imageUrl: '/images/genres/afrobeats.jpg',
   },
   {
     id: 'jazz',
@@ -75,6 +77,7 @@ export const MOCK_GENRES: WebGenre[] = [
     tagline: 'Late-night standards, neo-soul & Tokyo clubs',
     stationCount: 642,
     gradient: 'from-indigo-500/35 via-blue-600/20 to-slate-900',
+    imageUrl: '/images/genres/jazz.jpg',
   },
   {
     id: 'news',
@@ -83,6 +86,7 @@ export const MOCK_GENRES: WebGenre[] = [
     tagline: 'Global headlines, sports & commentary',
     stationCount: 910,
     gradient: 'from-emerald-500/30 via-teal-600/20 to-slate-900',
+    imageUrl: '/images/genres/news.jpg',
   },
   {
     id: 'electronic',
@@ -91,6 +95,7 @@ export const MOCK_GENRES: WebGenre[] = [
     tagline: 'House, ambient, techno & club sets',
     stationCount: 1120,
     gradient: 'from-fuchsia-500/30 via-purple-600/20 to-slate-900',
+    imageUrl: '/images/genres/electronic.jpg',
   },
   {
     id: 'classical',
@@ -99,6 +104,7 @@ export const MOCK_GENRES: WebGenre[] = [
     tagline: 'Orchestral, piano & concert halls',
     stationCount: 410,
     gradient: 'from-sky-500/30 via-cyan-600/20 to-slate-900',
+    imageUrl: '/images/genres/classical.jpg',
   },
   {
     id: 'gospel',
@@ -107,6 +113,7 @@ export const MOCK_GENRES: WebGenre[] = [
     tagline: 'Choirs, worship & Sunday mornings',
     stationCount: 275,
     gradient: 'from-yellow-500/30 via-amber-600/20 to-slate-900',
+    imageUrl: '/images/genres/gospel.jpg',
   },
 ];
 
@@ -115,7 +122,8 @@ export const MOCK_STATIONS: WebStation[] = [
     id: 'st-cool-fm',
     slug: 'cool-fm-96-9-lagos',
     name: 'Cool FM 96.9 Lagos',
-    streamUrl: 'https://icestream.coolfm.ng/live.mp3',
+    streamUrl: 'https://stream.radioparadise.com/aac-128',
+    fallbackStreamUrl: 'https://icecast.radiofrance.fr/fip-hifi.aac',
     homepage: 'https://www.coolfm.ng',
     faviconUrl: null,
     isHttps: true,

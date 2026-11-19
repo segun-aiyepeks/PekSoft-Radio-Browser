@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { LanguageDto } from '@peksoft/shared';
+import { Loader2 } from 'lucide-react';
+import { AdSlot } from '@/components/ads/ad-slot';
 import { AnimatedGroup } from '@/components/motion-primitives/animated-group';
 import { ScrollProgress } from '@/components/motion-primitives/scroll-progress';
-import { AdSlot } from '@/components/ads/ad-slot';
 import { AppShell } from '@/components/radio/app-shell';
 import { CountryCard } from '@/components/radio/country-card';
 import {
@@ -15,50 +16,84 @@ import {
 import { StationRow } from '@/components/radio/station-row';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FADE_UP_VARIANTS } from '@/lib/motion';
+import { searchStations } from '@/lib/api-client';
 import type { WebCountry, WebGenre, WebStation } from '@/lib/mock-data';
+import { FADE_UP_VARIANTS } from '@/lib/motion';
 
 export function ExploreClient({
+  initialQuery = '',
   initialStations,
   countries,
   genres,
   languages,
 }: {
+  initialQuery?: string;
   initialStations: WebStation[];
   countries: WebCountry[];
   genres: WebGenre[];
   languages: LanguageDto[];
 }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
+  const [stations, setStations] = useState<WebStation[]>(initialStations);
+  const [searching, setSearching] = useState(false);
   const [filter, setFilter] = useState<StationFilterState>({
     workingOnly: true,
     httpsOnly: false,
     sort: 'popular',
     genre: null,
   });
+  const isFirstRender = useRef(true);
 
-  const filteredStations = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = initialStations.filter((s) => {
-      if (filter.workingOnly && !s.isWorking) return false;
-      if (filter.httpsOnly && !s.isHttpsPlayable) return false;
-      if (filter.genre && !s.genres.includes(filter.genre)) return false;
-      if (q) {
-        const hay = `${s.name} ${s.countryName} ${s.language} ${s.genres.join(' ')}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-    return [...list].sort((a, b) => {
-      if (filter.sort === 'name') return a.name.localeCompare(b.name);
-      if (filter.sort === 'trending') return b.clickCount - a.clickCount;
-      return b.votes - a.votes;
-    });
-  }, [initialStations, query, filter]);
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
+
+  // Live API search when query or server-side filters change
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setSearching(true);
+      void searchStations({
+        q: query.trim() || undefined,
+        genre: filter.genre ?? undefined,
+        workingOnly: filter.workingOnly,
+        httpsOnly: filter.httpsOnly ? true : undefined,
+        sort: filter.sort === 'trending' ? 'popular' : 'votes',
+        limit: 40,
+      })
+        .then((res) => {
+          if (!cancelled) {
+            setStations(res);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setSearching(false);
+          }
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [query, filter.genre, filter.workingOnly, filter.httpsOnly, filter.sort]);
+
+  const displayedStations = useMemo(() => {
+    if (filter.sort === 'name') {
+      return [...stations].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return stations;
+  }, [stations, filter.sort]);
 
   return (
     <AppShell>
-      <ScrollProgress className="fixed top-0 z-50 h-0.5 bg-[var(--color-accent)]" />
+      <ScrollProgress className="fixed top-0 z-50 h-0.5 bg-[var(--color-accent-violet)]" />
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -66,16 +101,21 @@ export function ExploreClient({
               Explore
             </h1>
             <p className="text-sm text-muted-foreground">
-              Discover stations by country, genre, language, or stream health.
+              Discover live stations by country, genre, language, or stream
+              health.
             </p>
           </div>
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter stations..."
-            aria-label="Filter stations"
-            className="max-w-xs"
-          />
+          <div className="relative w-full max-w-xs">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search stations..."
+              aria-label="Filter stations"
+            />
+            {searching && (
+              <Loader2 className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+          </div>
         </div>
 
         <Tabs defaultValue="stations">
@@ -88,13 +128,13 @@ export function ExploreClient({
 
           <TabsContent value="stations" className="mt-4 space-y-4">
             <FilterBar value={filter} onChange={setFilter} />
-            {filteredStations.length === 0 ? (
+            {displayedStations.length === 0 ? (
               <p className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 No stations match those filters.
               </p>
             ) : (
               <AnimatedGroup variants={FADE_UP_VARIANTS} className="space-y-2.5">
-                {filteredStations.map((station) => (
+                {displayedStations.map((station) => (
                   <StationRow key={station.id} station={station} />
                 ))}
               </AnimatedGroup>
@@ -116,15 +156,24 @@ export function ExploreClient({
                 <Link
                   key={genre.id}
                   href={`/genre/${genre.slug}`}
-                  className={`block rounded-2xl border border-border bg-gradient-to-br ${genre.gradient} p-5 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+                  className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <h3 className="font-heading text-lg font-bold text-white">
-                    {genre.name}
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-200">{genre.tagline}</p>
-                  <p className="mt-3 text-xs font-medium text-[var(--color-accent)]">
-                    {genre.stationCount} stations
-                  </p>
+                  <img
+                    src={genre.imageUrl}
+                    alt={genre.name}
+                    className="h-32 w-full border-b border-border object-cover"
+                  />
+                  <div className="p-4">
+                    <h3 className="font-heading text-base font-bold text-foreground">
+                      {genre.name}
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {genre.tagline}
+                    </p>
+                    <p className="mt-2 text-xs font-medium text-foreground">
+                      {genre.stationCount} stations
+                    </p>
+                  </div>
                 </Link>
               ))}
             </div>

@@ -1,21 +1,14 @@
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Roboto } from 'next/font/google';
 import { APP_NAME } from '@peksoft/shared';
 import { AppProviders } from '@/components/providers';
 import { buildWebsiteJsonLd, getSiteUrl } from '@/lib/seo';
 import './globals.css';
 
-const spaceGrotesk = Space_Grotesk({
+const roboto = Roboto({
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-space-grotesk',
-  display: 'swap',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-inter',
+  weight: ['400', '500', '700'],
+  variable: '--font-roboto',
   display: 'swap',
 });
 
@@ -54,9 +47,12 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="dark"
-      className={`dark ${spaceGrotesk.variable} ${inter.variable}`}
+      className={`dark ${roboto.variable}`}
     >
-      <body className="min-h-screen bg-background text-foreground font-sans antialiased">
+      <body
+        style={{ fontFamily: 'var(--font-roboto), Roboto, system-ui, sans-serif' }}
+        className="min-h-screen bg-background text-foreground font-sans antialiased"
+      >
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}

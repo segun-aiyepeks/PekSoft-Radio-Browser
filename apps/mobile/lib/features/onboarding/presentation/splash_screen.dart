@@ -1,74 +1,100 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
+import 'package:peksoft_radio/features/onboarding/presentation/view_models/splash_view_model.dart';
 
-/// Phase 1 Splash screen previewable via `/splash`.
-class SplashScreen extends StatelessWidget {
+/// Clean Splash screen showing only the singular centered PekSoft logo (no box/border)
+/// and `developed by aiyepeks` at the bottom.
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  Timer? _autoNavTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoNavTimer = Timer(const Duration(seconds: 2), _navigateNext);
+  }
+
+  void _navigateNext() {
+    if (!mounted) return;
+    final destination =
+        ref.read(splashViewModelProvider).value?.destinationRoute ??
+            '/welcome';
+    GoRouter.maybeOf(context)?.go(destination);
+  }
+
+  @override
+  void dispose() {
+    _autoNavTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
 
     return Scaffold(
+      backgroundColor: colors.background,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Semantics(
-                  label: 'PekSoft Radio Browser logo',
-                  child: Container(
-                    width: AppSpacing.s3xl + AppSpacing.xl,
-                    height: AppSpacing.s3xl + AppSpacing.xl,
-                    decoration: BoxDecoration(
-                      color: colors.surfaceElevated,
-                      borderRadius: BorderRadius.circular(AppRadii.xl),
-                      border: Border.all(color: colors.accent),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            _autoNavTimer?.cancel();
+            _navigateNext();
+          },
+          child: Column(
+            children: [
+              const Spacer(),
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Semantics(
+                      container: true,
+                      excludeSemantics: true,
+                      label: 'PekSoft Radio Browser logo',
+                      child: const PekSoftSignalLoader(
+                        size: 136,
+                        label: null,
+                        showBackground: false,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.radio_rounded,
-                      size: AppSpacing.s3xl,
-                      color: colors.accent,
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'PekSoft Radio Browser',
+                      style: AppTypography.h2.copyWith(
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  'PekSoft Radio',
-                  style: AppTypography.display.copyWith(
-                    color: colors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Live radio from every corner of the world',
-                  style: AppTypography.body.copyWith(
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                child: Text(
+                  '© ${DateTime.now().year} developed by aiyepeks',
+                  style: AppTypography.bodySmall.copyWith(
                     color: colors.textSecondary,
+                    fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppSpacing.s2xl),
-                PrimaryButton(
-                  label: 'Get Started',
-                  icon: Icons.arrow_forward_rounded,
-                  onPressed: () => context.go('/welcome'),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  height: AppSpacing.touchTarget,
-                  child: TextButton(
-                    onPressed: () => context.go('/home'),
-                    child: const Text('Skip to Home'),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -1,11 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
-import 'package:peksoft_radio/core/utils/country_flag.dart';
+import 'package:peksoft_radio/core/utils/station_share.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
 import 'package:peksoft_radio/features/player/domain/playback_state.dart';
 import 'package:peksoft_radio/features/player/presentation/report_station_sheet.dart';
@@ -14,14 +12,44 @@ import 'package:peksoft_radio/features/player/presentation/view_models/player_vi
 import 'package:peksoft_radio/features/station/domain/station.dart';
 import 'package:peksoft_radio/features/station/presentation/station_list_tile.dart';
 
-/// Full Now Playing screen with artwork, ICY track title, play/pause,
-/// favourite, sleep timer, share, report sheet, quality badge, similar
-/// stations, and a dev-only playback state switcher (`kDebugMode`).
+/// Full Now Playing screen with artwork, play/pause, favourite, sleep timer,
+/// share, report sheet, quality badge, and similar stations.
 class NowPlayingScreen extends ConsumerWidget {
   const NowPlayingScreen({super.key});
 
+  String? _snackMessageForStatus(PlaybackStatus status, String stationName) {
+    return switch (status) {
+      PlaybackStatus.idle => '$stationName is idle. Tap Play to start.',
+      PlaybackStatus.buffering => 'Buffering $stationName…',
+      PlaybackStatus.reconnecting => 'Reconnecting to $stationName…',
+      PlaybackStatus.unavailable =>
+        '$stationName is currently unavailable. Tap Retry or try another station.',
+      PlaybackStatus.playing || PlaybackStatus.paused => null,
+    };
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<PlaybackStatus>(
+      playbackViewModelProvider.select((s) => s.playback.status),
+      (PlaybackStatus? previous, PlaybackStatus next) {
+        if (previous == next) return;
+        final String stationName =
+            ref.read(playbackViewModelProvider).playback.currentStation?.name ??
+            'Radio';
+        final String? msg = _snackMessageForStatus(next, stationName);
+        if (msg == null || !context.mounted) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              duration: const Duration(seconds: 8),
+            ),
+          );
+      },
+    );
+
     final colors = context.appColors;
     final PlayerState playerState = ref.watch(playbackViewModelProvider);
     final PlaybackState playback = playerState.playback;
@@ -68,7 +96,6 @@ class NowPlayingScreen extends ConsumerWidget {
         ? null
         : (sleepRemaining.inSeconds / 60).ceil();
     final List<Station> similar = playerState.similarStations;
-    final String flag = countryFlagEmoji(station.countryCode);
     final PlayerViewModel notifier = ref.read(
       playbackViewModelProvider.notifier,
     );
@@ -97,13 +124,27 @@ class NowPlayingScreen extends ConsumerWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            Text(
-              '$flag ${station.countryName}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodySmall.copyWith(
-                color: colors.textSecondary,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CountryFlagImage(
+                  countryCode: station.countryCode,
+                  width: 18,
+                  height: 13,
+                  borderRadius: 3,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Flexible(
+                  child: Text(
+                    station.countryName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -115,71 +156,39 @@ class NowPlayingScreen extends ConsumerWidget {
             child: SizedBox(
               width: AppSpacing.touchTarget,
               height: AppSpacing.touchTarget,
-              child: IconButton(
-                tooltip: 'Share',
-                icon: const Icon(Icons.share_outlined),
-                onPressed: () {
-                  Clipboard.setData(
-                    ClipboardData(
-                      text: 'https://peksoft.radio/station/${station.id}',
-                    ),
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Share link copied: https://peksoft.radio/station/${station.id}',
-                      ),
-                    ),
-                  );
-                },
+              child: Builder(
+                builder: (buttonContext) => IconButton(
+                  tooltip: 'Share',
+                  icon: const Icon(Icons.share_outlined),
+                  onPressed: () => shareStation(buttonContext, station),
+                ),
               ),
             ),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.s2xl),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s2xl),
         children: [
-          if (kDebugMode)
-            _DevPlaybackStateSwitcher(
-              currentStatus: status,
-              onSelectStatus: (PlaybackStatus s) =>
-                  notifier.setPlaybackStatus(s),
-            ),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: BorderRadius.circular(AppRadii.xl),
-                    border: Border.all(color: colors.border),
-                  ),
-                  child: StationLogo(
-                    stationName: station.name,
-                    faviconUrl: station.faviconUrl,
-                    hasLogo: !station.usesFallbackLogo,
-                    size: AppSpacing.s3xl * 3,
-                  ),
+                StationLogo(
+                  stationName: station.name,
+                  faviconUrl: station.faviconUrl,
+                  genres: station.genres.map((g) => g.id).toList(),
+                  hasLogo: !station.usesFallbackLogo,
+                  size: AppSpacing.s3xl * 3,
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
                   station.name,
                   textAlign: TextAlign.center,
                   style: AppTypography.h1.copyWith(color: colors.textPrimary),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  playback.icyTitle ??
-                      (station.language.isNotEmpty
-                          ? 'Live Broadcast · ${station.language}'
-                          : 'Live Broadcast'),
-                  textAlign: TextAlign.center,
-                  style: AppTypography.body.copyWith(
-                    color: colors.textSecondary,
-                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Wrap(
@@ -227,7 +236,7 @@ class NowPlayingScreen extends ConsumerWidget {
                             isFav
                                 ? Icons.favorite_rounded
                                 : Icons.favorite_border_rounded,
-                            color: isFav ? colors.accent : colors.textPrimary,
+                            color: isFav ? colors.error : colors.textPrimary,
                           ),
                         ),
                       ),
@@ -291,18 +300,12 @@ class NowPlayingScreen extends ConsumerWidget {
                       label: 'Report',
                       onTap: () => showReportStationSheet(context, station),
                     ),
-                    _PlayerActionButton(
-                      icon: Icons.share_outlined,
-                      label: 'Share',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Share link copied: https://peksoft.radio/station/${station.id}',
-                            ),
-                          ),
-                        );
-                      },
+                    Builder(
+                      builder: (buttonContext) => _PlayerActionButton(
+                        icon: Icons.share_outlined,
+                        label: 'Share',
+                        onTap: () => shareStation(buttonContext, station),
+                      ),
                     ),
                     _PlayerActionButton(
                       icon: Icons.info_outline_rounded,
@@ -326,6 +329,8 @@ class NowPlayingScreen extends ConsumerWidget {
               ),
           ],
         ],
+          ),
+        ),
       ),
     );
   }
@@ -532,60 +537,6 @@ class _PlayerActionButton extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _DevPlaybackStateSwitcher extends StatelessWidget {
-  const _DevPlaybackStateSwitcher({
-    required this.currentStatus,
-    required this.onSelectStatus,
-  });
-
-  final PlaybackStatus currentStatus;
-  final ValueChanged<PlaybackStatus> onSelectStatus;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        0,
-      ),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: colors.surfaceElevated,
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: colors.accent),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Dev State Switcher (Preview Playback States)',
-            style: AppTypography.caption.copyWith(
-              color: colors.accent,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.xs,
-            runSpacing: AppSpacing.xs,
-            children: [
-              for (final PlaybackStatus state in PlaybackStatus.values)
-                GenreChip(
-                  label: state.name,
-                  selected: currentStatus == state,
-                  onTap: () => onSelectStatus(state),
-                ),
-            ],
-          ),
-        ],
       ),
     );
   }

@@ -124,7 +124,7 @@ void main() {
         fakeAudio.emitIcyTitle('Newsday Live');
         await tester.pumpAndSettle();
 
-        expect(find.text('Newsday Live'), findsNWidgets(2));
+        expect(find.text('Newsday Live'), findsOneWidget);
       },
     );
   });

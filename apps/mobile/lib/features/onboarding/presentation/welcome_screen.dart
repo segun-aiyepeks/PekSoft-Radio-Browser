@@ -3,16 +3,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
-import 'package:peksoft_radio/core/utils/country_flag.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
 import 'package:peksoft_radio/features/catalog/domain/country.dart';
 import 'package:peksoft_radio/features/catalog/domain/genre.dart';
 import 'package:peksoft_radio/features/explore/presentation/view_models/explore_view_model.dart';
 import 'package:peksoft_radio/features/onboarding/presentation/view_models/welcome_view_model.dart';
 
-/// Onboarding Welcome screen: country pick, optional taste chips, visible Skip.
-class WelcomeScreen extends ConsumerWidget {
+/// 3-page Onboarding flow:
+///   1) Discover global radio in one tap
+///   2) Pick your home country (with real flag images)
+///   3) Pick your favourite genres & Start Listening
+class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  ConsumerState<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
   static const List<Country> _fallbackCountries = <Country>[
     Country(code: 'NG', name: 'Nigeria'),
@@ -33,13 +43,29 @@ class WelcomeScreen extends ConsumerWidget {
     Genre(id: 'pop', name: 'Pop'),
     Genre(id: 'gospel', name: 'Gospel & Christian'),
     Genre(id: 'jazz', name: 'Jazz'),
+    Genre(id: 'sports', name: 'Sports'),
     Genre(id: 'hiphop', name: 'Hip-Hop & R&B'),
     Genre(id: 'rock', name: 'Rock'),
-    Genre(id: 'electronic', name: 'Electronic & Dance'),
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _nextPage() {
+    if (_currentPage < 2) {
+      _pageController.animateToPage(
+        _currentPage + 1,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = context.appColors;
     final WelcomeState welcomeState = ref.watch(welcomeViewModelProvider);
     final WelcomeViewModel vm = ref.read(welcomeViewModelProvider.notifier);
@@ -54,14 +80,14 @@ class WelcomeScreen extends ConsumerWidget {
 
     final List<Genre> genres =
         exploreAsync.asData?.value.genres.isNotEmpty == true
-        ? exploreAsync.asData!.value.genres.take(12).toList(growable: false)
+        ? exploreAsync.asData!.value.genres.take(8).toList(growable: false)
         : _fallbackGenres;
 
     final String selectedCountry = welcomeState.selectedCountryCode ?? 'NG';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Welcome'),
+        title: Text('Step ${_currentPage + 1} of 3'),
         actions: [
           Semantics(
             button: true,
@@ -79,85 +105,274 @@ class WelcomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          Text(
-            'Tune into your world',
-            style: AppTypography.h2.copyWith(color: colors.textPrimary),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Pick a home country and a few genres you enjoy. Everything is optional — you can skip anytime.',
-            style: AppTypography.body.copyWith(color: colors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            'Your country',
-            style: AppTypography.title.copyWith(color: colors.textPrimary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              for (final Country country in countries)
-                GenreChip(
-                  label: '${countryFlagEmoji(country.code)} ${country.name}',
-                  selected: selectedCountry == country.code,
-                  onTap: () => vm.selectCountry(country.code),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            'What do you like to hear? (Optional)',
-            style: AppTypography.title.copyWith(color: colors.textPrimary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              for (final Genre genre in genres)
-                GenreChip(
-                  label: genre.name,
-                  selected: welcomeState.selectedGenreIds.contains(genre.id),
-                  onTap: () => vm.toggleGenre(genre.id),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.s2xl),
-          PrimaryButton(
-            label: welcomeState.isSubmitting ? 'Saving...' : 'Start Listening',
-            icon: Icons.headphones_rounded,
-            onPressed: welcomeState.isSubmitting
-                ? null
-                : () async {
-                    if (welcomeState.selectedCountryCode == null) {
-                      vm.selectCountry(selectedCountry);
-                    }
-                    await vm.completeOnboarding();
-                    if (context.mounted) {
-                      context.go('/home');
-                    }
-                  },
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Center(
-            child: SizedBox(
-              height: AppSpacing.touchTarget,
-              child: TextButton(
-                onPressed: () {
-                  vm.skip();
-                  context.go('/home');
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: (int idx) {
+                  setState(() => _currentPage = idx);
                 },
-                child: const Text('Skip for now'),
+                children: [
+                  // Page 1: Global radio discovery
+                  _OnboardingIntroPage(),
+                  // Page 2: Home country picker
+                  _OnboardingCountryPage(
+                    countries: countries,
+                    selectedCountry: selectedCountry,
+                    onSelect: vm.selectCountry,
+                  ),
+                  // Page 3: Genre taste picker
+                  _OnboardingGenrePage(
+                    genres: genres,
+                    selectedGenreIds: welcomeState.selectedGenreIds.toSet(),
+                    onToggleGenre: vm.toggleGenre,
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List<Widget>.generate(3, (int idx) {
+                      final bool active = idx == _currentPage;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: active ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: active ? colors.accent : colors.border,
+                          borderRadius: BorderRadius.circular(AppRadii.full),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  if (_currentPage < 2)
+                    PrimaryButton(
+                      label: 'Next',
+                      icon: Icons.arrow_forward_rounded,
+                      onPressed: _nextPage,
+                    )
+                  else
+                    PrimaryButton(
+                      label: 'Start Listening',
+                      icon: Icons.play_arrow_rounded,
+                      onPressed: () async {
+                        await vm.completeOnboarding();
+                        if (context.mounted) {
+                          context.go('/home');
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _OnboardingIntroPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: (constraints.maxHeight - AppSpacing.xl * 2).clamp(
+              0,
+              double.infinity,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadii.xl),
+                child: Image.asset(
+                  'assets/images/genres/afrobeats.jpg',
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                'Every radio station in the world',
+                textAlign: TextAlign.center,
+                style: AppTypography.h1.copyWith(color: colors.textPrimary),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Stream 40,000+ live FM and internet stations from 195+ countries with zero setup.',
+                textAlign: TextAlign.center,
+                style: AppTypography.body.copyWith(color: colors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingCountryPage extends StatelessWidget {
+  const _OnboardingCountryPage({
+    required this.countries,
+    required this.selectedCountry,
+    required this.onSelect,
+  });
+
+  final List<Country> countries;
+  final String selectedCountry;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        Text(
+          'Tune into your world',
+          style: AppTypography.h2.copyWith(color: colors.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Pick your home country so we surface verified local stations first.',
+          style: AppTypography.body.copyWith(color: colors.textSecondary),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final Country country in countries)
+              ChoiceChip(
+                avatar: CountryFlagImage(
+                  countryCode: country.code,
+                  width: 22,
+                  height: 16,
+                  borderRadius: 3,
+                ),
+                label: Text(country.name),
+                selected: selectedCountry == country.code,
+                onSelected: (_) => onSelect(country.code),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _OnboardingGenrePage extends StatelessWidget {
+  const _OnboardingGenrePage({
+    required this.genres,
+    required this.selectedGenreIds,
+    required this.onToggleGenre,
+  });
+
+  final List<Genre> genres;
+  final Set<String> selectedGenreIds;
+  final ValueChanged<String> onToggleGenre;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        Text(
+          'What do you love to hear?',
+          style: AppTypography.h2.copyWith(color: colors.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Pick a few genres to personalise your Home feed. You can change this anytime.',
+          style: AppTypography.body.copyWith(color: colors.textSecondary),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: AppSpacing.sm,
+            crossAxisSpacing: AppSpacing.sm,
+            childAspectRatio: 1.7,
+          ),
+          itemCount: genres.length,
+          itemBuilder: (BuildContext context, int index) {
+            final Genre genre = genres[index];
+            final bool selected = selectedGenreIds.contains(genre.id);
+            final String asset = resolveStationThemeAsset(
+              genre.name,
+              genres: [genre.id],
+            );
+            return InkWell(
+              onTap: () => onToggleGenre(genre.id),
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  border: Border.all(
+                    color: selected ? colors.accent : colors.border,
+                    width: selected ? 2 : 1,
+                  ),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(asset, fit: BoxFit.cover),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.25),
+                            Colors.black.withValues(alpha: 0.8),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      child: Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Text(
+                          genre.name,
+                          style: AppTypography.title.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

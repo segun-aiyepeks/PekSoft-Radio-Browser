@@ -139,3 +139,18 @@ class HomeViewModel extends AsyncNotifier<HomeState> {
 
 final AsyncNotifierProvider<HomeViewModel, HomeState> homeViewModelProvider =
     AsyncNotifierProvider<HomeViewModel, HomeState>(HomeViewModel.new);
+
+/// Loads up to 15 live stations for a single genre shelf on [HomeScreen].
+final homeGenreStationsProvider =
+    FutureProvider.family<List<Station>, String>((ref, String genreId) async {
+      final catalog = ref.read(catalogRepositoryProvider);
+      final Result<List<Station>> res = await catalog.getStationsByGenre(
+        genreId,
+        filter: StationFilter(genreId: genreId),
+      );
+      return switch (res) {
+        Success<List<Station>>(:final data) =>
+          data.take(15).toList(growable: false),
+        Failure<List<Station>>() => const <Station>[],
+      };
+    });

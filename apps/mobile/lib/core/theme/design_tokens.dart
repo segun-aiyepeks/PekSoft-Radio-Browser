@@ -4,43 +4,43 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppDarkColors {
-  static const Color background = Color(0xFF0A0F1C);
-  static const Color surface = Color(0xFF101A2E);
-  static const Color surfaceElevated = Color(0xFF18243E);
-  static const Color surfaceMuted = Color(0xFF131F36);
-  static const Color border = Color(0xFF243352);
-  static const Color textPrimary = Color(0xFFF4F6FB);
-  static const Color textSecondary = Color(0xFFB8C2D9);
-  static const Color textMuted = Color(0xFF8B98B8);
-  static const Color accent = Color(0xFFFFB020);
-  static const Color accentHover = Color(0xFFFFC24D);
-  static const Color onAccent = Color(0xFF0A0F1C);
-  static const Color success = Color(0xFF34D399);
-  static const Color warning = Color(0xFFFBBF24);
-  static const Color error = Color(0xFFF87171);
-  static const Color info = Color(0xFF60A5FA);
+  static const Color background = Color(0xFF0B0E17);
+  static const Color surface = Color(0xFF131826);
+  static const Color surfaceElevated = Color(0xFF1A2138);
+  static const Color surfaceMuted = Color(0xFF1C1F29);
+  static const Color border = Color(0xFF262B3D);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFF94A3B8);
+  static const Color textMuted = Color(0xFF7B8CA3);
+  static const Color accent = Color(0xFF8A2BE2);
+  static const Color accentHover = Color(0xFF7A22CC);
+  static const Color onAccent = Color(0xFFFFFFFF);
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color error = Color(0xFFEF4444);
+  static const Color info = Color(0xFF38BDF8);
 }
 
 abstract final class AppLightColors {
-  static const Color background = Color(0xFFF6F4EE);
+  static const Color background = Color(0xFFF6F7FB);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceElevated = Color(0xFFFDFCF9);
-  static const Color surfaceMuted = Color(0xFFECE8DE);
-  static const Color border = Color(0xFFD8D2C5);
-  static const Color textPrimary = Color(0xFF0A0F1C);
-  static const Color textSecondary = Color(0xFF3A445C);
-  static const Color textMuted = Color(0xFF5A657D);
-  static const Color accent = Color(0xFFB45309);
-  static const Color accentHover = Color(0xFF92400E);
+  static const Color surfaceElevated = Color(0xFFF1F4FA);
+  static const Color surfaceMuted = Color(0xFFE9EEF7);
+  static const Color border = Color(0xFFE2E8F0);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475569);
+  static const Color textMuted = Color(0xFF526071);
+  static const Color accent = Color(0xFF7C22CE);
+  static const Color accentHover = Color(0xFF6B1BB5);
   static const Color onAccent = Color(0xFFFFFFFF);
-  static const Color success = Color(0xFF047857);
-  static const Color warning = Color(0xFFB45309);
-  static const Color error = Color(0xFFB91C1C);
-  static const Color info = Color(0xFF1D4ED8);
+  static const Color success = Color(0xFF059669);
+  static const Color warning = Color(0xFFD97706);
+  static const Color error = Color(0xFFDC2626);
+  static const Color info = Color(0xFF0284C7);
 }
 
 abstract final class AppTypography {
-  static const String fontFamily = 'Space Grotesk';
+  static const String fontFamily = 'Roboto';
 
   static const TextStyle display = TextStyle(
     fontFamily: fontFamily,

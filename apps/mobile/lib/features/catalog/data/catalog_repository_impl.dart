@@ -7,6 +7,7 @@ import 'package:peksoft_radio/core/domain/result.dart';
 import 'package:peksoft_radio/core/network/dto/radio_browser_country_dto.dart';
 import 'package:peksoft_radio/core/network/dto/radio_browser_language_dto.dart';
 import 'package:peksoft_radio/core/network/dto/radio_browser_station_dto.dart';
+import 'package:peksoft_radio/core/network/dto/radio_browser_tag_dto.dart';
 import 'package:peksoft_radio/core/network/radio_browser_client.dart';
 import 'package:peksoft_radio/core/normalisation/genre_map.dart';
 import 'package:peksoft_radio/core/normalisation/station_normaliser.dart';
@@ -71,8 +72,31 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<Result<List<Genre>>> getGenres({bool forceRefresh = false}) async {
-    // Canonical genres come from packages/shared/genre-map.json; counts are
-    // enriched from cached stations when available.
+    final Result<List<Genre>> remoteOrCached = await _fetchWithSwr<List<Genre>>(
+      cacheKey: 'catalog:genres:v2',
+      ttl: listTtl,
+      forceRefresh: forceRefresh,
+      decode: _decodeGenres,
+      encode: _encodeGenres,
+      fetchRemote: () async {
+        final Result<List<RadioBrowserTagDto>> res = await _client.getTags(
+          limit: 2000,
+        );
+        return switch (res) {
+          Success<List<RadioBrowserTagDto>>(:final data) =>
+            Success<List<Genre>>(_aggregateGenresFromTags(data)),
+          Failure<List<RadioBrowserTagDto>>(:final error) =>
+            Failure<List<Genre>>(error),
+        };
+      },
+    );
+
+    if (remoteOrCached case Success<List<Genre>>(:final data)
+        when data.isNotEmpty) {
+      return Success<List<Genre>>(data);
+    }
+
+    // Offline / fallback: build canonical genres enriched from local cache.
     final List<Station> cachedStations = await _db.getAllCachedStations();
     final Map<String, int> counts = <String, int>{};
     for (final Station station in cachedStations) {
@@ -88,6 +112,23 @@ class CatalogRepositoryImpl implements CatalogRepository {
         )
         .toList(growable: false);
     return Success<List<Genre>>(genres);
+  }
+
+  List<Genre> _aggregateGenresFromTags(List<RadioBrowserTagDto> tags) {
+    final Map<String, int> counts = <String, int>{};
+    for (final RadioBrowserTagDto tag in tags) {
+      if (tag.stationcount <= 0) continue;
+      final List<Genre> matched = _normaliser.genreMap.mapTags(tag.name);
+      for (final Genre g in matched) {
+        counts[g.id] = (counts[g.id] ?? 0) + tag.stationcount;
+      }
+    }
+    return _normaliser.genreMap.definitions
+        .map(
+          (GenreDefinition def) =>
+              def.toGenre(stationCount: counts[def.id] ?? 0),
+        )
+        .toList(growable: false);
   }
 
   @override
@@ -366,6 +407,37 @@ class CatalogRepositoryImpl implements CatalogRepository {
           ),
         )
         .toList(growable: false);
+  }
+
+  static List<Genre> _decodeGenres(String jsonStr) {
+    final List<dynamic> raw = jsonDecode(jsonStr) as List<dynamic>;
+    return raw
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (Map<String, dynamic> m) => Genre(
+            id: m['id'] as String? ?? '',
+            name: m['name'] as String? ?? '',
+            stationCount: (m['stationCount'] as num?)?.toInt() ?? 0,
+            tagline: m['tagline'] as String? ?? '',
+          ),
+        )
+        .where((Genre g) => g.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static String _encodeGenres(List<Genre> genres) {
+    return jsonEncode(
+      genres
+          .map(
+            (Genre g) => <String, dynamic>{
+              'id': g.id,
+              'name': g.name,
+              'stationCount': g.stationCount,
+              'tagline': g.tagline,
+            },
+          )
+          .toList(growable: false),
+    );
   }
 
   static String _encodeLanguages(List<Language> languages) {

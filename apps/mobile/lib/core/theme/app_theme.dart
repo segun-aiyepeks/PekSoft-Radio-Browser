@@ -37,6 +37,10 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   final Color error;
   final Color info;
 
+  /// High-contrast accent color suitable for small text and icons on [surface] / [background].
+  Color get accentText =>
+      background.computeLuminance() < 0.2 ? const Color(0xFFC084FC) : accent;
+
   static const AppSemanticColors dark = AppSemanticColors(
     background: AppDarkColors.background,
     surface: AppDarkColors.surface,
@@ -205,13 +209,13 @@ abstract final class AppTheme {
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? colors.accent : colors.textMuted,
+            color: selected ? colors.accentText : colors.textMuted,
           );
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return AppTypography.caption.copyWith(
-            color: selected ? colors.accent : colors.textMuted,
+            color: selected ? colors.accentText : colors.textMuted,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           );
         }),

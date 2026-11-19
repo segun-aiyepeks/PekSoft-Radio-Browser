@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { AppShell } from '@/components/radio/app-shell';
+import { CountryFlag } from '@/components/radio/country-flag';
 import {
   FilterBar,
   type StationFilterState,
@@ -42,9 +43,12 @@ export function CountryClient({
     <AppShell>
       <div className="space-y-6">
         <header className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-6">
-          <span className="flex size-16 items-center justify-center rounded-2xl bg-muted text-4xl">
-            {country.flag}
-          </span>
+          <CountryFlag
+            code={country.code}
+            name={country.name}
+            emojiFallback={country.flag}
+            size="lg"
+          />
           <div>
             <h1 className="font-heading text-3xl font-bold">{country.name}</h1>
             <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">

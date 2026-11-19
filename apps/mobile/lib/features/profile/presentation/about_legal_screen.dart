@@ -40,6 +40,13 @@ class AboutLegalScreen extends StatelessWidget {
                   'Station data by Radio Browser (radio-browser.info). Live audio streams are served directly by their respective broadcasters.',
                   style: AppTypography.body.copyWith(color: colors.accent),
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  '© ${DateTime.now().year} developed by aiyepeks',
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textMuted,
+                  ),
+                ),
               ],
             ),
           ),

@@ -12,7 +12,6 @@ import {
 import type Hls from 'hls.js';
 import { APP_NAME } from '@peksoft/shared';
 import { toast } from 'sonner';
-import { probeStreamCors } from '@/lib/audio-cors';
 import type { WebStation } from '@/lib/mock-data';
 import {
   isHlsStream,
@@ -31,6 +30,7 @@ export interface PlayerContextValue {
   corsAnalyserActive: boolean;
   analyserLevels: readonly number[];
   playStation: (station: WebStation) => void;
+  seedDefaultStation: (station: WebStation) => void;
   togglePlayPause: () => void;
   retry: () => void;
   stop: () => void;
@@ -186,7 +186,6 @@ export function PlayerProvider({
       if (el) {
         el.pause();
         el.removeAttribute('src');
-        el.load();
       }
     }
     activeAudioRef.current = null;
@@ -201,13 +200,9 @@ export function PlayerProvider({
       if (requestId !== playRequestIdRef.current) return false;
 
       const isHls = isHlsStream(url, station.isHls);
-      // Probe CORS only for non-HLS streams; only connect Web Audio API if allowed.
-      const allowCorsAnalyser = !isHls && (await probeStreamCors(url));
-      if (requestId !== playRequestIdRef.current) return false;
-
       teardownActiveStream();
 
-      const audio = allowCorsAnalyser ? ensureCorsAudio() : ensurePlainAudio();
+      const audio = ensurePlainAudio();
       if (!audio) return false;
 
       activeAudioRef.current = audio;
@@ -243,7 +238,7 @@ export function PlayerProvider({
               hls.destroy();
               if (hlsRef.current === hls) hlsRef.current = null;
               finish(false);
-            }, 10000);
+            }, 12000);
 
             hls.on(HlsLib.Events.MANIFEST_PARSED, async () => {
               if (requestId !== playRequestIdRef.current) {
@@ -274,10 +269,10 @@ export function PlayerProvider({
         }
       }
 
+      // Direct HTML5 audio playback called immediately to preserve browser user-gesture activation.
       return await new Promise<boolean>((resolve) => {
         let settled = false;
         const cleanup = () => {
-          audio.removeEventListener('canplay', onCanPlay);
           audio.removeEventListener('error', onError);
           window.clearTimeout(timer);
         };
@@ -288,32 +283,24 @@ export function PlayerProvider({
           resolve(ok);
         };
 
-        const onCanPlay = async () => {
-          if (requestId !== playRequestIdRef.current) {
-            finish(false);
-            return;
-          }
-          try {
-            await audio.play();
-            if (allowCorsAnalyser) {
-              startAnalyserLoop(audio);
+        const onError = () => finish(false);
+        const timer = window.setTimeout(() => finish(false), 12000);
+        audio.addEventListener('error', onError, { once: true });
+
+        audio.src = url;
+        void audio
+          .play()
+          .then(() => {
+            if (requestId !== playRequestIdRef.current) {
+              finish(false);
+              return;
             }
             finish(true);
-          } catch {
-            finish(false);
-          }
-        };
-
-        const onError = () => finish(false);
-
-        const timer = window.setTimeout(() => finish(false), 10000);
-        audio.addEventListener('canplay', onCanPlay, { once: true });
-        audio.addEventListener('error', onError, { once: true });
-        audio.src = url;
-        audio.load();
+          })
+          .catch(() => finish(false));
       });
     },
-    [ensureCorsAudio, ensurePlainAudio, startAnalyserLoop, teardownActiveStream],
+    [ensurePlainAudio, teardownActiveStream],
   );
 
   const startPlaybackWithFailover = useCallback(
@@ -368,6 +355,12 @@ export function PlayerProvider({
     },
     [onStationPlay, startPlaybackWithFailover, teardownActiveStream],
   );
+
+  const seedDefaultStation = useCallback((station: WebStation) => {
+    if (statusRef.current === 'idle') {
+      setCurrentStation(station);
+    }
+  }, []);
 
   const togglePlayPause = useCallback(() => {
     const station = currentStationRef.current;
@@ -624,6 +617,7 @@ export function PlayerProvider({
       corsAnalyserActive,
       analyserLevels,
       playStation,
+      seedDefaultStation,
       togglePlayPause,
       retry,
       stop,
@@ -641,6 +635,7 @@ export function PlayerProvider({
       corsAnalyserActive,
       analyserLevels,
       playStation,
+      seedDefaultStation,
       togglePlayPause,
       retry,
       stop,

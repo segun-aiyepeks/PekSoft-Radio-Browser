@@ -20,6 +20,7 @@ import 'package:peksoft_radio/features/onboarding/presentation/splash_screen.dar
 import 'package:peksoft_radio/features/onboarding/presentation/welcome_screen.dart';
 import 'package:peksoft_radio/features/player/presentation/mini_player_slot.dart';
 import 'package:peksoft_radio/features/player/presentation/now_playing_screen.dart';
+import 'package:peksoft_radio/features/player/presentation/view_models/player_view_model.dart';
 import 'package:peksoft_radio/features/profile/presentation/about_legal_screen.dart';
 import 'package:peksoft_radio/features/profile/presentation/delete_account_screen.dart';
 import 'package:peksoft_radio/features/profile/presentation/profile_screen.dart';
@@ -34,7 +35,7 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/home',
+  initialLocation: '/splash',
   routes: [
     GoRoute(
       path: '/splash',
@@ -93,29 +94,39 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/search',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => SearchScreen(
-        initialQuery: state.uri.queryParameters['q'] ?? '',
-        initialLanguage: state.uri.queryParameters['language'],
+      builder: (context, state) => _WithPersistentMiniPlayer(
+        child: SearchScreen(
+          initialQuery: state.uri.queryParameters['q'] ?? '',
+          initialLanguage: state.uri.queryParameters['language'],
+        ),
       ),
     ),
     GoRoute(
       path: '/country/:code',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) =>
-          CountryDetailScreen(countryCode: state.pathParameters['code'] ?? ''),
+      builder: (context, state) => _WithPersistentMiniPlayer(
+        child: CountryDetailScreen(
+          countryCode: state.pathParameters['code'] ?? '',
+        ),
+      ),
     ),
     GoRoute(
       path: '/genre/:name',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => GenreDetailScreen(
-        genreName: Uri.decodeComponent(state.pathParameters['name'] ?? ''),
+      builder: (context, state) => _WithPersistentMiniPlayer(
+        child: GenreDetailScreen(
+          genreName: Uri.decodeComponent(state.pathParameters['name'] ?? ''),
+        ),
       ),
     ),
     GoRoute(
       path: '/station/:id',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) =>
-          StationDetailScreen(stationId: state.pathParameters['id'] ?? ''),
+      builder: (context, state) => _WithPersistentMiniPlayer(
+        child: StationDetailScreen(
+          stationId: state.pathParameters['id'] ?? '',
+        ),
+      ),
     ),
     GoRoute(
       path: '/auth',
@@ -155,12 +166,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/subscription',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SubscriptionManagementScreen(),
+      builder: (context, state) => const _WithPersistentMiniPlayer(
+        child: SubscriptionManagementScreen(),
+      ),
     ),
     GoRoute(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SettingsScreen(),
+      builder: (context, state) =>
+          const _WithPersistentMiniPlayer(child: SettingsScreen()),
     ),
     GoRoute(
       path: '/delete-account',
@@ -170,7 +184,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/about',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const AboutLegalScreen(),
+      builder: (context, state) =>
+          const _WithPersistentMiniPlayer(child: AboutLegalScreen()),
     ),
     if (kDebugMode)
       GoRoute(
@@ -191,32 +206,89 @@ class _MobileShellScaffold extends ConsumerWidget {
     final bool vmOffline =
         ref.watch(settingsViewModelProvider).asData?.value.isOfflineSimulated ??
         false;
+    final bool useRail = MediaQuery.sizeOf(context).width >= 900;
+
+    void onDestinationSelected(int index) {
+      navigationShell.goBranch(
+        index,
+        initialLocation: index == navigationShell.currentIndex,
+      );
+    }
+
+    final Widget offlineBanner = ListenableBuilder(
+      listenable: mockSessionController,
+      builder: (context, _) {
+        final bool isOffline =
+            vmOffline || mockSessionController.isOfflineSimulated;
+        if (!isOffline) {
+          return const SizedBox.shrink();
+        }
+        return SafeArea(
+          bottom: false,
+          child: OfflineBanner(
+            onRetry: () {
+              if (vmOffline) {
+                ref
+                    .read(settingsViewModelProvider.notifier)
+                    .toggleOfflineSimulated();
+              }
+              mockSessionController.setOfflineSimulated(false);
+            },
+          ),
+        );
+      },
+    );
+
+    if (useRail) {
+      return Scaffold(
+        body: Column(
+          children: [
+            offlineBanner,
+            Expanded(
+              child: Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: navigationShell.currentIndex,
+                    onDestinationSelected: onDestinationSelected,
+                    labelType: NavigationRailLabelType.all,
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home_rounded),
+                        label: Text('Home'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.explore_outlined),
+                        selectedIcon: Icon(Icons.explore_rounded),
+                        label: Text('Explore'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.library_music_outlined),
+                        selectedIcon: Icon(Icons.library_music_rounded),
+                        label: Text('Library'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.person_outline_rounded),
+                        selectedIcon: Icon(Icons.person_rounded),
+                        label: Text('Profile'),
+                      ),
+                    ],
+                  ),
+                  const VerticalDivider(width: 1, thickness: 1),
+                  Expanded(child: navigationShell),
+                ],
+              ),
+            ),
+            const SafeArea(top: false, child: MiniPlayerSlot()),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       body: Column(
         children: [
-          ListenableBuilder(
-            listenable: mockSessionController,
-            builder: (context, _) {
-              final bool isOffline =
-                  vmOffline || mockSessionController.isOfflineSimulated;
-              if (!isOffline) {
-                return const SizedBox.shrink();
-              }
-              return SafeArea(
-                bottom: false,
-                child: OfflineBanner(
-                  onRetry: () {
-                    if (vmOffline) {
-                      ref
-                          .read(settingsViewModelProvider.notifier)
-                          .toggleOfflineSimulated();
-                    }
-                    mockSessionController.setOfflineSimulated(false);
-                  },
-                ),
-              );
-            },
-          ),
+          offlineBanner,
           Expanded(child: navigationShell),
         ],
       ),
@@ -226,12 +298,7 @@ class _MobileShellScaffold extends ConsumerWidget {
           const MiniPlayerSlot(),
           NavigationBar(
             selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: (index) {
-              navigationShell.goBranch(
-                index,
-                initialLocation: index == navigationShell.currentIndex,
-              );
-            },
+            onDestinationSelected: onDestinationSelected,
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
@@ -255,6 +322,36 @@ class _MobileShellScaffold extends ConsumerWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Docks [MiniPlayerSlot] at the bottom of pushed screens (Search, Country,
+/// Genre, Station Details, Settings, etc.) whenever a station is active,
+/// matching Spotify's persistent mini-player bar.
+class _WithPersistentMiniPlayer extends ConsumerWidget {
+  const _WithPersistentMiniPlayer({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bool hasStation = ref.watch(
+      playerViewModelProvider.select(
+        (PlayerState s) => s.playback.currentStation != null,
+      ),
+    );
+    if (!hasStation) {
+      return child;
+    }
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      child: Column(
+        children: [
+          Expanded(child: child),
+          const SafeArea(top: false, child: MiniPlayerSlot()),
         ],
       ),
     );

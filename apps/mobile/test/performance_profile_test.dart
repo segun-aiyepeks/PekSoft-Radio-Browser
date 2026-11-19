@@ -117,12 +117,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Lazy SliverList.builder should only materialize visible viewport tiles.
-      final int builtInitially = find.byType(StationTile).evaluate().length;
+      // Lazy horizontal & vertical builders should only materialize visible viewport cards.
+      final int builtInitially = find.byType(StationLogo).evaluate().length;
       expect(builtInitially, greaterThan(0));
       expect(builtInitially, lessThan(25));
 
-      // Fling-scroll down and verify new items appear smoothly.
+      // Fling-scroll down and verify new shelves scroll smoothly without jank.
       final Stopwatch scrollWatch = Stopwatch()..start();
       await tester.fling(
         find.byType(CustomScrollView),
@@ -132,7 +132,6 @@ void main() {
       await tester.pumpAndSettle();
       scrollWatch.stop();
 
-      expect(find.text('Perf Radio 0'), findsNothing);
       expect(tester.takeException(), isNull);
       expect(scrollWatch.elapsedMilliseconds, lessThan(15000));
     },

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/auth-provider';
 import { PlayerProvider, usePlayer } from '@/components/player/player-provider';
 import { PwaProvider } from '@/components/pwa/pwa-provider';
+import { fetchTrendingStations } from '@/lib/api-client';
 import {
   deltaSyncLibrary,
   deleteLibraryFavorite,
@@ -84,19 +85,56 @@ function MockSessionInner({
     isPlaying,
     volume,
     playStation,
+    seedDefaultStation,
     togglePlayPause,
     setVolume,
   } = usePlayer();
 
+  useEffect(() => {
+    let cancelled = false;
+    void fetchTrendingStations({ limit: 5, httpsOnly: true, workingOnly: true })
+      .then((stations) => {
+        const firstPlayable = stations.find(
+          (s) => s.isWorking && s.isHttpsPlayable,
+        );
+        if (!cancelled && firstPlayable) {
+          seedDefaultStation(firstPlayable);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [seedDefaultStation]);
+
   const playSurpriseMe = useCallback(() => {
-    const working = MOCK_STATIONS.filter(
-      (s) => s.isWorking && s.isHttpsPlayable,
-    );
-    const pool = working.length > 0 ? working : MOCK_STATIONS;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    if (pick) {
-      playStation(pick);
-    }
+    void fetchTrendingStations({ limit: 25, httpsOnly: true, workingOnly: true })
+      .then((liveStations) => {
+        const working = liveStations.filter(
+          (s) => s.isWorking && s.isHttpsPlayable,
+        );
+        const fallbackPool = MOCK_STATIONS.filter(
+          (s) => s.isWorking && s.isHttpsPlayable,
+        );
+        const pool =
+          working.length > 0
+            ? working
+            : fallbackPool.length > 0
+              ? fallbackPool
+              : MOCK_STATIONS;
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        if (pick) {
+          playStation(pick);
+        }
+      })
+      .catch(() => {
+        const fallbackPool = MOCK_STATIONS.filter(
+          (s) => s.isWorking && s.isHttpsPlayable,
+        );
+        const pick =
+          fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
+        if (pick) playStation(pick);
+      });
   }, [playStation]);
 
   const value = useMemo<MockSessionContextValue>(

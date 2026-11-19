@@ -12,7 +12,12 @@ void main() {
     await tester.pumpWidget(
       PekSoftRadioApp(overrides: mockRepositoryOverrides()),
     );
+    await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
+    if (find.text('Skip').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+    }
 
     final navBar = find.byType(NavigationBar);
     expect(
@@ -58,7 +63,12 @@ void main() {
     await tester.pumpWidget(
       PekSoftRadioApp(overrides: mockRepositoryOverrides()),
     );
+    await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
+    if (find.text('Skip').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+    }
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, isNull);
