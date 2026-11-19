@@ -1480,3 +1480,33 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 
 #### Decisions and alternatives
 - Used vendor-neutral deploy webhook hooks (`*_DEPLOY_HOOK`) in `deploy-api-web.yml` so the pipeline works out of the box with Railway, Render, Vercel, or Netlify without locking you into a single cloud provider's CLI.
+
+
+### Milestone 7.6 — Launch Checklist and Backlog (2026-11-19)
+
+#### What I did
+- Wrote `docs/launch-checklist.md` with a complete pre-launch sign-off checklist (Mobile, API, Web, Security, Observability, Legal, Google Play Console) and a prioritized **Post-Launch Backlog (Phase 8+)** covering Radio Wrapped, Map Exploration v2, Alarm Clock, Android Auto, Chromecast, Home Screen Widgets, and More Languages (i18n).
+- Wrote `docs/phase-7-summary.md` summarizing all 6 milestones of Phase 7.
+- Ran the full monorepo quality gate across API, Web, and Mobile, pushed `phase/7-launch`, and opened the Phase 7 Pull Request.
+
+#### Why
+- A concrete sign-off checklist ensures nothing critical (keystores, live billing webhooks, lawyer review, uptime alerts) is missed on launch day, while the backlog captures high-value post-launch features cleanly.
+
+#### How it works (plain English)
+- Use `docs/launch-checklist.md` top-to-bottom before promoting the Android Play Internal Track build and production Web/API deploys to 100% of users.
+
+#### Files created or changed
+- `docs/launch-checklist.md` (new)
+- `docs/phase-7-summary.md` (new)
+- `docs/build-log.md` (updated)
+
+#### How to run and verify
+- API: `pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test`
+- Web: `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web test`
+- Mobile: `cd apps/mobile && flutter analyze && flutter test`
+
+#### Concepts worth learning
+- **Staged Rollouts (10% -> 25% -> 50% -> 100%)**: Releasing to a small slice of real users first catches device-specific crashes in Crashlytics before the majority of users update.
+
+#### Decisions and alternatives
+- Prioritized Map Exploration v2, i18n, and Home Screen Widgets as P1 post-launch epics because they directly boost daily retention and international reach, followed by Alarm Clock, Android Auto, Chromecast (P2), and Radio Wrapped (P3).
