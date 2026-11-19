@@ -1410,3 +1410,42 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 
 #### Decisions and alternatives
 - Implemented lightweight, zero-dependency Sentry Store API reporters for API and Web (consistent with `AGENTS.md` rule 4 not to add unapproved dependencies), while keeping the interface compatible with dropping in `@sentry/node` / `@sentry/nextjs` later if distributed tracing is desired.
+
+
+### Milestone 7.4 — Legal and Store Assets (2026-11-19)
+
+#### What I did
+- Created lawyer-review legal templates and public compliance pages on the web app:
+  - `/privacy` (`apps/web/src/app/privacy/page.tsx`) — Privacy Policy template covering guest-first local storage, Firebase Auth, Google Play Billing & Paystack, consent-gated AdMob/AdSense & Crashlytics/Sentry, and Radio Browser attribution.
+  - `/terms` (`apps/web/src/app/terms/page.tsx`) — Terms of Service template covering third-party radio stream disclaimer, Plus subscription terms, and acceptable use.
+  - `/delete-account` (`apps/web/src/app/delete-account/page.tsx`) — Public account & data deletion page required by Google Play Data Safety policy.
+- Linked `/privacy`, `/terms`, `/delete-account`, and `/status` in the global web footer (`apps/web/src/components/radio/app-shell.tsx`), alongside the existing cookie/ad consent banner (`ad-consent-provider.tsx`).
+- Wrote `docs/store-assets.md` with draft answers for the **Google Play Data Safety form**, **IARC content-rating questionnaire**, **Google Play store listing copy** (title, 78-char short description, full description, category, tags), and a 6-screen **screenshot plan**.
+- Created a crisp `1024×500` brand **Feature Graphic** (`docs/store-assets/feature-graphic-1024x500.svg`) using the exact PekSoft logo geometry and flat Material 3 brand palette (`#0B0E17`, `#131826`, `#8A2BE2`, `#FFB020`, `#10B981`).
+
+#### Why
+- Google Play rejects app submissions that lack a live Privacy Policy URL, a public web Account Deletion URL (for apps offering account creation), accurate Data Safety declarations, and a `1024×500` feature graphic.
+
+#### How it works (plain English)
+- Anyone — including Google Play reviewers — can open `/privacy`, `/terms`, and `/delete-account` directly from the web footer without signing in.
+- The feature graphic SVG is exact `1024×500` and ready to export directly to PNG for Play Console upload.
+
+#### Files created or changed
+- `apps/web/src/app/privacy/page.tsx` (new)
+- `apps/web/src/app/terms/page.tsx` (new)
+- `apps/web/src/app/delete-account/page.tsx` (new)
+- `apps/web/src/components/radio/app-shell.tsx` (updated footer links)
+- `docs/store-assets.md` (new)
+- `docs/store-assets/feature-graphic-1024x500.svg` (new)
+- `docs/build-log.md` (updated)
+
+#### How to run and verify
+- `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web test`
+- Visit `/privacy`, `/terms`, and `/delete-account` in the web app.
+
+#### Concepts worth learning
+- **Google Play Account Deletion Policy**: Any app that lets users create an account must provide BOTH an in-app deletion path AND a public web URL where users can request deletion even after uninstalling the app.
+- **IARC Rating for Live Radio**: Even when your app has no violent or adult UI, streaming unmoderated third-party live broadcasts typically places the app in Teen / PEGI 12.
+
+#### Decisions and alternatives
+- Authored the `1024×500` feature graphic as an exact vector SVG (`docs/store-assets/feature-graphic-1024x500.svg`) using the exact PekSoft logo paths and tokens so there is zero typography distortion or unwanted glow/glassmorphism when exporting to PNG for Play Console.
