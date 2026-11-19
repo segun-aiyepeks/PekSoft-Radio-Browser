@@ -1449,3 +1449,34 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 
 #### Decisions and alternatives
 - Authored the `1024×500` feature graphic as an exact vector SVG (`docs/store-assets/feature-graphic-1024x500.svg`) using the exact PekSoft logo paths and tokens so there is zero typography distortion or unwanted glow/glassmorphism when exporting to PNG for Play Console.
+
+
+### Milestone 7.5 — Release Pipelines (2026-11-19)
+
+#### What I did
+- Created `.github/workflows/release-android.yml` to run Flutter analyze/test, decode the Android upload keystore from GitHub Secrets, build a signed & obfuscated `.aab`, archive debug symbols, upload to the **Google Play Internal Track**, and clean up signing artifacts in `if: always()`.
+- Created `.github/workflows/deploy-api-web.yml` to run the API & Web quality gate (`lint`, `test`, `build`), auto-deploy to **staging** with `prisma migrate deploy` + `/health/ready` smoke check, and promote to **production** behind a GitHub Environment approval gate with production migrations and health verification.
+- Wrote `docs/release-and-rollback.md` documenting all required GitHub Environments/Secrets and step-by-step rollback procedures for Web, API, PostgreSQL/Prisma migrations, and Android Play releases.
+
+#### Why
+- Automating signed builds, database migrations, staging verification, and approval-gated production promotion prevents manual deployment mistakes and ensures every release is reproducible and reversible.
+
+#### How it works (plain English)
+- Pushing a version tag like `v1.0.0` builds, tests, signs, and uploads your Android App Bundle directly to Google Play Internal Testing.
+- Merging to `main` deploys API + Web to Staging automatically after running Prisma migrations; promoting to Production requires a manual dispatch + environment approval.
+
+#### Files created or changed
+- `.github/workflows/release-android.yml` (new)
+- `.github/workflows/deploy-api-web.yml` (new)
+- `docs/release-and-rollback.md` (new)
+- `docs/build-log.md` (updated)
+
+#### How to run and verify
+- Configure the GitHub Environments (`android-release`, `staging`, `production`) and secrets listed in `docs/release-and-rollback.md`, then test via GitHub Actions -> **Run workflow**.
+
+#### Concepts worth learning
+- **Expand-and-Contract Migrations**: Adding new nullable columns/tables before removing old ones ensures that if you roll back your API code, the previous version still works against the live database without downtime.
+- **GitHub Environments**: Lets you attach environment-specific secrets (`STAGING_DATABASE_URL` vs `PROD_DATABASE_URL`) and require manual reviewer approval before production jobs execute.
+
+#### Decisions and alternatives
+- Used vendor-neutral deploy webhook hooks (`*_DEPLOY_HOOK`) in `deploy-api-web.yml` so the pipeline works out of the box with Railway, Render, Vercel, or Netlify without locking you into a single cloud provider's CLI.

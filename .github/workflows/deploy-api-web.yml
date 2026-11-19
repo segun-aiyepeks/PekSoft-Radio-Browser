@@ -1,0 +1,167 @@
+name: Deploy API & Web (Staging -> Production)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: 'Promote to production after staging succeeds'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-api-web-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Quality Gate (Lint, Typecheck, Test, Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify API (lint, test, build)
+        run: |
+          pnpm --filter @peksoft/api lint
+          pnpm --filter @peksoft/api test
+          pnpm --filter @peksoft/api build
+
+      - name: Verify Web (lint, test, build)
+        run: |
+          pnpm --filter @peksoft/web lint
+          pnpm --filter @peksoft/web test
+          pnpm --filter @peksoft/web build
+
+  deploy-staging:
+    name: Deploy Staging (Migrations + API + Web)
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_WEB_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Prisma database migrations (staging)
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          if [ -n "$DATABASE_URL" ]; then
+            pnpm --filter @peksoft/api exec prisma migrate deploy
+          else
+            echo "STAGING_DATABASE_URL not configured; skipping migrations."
+          fi
+
+      - name: Trigger Staging API & Web deploys
+        env:
+          STAGING_API_DEPLOY_HOOK: ${{ secrets.STAGING_API_DEPLOY_HOOK }}
+          STAGING_WEB_DEPLOY_HOOK: ${{ secrets.STAGING_WEB_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$STAGING_API_DEPLOY_HOOK" ]; then
+            curl --fail --silent --show-error -X POST "$STAGING_API_DEPLOY_HOOK"
+          fi
+          if [ -n "$STAGING_WEB_DEPLOY_HOOK" ]; then
+            curl --fail --silent --show-error -X POST "$STAGING_WEB_DEPLOY_HOOK"
+          fi
+
+      - name: Smoke check staging API readiness
+        env:
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}
+        run: |
+          if [ -n "$STAGING_API_URL" ]; then
+            curl --fail --silent --show-error --retry 5 --retry-delay 5 "${STAGING_API_URL}/health/ready"
+          fi
+
+  deploy-production:
+    name: Deploy Production (Migrations + API + Web)
+    needs: deploy-staging
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_production == true
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PROD_WEB_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Prisma database migrations (production)
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "PROD_DATABASE_URL is required for production deployment." >&2
+            exit 1
+          fi
+          pnpm --filter @peksoft/api exec prisma migrate deploy
+
+      - name: Trigger Production API & Web deploys
+        env:
+          PROD_API_DEPLOY_HOOK: ${{ secrets.PROD_API_DEPLOY_HOOK }}
+          PROD_WEB_DEPLOY_HOOK: ${{ secrets.PROD_WEB_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$PROD_API_DEPLOY_HOOK" ]; then
+            curl --fail --silent --show-error -X POST "$PROD_API_DEPLOY_HOOK"
+          fi
+          if [ -n "$PROD_WEB_DEPLOY_HOOK" ]; then
+            curl --fail --silent --show-error -X POST "$PROD_WEB_DEPLOY_HOOK"
+          fi
+
+      - name: Smoke check production API readiness
+        env:
+          PROD_API_URL: ${{ vars.PROD_API_URL }}
+        run: |
+          if [ -n "$PROD_API_URL" ]; then
+            curl --fail --silent --show-error --retry 5 --retry-delay 5 "${PROD_API_URL}/health/ready"
+          fi
