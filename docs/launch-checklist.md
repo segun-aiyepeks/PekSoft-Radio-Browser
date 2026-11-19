@@ -11,7 +11,7 @@ Branch: `phase/7-launch`
 - [ ] Release upload keystore created and backed up securely offline; `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_PASSWORD`, `ANDROID_KEY_ALIAS` added to GitHub Environment `android-release`.
 - [ ] Firebase Android API key restricted to `com.peksoft.radio` + release SHA-1/SHA-256 fingerprint in Google Cloud Console.
 - [ ] Production AdMob App ID & Ad Unit IDs configured (no Google test IDs in release builds — verified by `AdConfig`).
-- [ ] Google Play Billing product IDs (`peksoft_plus_monthly`, `peksoft_plus_annual`) created in Play Console and Pub/Sub RTDN topic pointed to `https://api.peksoft.radio/v1/webhooks/google-play`.
+- [ ] Google Play Billing product IDs (`plus_monthly`, `plus_annual`) created in Play Console and Pub/Sub RTDN topic pointed to `https://api.peksoft.radio/v1/webhooks/google-play`.
 - [ ] Smoke-tested release `.aab` on a physical Android device (Splash, 3-page Onboarding, Spotify-style Home shelves, Live audio playback, World Radio Map, Native Share, Favourites, Search persistent mini-player, Sleep Timer, Profile).
 - [ ] `flutter analyze` (0 issues) and `flutter test` (all green) verified on release commit.
 
