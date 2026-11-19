@@ -20,6 +20,11 @@ import 'package:peksoft_radio/core/theme/theme_controller.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Bounded LRU image cache for smooth scrolling and predictable RAM usage.
+  PaintingBinding.instance.imageCache
+    ..maximumSize = 250
+    ..maximumSizeBytes = 64 * 1024 * 1024;
+
   try {
     await Firebase.initializeApp();
   } catch (e) {

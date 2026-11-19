@@ -312,11 +312,12 @@ class _OnboardingGenrePage extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             mainAxisSpacing: AppSpacing.sm,
             crossAxisSpacing: AppSpacing.sm,
-            childAspectRatio: 1.7,
+            mainAxisExtent:
+                96 * MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 1.8),
           ),
           itemCount: genres.length,
           itemBuilder: (BuildContext context, int index) {
@@ -326,47 +327,77 @@ class _OnboardingGenrePage extends StatelessWidget {
               genre.name,
               genres: [genre.id],
             );
-            return InkWell(
-              onTap: () => onToggleGenre(genre.id),
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              child: Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  border: Border.all(
-                    color: selected ? colors.accent : colors.border,
-                    width: selected ? 2 : 1,
-                  ),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(asset, fit: BoxFit.cover),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.25),
-                            Colors.black.withValues(alpha: 0.8),
-                          ],
-                        ),
-                      ),
+            return Semantics(
+              button: true,
+              selected: selected,
+              label: genre.name,
+              excludeSemantics: true,
+              child: InkWell(
+                onTap: () => onToggleGenre(genre.id),
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                child: Container(
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadii.md),
+                    border: Border.all(
+                      color: selected ? colors.accent : colors.border,
+                      width: selected ? 2 : 1,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Align(
-                        alignment: Alignment.bottomLeft,
-                        child: Text(
-                          genre.name,
-                          style: AppTypography.title.copyWith(
-                            color: Colors.white,
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        asset,
+                        fit: BoxFit.cover,
+                        excludeFromSemantics: true,
+                      ),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.25),
+                              Colors.black.withValues(alpha: 0.8),
+                            ],
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      if (selected)
+                        Positioned(
+                          top: AppSpacing.xs,
+                          right: AppSpacing.xs,
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: colors.accent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: colors.onAccent,
+                            ),
+                          ),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpacing.sm),
+                        child: Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Text(
+                            genre.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.title.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

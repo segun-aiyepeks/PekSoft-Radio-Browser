@@ -79,6 +79,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to main content
+      </a>
       {/* Desktop Left Sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col justify-between border-r border-border bg-card p-4 md:flex">
         <div className="space-y-4">
@@ -253,7 +259,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col px-3 pt-5 pb-40 sm:px-6 sm:pt-6 md:pb-28">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col px-3 pt-5 pb-40 focus:outline-none sm:px-6 sm:pt-6 md:pb-28"
+        >
           <div className="min-w-0 flex-1">{children}</div>
           <footer className="mt-12 border-t border-border pt-6 text-center text-xs text-muted-foreground">
             © {new Date().getFullYear()} developed by aiyepeks

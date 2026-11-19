@@ -234,8 +234,8 @@ class _WorldRadioMapTabState extends ConsumerState<WorldRadioMapTab> {
                       for (final Station station in stations)
                         Marker(
                           point: LatLng(station.geoLat!, station.geoLong!),
-                          width: _selectedStation?.id == station.id ? 34 : 24,
-                          height: _selectedStation?.id == station.id ? 34 : 24,
+                          width: AppSpacing.touchTarget,
+                          height: AppSpacing.touchTarget,
                           child: _StationPin(
                             isSelected: _selectedStation?.id == station.id,
                             isPlaying:
@@ -429,8 +429,11 @@ class _StationPin extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'Map pin for $stationName',
+      selected: isSelected,
+      label: 'Map pin for $stationName${isPlaying ? ", playing" : ""}',
+      excludeSemantics: true,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Center(
           child: Container(
@@ -475,8 +478,8 @@ class _MapControlButton extends StatelessWidget {
         side: BorderSide(color: colors.border),
       ),
       child: SizedBox(
-        width: 40,
-        height: 40,
+        width: AppSpacing.touchTarget,
+        height: AppSpacing.touchTarget,
         child: IconButton(
           tooltip: tooltip,
           padding: EdgeInsets.zero,
@@ -525,8 +528,11 @@ class _MapStationCard extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: InkWell(
-                onTap: onOpenDetails,
+              child: Semantics(
+                button: true,
+                label: 'Open details for ${station.name}',
+                child: InkWell(
+                  onTap: onOpenDetails,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -569,20 +575,31 @@ class _MapStationCard extends StatelessWidget {
                 ),
               ),
             ),
+            ),
             const SizedBox(width: AppSpacing.sm),
-            SizedBox(
-              width: AppSpacing.touchTarget,
-              height: AppSpacing.touchTarget,
-              child: FilledButton(
-                onPressed: onPlayToggle,
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.accent,
-                  foregroundColor: colors.onAccent,
-                  padding: EdgeInsets.zero,
-                  shape: const CircleBorder(),
-                ),
-                child: Icon(
-                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            Semantics(
+              button: true,
+              toggled: isPlaying,
+              label: isPlaying
+                  ? 'Pause ${station.name}'
+                  : 'Play ${station.name}',
+              excludeSemantics: true,
+              child: SizedBox(
+                width: AppSpacing.touchTarget,
+                height: AppSpacing.touchTarget,
+                child: FilledButton(
+                  onPressed: onPlayToggle,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.accent,
+                    foregroundColor: colors.onAccent,
+                    padding: EdgeInsets.zero,
+                    shape: const CircleBorder(),
+                  ),
+                  child: Icon(
+                    isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
                 ),
               ),
             ),

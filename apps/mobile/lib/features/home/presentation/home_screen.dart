@@ -487,6 +487,9 @@ class _StationShelf extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double textScale = MediaQuery.textScalerOf(
+      context,
+    ).scale(1.0).clamp(1.0, 1.6);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -497,7 +500,7 @@ class _StationShelf extends StatelessWidget {
           onActionTap: onActionTap,
         ),
         SizedBox(
-          height: 204,
+          height: 176 + 32 * textScale,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -529,7 +532,9 @@ class _SpotifyStationCard extends ConsumerWidget {
 
     return Semantics(
       button: true,
-      label: '${station.name}, ${station.countryName}',
+      label:
+          '${station.name}, ${station.countryName}${isPlaying ? ", playing" : ""}',
+      excludeSemantics: true,
       child: Material(
         color: colors.surface,
         shape: RoundedRectangleBorder(

@@ -203,6 +203,7 @@ class StationLogo extends StatelessWidget {
     this.genres = const [],
     this.size = AppSpacing.touchTarget,
     this.hasLogo = false,
+    this.excludeFromSemantics = false,
   });
 
   final String stationName;
@@ -210,6 +211,7 @@ class StationLogo extends StatelessWidget {
   final List<String> genres;
   final double size;
   final bool hasLogo;
+  final bool excludeFromSemantics;
 
   @override
   Widget build(BuildContext context) {
@@ -220,11 +222,17 @@ class StationLogo extends StatelessWidget {
         url != null &&
         url.isNotEmpty &&
         (url.startsWith('https://') || url.startsWith('http://'));
+    final int decodePx = (size * MediaQuery.devicePixelRatioOf(context))
+        .round()
+        .clamp(48, 512);
 
     Widget fallbackImage() => Image.asset(
       themeAsset,
       width: size,
       height: size,
+      cacheWidth: decodePx,
+      cacheHeight: decodePx,
+      excludeFromSemantics: true,
       fit: BoxFit.cover,
       errorBuilder: (_, _, _) => Container(
         width: size,
@@ -239,28 +247,37 @@ class StationLogo extends StatelessWidget {
       ),
     );
 
+    final Widget box = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: colors.surfaceElevated,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: colors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: canLoadNetwork
+          ? Image.network(
+              url,
+              width: size,
+              height: size,
+              cacheWidth: decodePx,
+              cacheHeight: decodePx,
+              excludeFromSemantics: true,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => fallbackImage(),
+            )
+          : fallbackImage(),
+    );
+
+    if (excludeFromSemantics) {
+      return ExcludeSemantics(child: box);
+    }
+
     return Semantics(
       image: true,
       label: '$stationName artwork',
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: colors.surfaceElevated,
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          border: Border.all(color: colors.border),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: canLoadNetwork
-            ? Image.network(
-                url,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => fallbackImage(),
-              )
-            : fallbackImage(),
-      ),
+      child: box,
     );
   }
 }

@@ -414,21 +414,23 @@ class _PlaybackStatusBanner extends StatelessWidget {
       ),
     };
 
-    return Semantics(
-      liveRegion: true,
-      label: '${data.title}. ${data.subtitle}',
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          border: Border.all(color: data.tone),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: data.tone),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            container: true,
+            liveRegion: true,
+            label: '${data.title}. ${data.subtitle}',
+            excludeSemantics: true,
+            child: Row(
               children: [
                 if (data.showSpinner)
                   SizedBox(
@@ -461,32 +463,36 @@ class _PlaybackStatusBanner extends StatelessWidget {
                 ),
               ],
             ),
-            if (data.showActions) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                spacing: AppSpacing.sm,
-                children: [
-                  SizedBox(
-                    height: AppSpacing.touchTarget,
-                    child: OutlinedButton.icon(
-                      onPressed: onRetry,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Retry'),
-                    ),
+          ),
+          if (data.showActions) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: AppSpacing.touchTarget,
                   ),
-                  SizedBox(
-                    height: AppSpacing.touchTarget,
-                    child: TextButton.icon(
-                      onPressed: onReport,
-                      icon: const Icon(Icons.flag_outlined),
-                      label: const Text('Report broken'),
-                    ),
+                  child: OutlinedButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Retry'),
                   ),
-                ],
-              ),
-            ],
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: AppSpacing.touchTarget,
+                  ),
+                  child: TextButton.icon(
+                    onPressed: onReport,
+                    icon: const Icon(Icons.flag_outlined),
+                    label: const Text('Report broken'),
+                  ),
+                ),
+              ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

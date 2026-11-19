@@ -1280,3 +1280,56 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 
 ### How to run and verify
 - `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
+
+
+---
+
+## Phase 7 — Hardening and Launch
+
+### Milestone 7.1 — Accessibility and Performance (2026-11-19)
+
+#### What I did
+- Audited all key Flutter mobile screens (`HomeScreen`, `ExploreScreen`, `WorldRadioMapTab`, `NowPlayingScreen`, `SplashScreen`, `WelcomeScreen`, `ProfileScreen`, `StationLogo`, `GenreChip`) for TalkBack semantics, 48dp touch targets, WCAG AA contrast (dark & light), and 2.0x text scaling.
+- Fixed every critical/high accessibility issue found: added Play/Pause and Details semantics on map station cards, raised map pins and zoom/refresh controls to 48x48dp, added selection semantics and visible checkmarks on onboarding genre cards, replaced the tiny email-verify `GestureDetector` with a 48dp `TextButton`, made the light-mode splash logo high-contrast, darkened light-mode status tokens (`success`, `warning`, `info`) to >= 4.5:1, switched `GenreChip` selected text to `colors.accentText`, scoped `_PlaybackStatusBanner` `liveRegion` to status text only, and made shelf/grid heights scale cleanly up to 2.0x text scaling.
+- Configured Flutter's bounded LRU `ImageCache` (250 images / 64 MB) in `main.dart` and added DPR-aware `cacheWidth`/`cacheHeight` decoding in `StationLogo`.
+- Audited Next.js web accessibility and production bundle/caching: added a keyboard-accessible `Skip to main content` link and `#main-content` landmark in `AppShell`, enabled `compress: true`, `poweredByHeader: false`, `images.formats: ['image/avif', 'image/webp']`, `experimental.optimizePackageImports: ['lucide-react', 'motion']`, and 1-year `immutable` `Cache-Control` headers for `/images/*` in `next.config.ts`.
+- Recorded all Before and After measurements in `docs/performance-accessibility-audit.md` and added an automated 2.0x text-scale widget test in `apps/mobile/test/polish_accessibility_test.dart`.
+
+#### Why
+- Hardening accessibility (TalkBack, keyboard bypass, 48dp targets, WCAG AA contrast, 2.0x font scaling) ensures the app is usable by everyone and avoids Play Store accessibility warnings.
+- Bounding decoded image memory (`ImageCache` + `cacheWidth`/`cacheHeight`) and enabling AVIF/WebP + immutable image caching keeps scrolling smooth on low-RAM Android devices and improves web Lighthouse/LCP scores.
+
+#### How it works (plain English)
+- On mobile, every interactive icon/pin now exposes a 48x48dp tap area and clear TalkBack label, while `StationLogo` decodes images at the exact pixel size needed for the screen rather than full raw resolution.
+- On web, keyboard users can press Tab once to jump straight past the sidebar/header to the main content, and browsers cache static genre/brand images locally for a full year.
+
+#### Files created or changed
+- `docs/performance-accessibility-audit.md` (new)
+- `docs/build-log.md` (updated)
+- `apps/mobile/lib/main.dart`
+- `apps/mobile/lib/core/theme/design_tokens.dart`
+- `apps/mobile/lib/core/widgets/genre_chip.dart`
+- `apps/mobile/lib/core/widgets/peksoft_signal_loader.dart`
+- `apps/mobile/lib/core/widgets/station_logo.dart`
+- `apps/mobile/lib/features/explore/presentation/world_radio_map_tab.dart`
+- `apps/mobile/lib/features/home/presentation/home_screen.dart`
+- `apps/mobile/lib/features/onboarding/presentation/welcome_screen.dart`
+- `apps/mobile/lib/features/player/presentation/now_playing_screen.dart`
+- `apps/mobile/lib/features/profile/presentation/profile_screen.dart`
+- `apps/mobile/test/polish_accessibility_test.dart`
+- `apps/mobile/test/goldens/*.png`
+- `apps/web/next.config.ts`
+- `apps/web/src/components/radio/app-shell.tsx`
+
+#### How to run and verify
+- Mobile: `cd apps/mobile && flutter analyze && flutter test`
+- Web: `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
+
+#### Concepts worth learning
+- **`cacheWidth` / `cacheHeight` in Flutter**: Telling Flutter's image decoder the exact pixel size (`logicalSize * devicePixelRatio`) avoids decoding a 1200x1200 JPEG into a 5.7 MB uncompressed RGBA bitmap just to render a 56dp thumbnail.
+- **`Semantics(excludeSemantics: true)`**: When you wrap a card in a custom accessible label, `excludeSemantics: true` prevents TalkBack from reading both your summary label and every child `Text` node twice.
+- **Immutable `Cache-Control` headers**: `public, max-age=31536000, immutable` lets browsers and CDNs reuse static assets without revalidation round-trips.
+
+#### Decisions and alternatives
+- Kept `flutter_map` + OpenStreetMap tiles (zero API keys) and enlarged marker hit targets to 48x48dp rather than switching to a paid map SDK.
+- Used Next.js built-in `optimizePackageImports` and `Cache-Control` headers rather than adding extra bundler plugins, keeping the build pipeline simple and fast.
