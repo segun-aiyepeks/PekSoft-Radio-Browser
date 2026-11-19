@@ -1373,3 +1373,40 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 #### Decisions and alternatives
 - Added baseline security headers directly via a zero-dependency Fastify `onSend` hook rather than introducing `@fastify/helmet`, avoiding an unapproved new dependency while enforcing the exact headers needed for a JSON API.
 - Documented the 3 transitive `apps/web` advisories (`@grpc/grpc-js` from Firebase Firestore and `minimatch` from `shadcn`) in `docs/security-review.md` with clear remediation steps rather than mutating lockfiles without approval.
+
+
+### Milestone 7.3 — Observability (2026-11-19)
+
+#### What I did
+- Verified mobile **Firebase Crashlytics** wiring in `apps/mobile/lib/main.dart` and `apps/mobile/lib/core/analytics/firebase_analytics_service.dart` (consent-gated, PII-stripped).
+- Added **Sentry** error reporting on the API (`apps/api/src/plugins/sentry.ts`, wired into `apps/api/src/plugins/error-handler.ts` and `apps/api/src/server.ts`) and Web (`apps/web/src/lib/sentry.ts` + `apps/web/src/app/global-error.tsx`), stripping query strings and personal data before dispatch and acting as a safe no-op when `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` is unset.
+- Added a readiness probe `GET /health/ready` (`apps/api/src/routes/health.ts`) reporting process status, memory RSS, uptime, and database probe status for uptime monitors (UptimeRobot / BetterStack / Cloud Run).
+- Built the Section 11 **Observability & KPI Dashboard** page at `/status` (`apps/web/src/app/status/page.tsx`) showing live `/health/ready` checks alongside all 8 Section 11 KPI targets.
+- Documented the complete observability runbook in `docs/observability.md` and added unit tests for `/health/ready` and PII-free Sentry reporting in `apps/api/src/server.test.ts`.
+
+#### Why
+- Production apps need fast detection of crashes, unhandled 500s, and downtime without leaking listener PII (emails, tokens, IPs), plus a single place to track the product KPIs defined in Section 11.
+
+#### How it works (plain English)
+- When an unhandled 500 happens on the API or a React crash hits the web app, our Sentry reporter strips query strings/PII and posts a structured JSON error report directly to your Sentry DSN.
+- External uptime monitors ping `/health/ready` every 60 seconds; if the database probe fails, it returns `503 Service Unavailable` so alerts fire immediately.
+
+#### Files created or changed
+- `docs/observability.md` (new)
+- `docs/build-log.md` (updated)
+- `apps/api/src/plugins/sentry.ts` (new)
+- `apps/api/src/config/env.ts`, `apps/api/.env.example`
+- `apps/api/src/plugins/error-handler.ts`, `apps/api/src/routes/health.ts`, `apps/api/src/server.ts`, `apps/api/src/server.test.ts`
+- `apps/web/src/lib/sentry.ts` (new), `apps/web/src/app/global-error.tsx` (new), `apps/web/src/app/status/page.tsx` (new), `apps/web/.env.example`
+
+#### How to run and verify
+- API: `pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test`
+- Web: `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web test`
+- Visit `/status` on the web app to view live readiness & Section 11 KPIs.
+
+#### Concepts worth learning
+- **Liveness (`/health`) vs. Readiness (`/health/ready`)**: Liveness tells an orchestrator "is the process alive?"; readiness tells load balancers and uptime monitors "can this instance safely serve traffic (e.g., is the database reachable)?".
+- **Zero-dependency Sentry Store API**: Sentry's HTTP Store endpoint accepts standard JSON error payloads signed with `X-Sentry-Auth`, letting you add PII-free crash reporting without heavy SDK bundle overhead.
+
+#### Decisions and alternatives
+- Implemented lightweight, zero-dependency Sentry Store API reporters for API and Web (consistent with `AGENTS.md` rule 4 not to add unapproved dependencies), while keeping the interface compatible with dropping in `@sentry/node` / `@sentry/nextjs` later if distributed tracing is desired.

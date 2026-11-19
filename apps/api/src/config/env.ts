@@ -46,6 +46,8 @@ const envSchema = z.object({
   PAYSTACK_SECRET_KEY: emptyToUndefined(z.string().min(1).optional()),
   PAYSTACK_PLAN_MONTHLY: emptyToUndefined(z.string().min(1).optional()),
   PAYSTACK_PLAN_ANNUAL: emptyToUndefined(z.string().min(1).optional()),
+  SENTRY_DSN: emptyToUndefined(z.string().url().optional()),
+  SENTRY_ENVIRONMENT: emptyToUndefined(z.string().min(1).optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;

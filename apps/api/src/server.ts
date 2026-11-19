@@ -18,6 +18,7 @@ import { AppError } from './errors/app-error.js';
 import { createRequireAuth } from './plugins/auth-middleware.js';
 import { registerErrorHandlers } from './plugins/error-handler.js';
 import { buildLoggerOptions } from './plugins/logger.js';
+import { createSentryReporter } from './plugins/sentry.js';
 import {
   RadioBrowserClient,
   type HttpTransport,
@@ -94,7 +95,8 @@ export async function buildServer(
     bodyLimit: 256 * 1024, // 256 KiB defense against oversized payload DoS
   });
 
-  registerErrorHandlers(app);
+  const sentry = createSentryReporter(env);
+  registerErrorHandlers(app, { sentry });
 
   // Baseline HTTP security headers (OWASP API8:2023)
   app.addHook('onSend', async (_request, reply, payload) => {
@@ -172,11 +174,19 @@ export async function buildServer(
       }),
   });
 
-  registerHealthRoutes(app, env.APP_VERSION);
+  let dbHandle: DatabaseHandle | undefined;
+  registerHealthRoutes(app, env.APP_VERSION, {
+    checkDatabase: env.DATABASE_URL
+      ? async () => {
+          if (!dbHandle) return true;
+          await dbHandle.prisma.$queryRaw`SELECT 1`;
+          return true;
+        }
+      : undefined,
+  });
   registerCatalogRoutes(app, catalogService);
   registerStationRoutes(app, catalogService);
 
-  let dbHandle: DatabaseHandle | undefined;
   let userRepository = options.userRepository;
   let entitlementRepository = options.entitlementRepository;
   let libraryRepository = options.libraryRepository;

@@ -1,6 +1,7 @@
 import type { FastifyError, FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 import { AppError } from '../errors/app-error.js';
+import type { SentryReporter } from './sentry.js';
 
 export interface ErrorEnvelope {
   error: {
@@ -11,7 +12,10 @@ export interface ErrorEnvelope {
   };
 }
 
-export function registerErrorHandlers(app: FastifyInstance): void {
+export function registerErrorHandlers(
+  app: FastifyInstance,
+  options: { sentry?: SentryReporter } = {},
+): void {
   app.setNotFoundHandler((request, reply) => {
     const body: ErrorEnvelope = {
       error: {
@@ -80,6 +84,11 @@ export function registerErrorHandlers(app: FastifyInstance): void {
       { err: error, requestId: request.id },
       'Unhandled server error',
     );
+    void options.sentry?.captureException(error, {
+      requestId: request.id,
+      method: request.method,
+      url: request.url,
+    });
 
     const body: ErrorEnvelope = {
       error: {
