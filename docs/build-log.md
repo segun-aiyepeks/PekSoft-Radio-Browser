@@ -1333,3 +1333,43 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 #### Decisions and alternatives
 - Kept `flutter_map` + OpenStreetMap tiles (zero API keys) and enlarged marker hit targets to 48x48dp rather than switching to a paid map SDK.
 - Used Next.js built-in `optimizePackageImports` and `Cache-Control` headers rather than adding extra bundler plugins, keeping the build pipeline simple and fast.
+
+
+### Milestone 7.2 — Security Review (2026-11-19)
+
+#### What I did
+- Walked through all 10 categories of the **OWASP API Security Top 10 (2023)** against `apps/api` and documented the full assessment, fixes, and operational guidance in `docs/security-review.md`.
+- Hardened `apps/api/src/server.ts`: added baseline HTTP security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy`, `X-Permitted-Cross-Domain-Policies: none`, and `Strict-Transport-Security` in production), bounded JSON payload size (`bodyLimit: 256 KiB`), disabled Swagger UI (`/docs`) by default when `NODE_ENV === 'production'`, and blocked wildcard `CORS_ORIGINS=*` in production when credentials are enabled.
+- Tightened `POST /v1/reports` rate limiting to `15 req/min` (`apps/api/src/routes/v1/reports.ts`), expanded PII/secret redaction in `apps/api/src/plugins/logger.ts` (`x-paystack-signature`, `x-goog-pubsub-token`, `purchaseToken`, `secretKey`, `privateKey`), and enforced exact `packageName` matching in `GooglePlayBillingService.verifyPurchase`.
+- Ran `pnpm audit --prod`, `flutter pub outdated --no-dev-dependencies`, and a repository secrets scan; verified Paystack HMAC-SHA512 and Google Play Pub/Sub constant-time webhook signature verification and Firebase revocation checks.
+- Added automated security-header and production CORS tests in `apps/api/src/server.test.ts`.
+
+#### Why
+- Hardening HTTP headers, payload limits, public endpoint rate limits, package-name binding, and production CORS/Swagger defaults closes the most common OWASP API misconfigurations before public launch.
+
+#### How it works (plain English)
+- Every API response now includes security headers that tell browsers not to MIME-sniff, embed the API in iframes, or leak referrers.
+- In production, the API refuses to start with wildcard CORS (`*`) alongside cookies/auth headers, hides `/docs`, caps request bodies at 256 KiB, and strictly rejects Google Play purchase tokens submitted for any package other than `com.peksoft.radio`.
+
+#### Files created or changed
+- `docs/security-review.md` (new)
+- `docs/build-log.md` (updated)
+- `apps/api/src/server.ts`
+- `apps/api/src/plugins/logger.ts`
+- `apps/api/src/routes/v1/reports.ts`
+- `apps/api/src/services/google-play-billing-service.ts`
+- `apps/api/src/server.test.ts`
+
+#### How to run and verify
+- `pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test`
+- `pnpm audit --prod`
+- `cd apps/mobile && flutter pub outdated --no-dev-dependencies`
+
+#### Concepts worth learning
+- **Constant-time comparison (`crypto.timingSafeEqual`)**: Comparing HMAC signatures or webhook tokens with `===` leaks how many leading bytes matched via microsecond timing differences; `timingSafeEqual` takes constant time regardless of where a mismatch occurs.
+- **CORS wildcard + `credentials: true` (OWASP API8)**: Reflecting arbitrary `Origin` headers while allowing credentials lets any malicious site make authenticated cross-origin requests from a logged-in user's browser.
+- **`checkRevoked: true` in Firebase Admin**: Ensures that if a user signs out everywhere or has their account disabled, their still-unexpired JWT is rejected immediately.
+
+#### Decisions and alternatives
+- Added baseline security headers directly via a zero-dependency Fastify `onSend` hook rather than introducing `@fastify/helmet`, avoiding an unapproved new dependency while enforcing the exact headers needed for a JSON API.
+- Documented the 3 transitive `apps/web` advisories (`@grpc/grpc-js` from Firebase Firestore and `minimatch` from `shadcn`) in `docs/security-review.md` with clear remediation steps rather than mutating lockfiles without approval.

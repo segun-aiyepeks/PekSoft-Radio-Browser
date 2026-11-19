@@ -165,4 +165,26 @@ describe('Milestone 4.1 API scaffold', () => {
 
     await app.close();
   });
+
+  it('sets baseline HTTP security headers and rejects wildcard CORS in production', async () => {
+    const app = await buildServer({
+      env: makeTestEnv(),
+      logger: false,
+      enableSwaggerUi: false,
+    });
+
+    const res = await app.inject({ method: 'GET', url: '/health' });
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-frame-options']).toBe('DENY');
+    expect(res.headers['referrer-policy']).toBe('no-referrer');
+    expect(res.headers['x-permitted-cross-domain-policies']).toBe('none');
+    await app.close();
+
+    await expect(
+      buildServer({
+        env: makeTestEnv({ NODE_ENV: 'production', CORS_ORIGINS: '*' }),
+        logger: false,
+      }),
+    ).rejects.toThrow(/CORS_ORIGINS cannot be "\*" in production/);
+  });
 });
