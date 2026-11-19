@@ -35,21 +35,29 @@ Widget _wrapAtScale13(Widget child) {
 
 void main() {
   group('Milestone 1.3 Discovery Screens', () {
-    testWidgets('Splash and Welcome screens render with Skip at 1.3x scale', (
+    testWidgets('Splash and 3-page Welcome screens render with Skip at 1.3x scale', (
       tester,
     ) async {
-      await tester.pumpWidget(_wrapAtScale13(const SplashScreen()));
-      await tester.pumpAndSettle();
-      expect(find.text('PekSoft Radio'), findsOneWidget);
-      expect(find.text('Get Started'), findsOneWidget);
-      expect(find.text('Skip to Home'), findsOneWidget);
+      final SemanticsHandle handle = tester.ensureSemantics();
+      try {
+        await tester.pumpWidget(_wrapAtScale13(const SplashScreen()));
+        await tester.pump();
+        expect(find.bySemanticsLabel('PekSoft Radio Browser logo'), findsOneWidget);
+        expect(find.textContaining('developed by aiyepeks'), findsOneWidget);
 
-      await tester.pumpWidget(_wrapAtScale13(const WelcomeScreen()));
-      await tester.pumpAndSettle();
-      expect(find.text('Tune into your world'), findsOneWidget);
-      expect(find.text('Skip'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('Start Listening'), 200);
-      expect(find.text('Start Listening'), findsOneWidget);
+        await tester.pumpWidget(_wrapAtScale13(const WelcomeScreen()));
+        await tester.pumpAndSettle();
+        expect(find.text('Every radio station in the world'), findsOneWidget);
+        expect(find.text('Skip'), findsOneWidget);
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+        expect(find.text('Tune into your world'), findsOneWidget);
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+        expect(find.text('Start Listening'), findsOneWidget);
+      } finally {
+        handle.dispose();
+      }
     });
 
     testWidgets('Home screen renders curated collections and stations', (
@@ -57,8 +65,9 @@ void main() {
     ) async {
       await tester.pumpWidget(_wrapAtScale13(const HomeScreen()));
       await tester.pumpAndSettle();
-      expect(find.text('Curated collections'), findsOneWidget);
-      expect(find.text('Live & working now'), findsOneWidget);
+      expect(find.text('PekSoft Radio Browser'), findsOneWidget);
+      expect(find.text('Shuffle Stations'), findsOneWidget);
+      expect(find.text('All'), findsOneWidget);
       expect(find.byType(AdSlotPlaceholder), findsOneWidget);
     });
 
@@ -78,7 +87,7 @@ void main() {
 
       await tester.tap(find.text('Map'));
       await tester.pumpAndSettle();
-      expect(find.text('World Radio Map (Placeholder)'), findsOneWidget);
+      expect(find.text('Lagos'), findsOneWidget);
     });
 
     testWidgets(

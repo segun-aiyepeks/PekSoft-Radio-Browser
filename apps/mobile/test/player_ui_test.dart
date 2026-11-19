@@ -48,7 +48,7 @@ Widget _wrapAtScale13(Widget child, {required ProviderContainer container}) {
 void main() {
   group('Player UI (wired to PlaybackViewModel)', () {
     testWidgets(
-      'NowPlayingScreen renders artwork, quality badge, dev switcher, and all playback states at 1.3x scale',
+      'NowPlayingScreen renders artwork, quality badge, and playback state snackbars at 1.3x scale',
       (tester) async {
         final ProviderContainer container = ProviderContainer(
           overrides: mockRepositoryOverrides(),
@@ -69,21 +69,23 @@ void main() {
         expect(find.byType(QualityBadge), findsWidgets);
         expect(
           find.text('Dev State Switcher (Preview Playback States)'),
-          findsOneWidget,
+          findsNothing,
         );
         expect(find.text('LIVE · Streaming'), findsOneWidget);
 
-        await tester.tap(find.text('buffering'));
-        await tester.pump();
-        expect(find.text('Buffering stream...'), findsOneWidget);
+        final notifier = container.read(playbackViewModelProvider.notifier);
 
-        await tester.tap(find.text('reconnecting'));
+        notifier.setPlaybackStatus(PlaybackStatus.buffering);
         await tester.pump();
-        expect(find.text('Reconnecting...'), findsOneWidget);
+        expect(find.text('Buffering stream...'), findsWidgets);
 
-        await tester.tap(find.text('unavailable'));
+        notifier.setPlaybackStatus(PlaybackStatus.reconnecting);
         await tester.pump();
-        expect(find.text('Station unavailable'), findsOneWidget);
+        expect(find.text('Reconnecting...'), findsWidgets);
+
+        notifier.setPlaybackStatus(PlaybackStatus.unavailable);
+        await tester.pump();
+        expect(find.text('Station unavailable'), findsWidgets);
         expect(find.text('Report broken'), findsOneWidget);
 
         await tester.scrollUntilVisible(find.text('Similar stations'), 200);

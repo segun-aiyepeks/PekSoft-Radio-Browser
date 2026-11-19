@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useMockSession } from '@/components/mock-session-provider';
 import { usePlayer } from '@/components/player/player-provider';
 import { AudioVisualizer } from '@/components/radio/audio-visualizer';
+import { CountryFlag } from '@/components/radio/country-flag';
 import { StationArtwork } from '@/components/radio/station-artwork';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,9 +71,16 @@ export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
         <div>
           <SheetHeader>
             <SheetTitle>Now Playing</SheetTitle>
-            <SheetDescription>
-              {currentStation.countryFlag} {currentStation.countryName} ·{' '}
-              {currentStation.language}
+            <SheetDescription className="flex items-center gap-1.5">
+              <CountryFlag
+                code={currentStation.countryCode}
+                name={currentStation.countryName}
+                emojiFallback={currentStation.countryFlag}
+                size="xs"
+              />
+              <span>
+                {currentStation.countryName} · {currentStation.language}
+              </span>
             </SheetDescription>
           </SheetHeader>
 
@@ -80,6 +88,7 @@ export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
             <StationArtwork
               name={currentStation.name}
               faviconUrl={currentStation.faviconUrl}
+              genres={currentStation.genres}
               size="xl"
             />
             <h3 className="mt-4 font-heading text-xl font-bold">
@@ -120,8 +129,7 @@ export function NowPlayingSheet({ trigger }: { trigger: React.ReactNode }) {
                 <Heart
                   className={cn(
                     'size-5',
-                    isFav &&
-                      'fill-[var(--color-accent)] text-[var(--color-accent)]',
+                    isFav && 'fill-red-500 text-red-500',
                   )}
                 />
               </Button>

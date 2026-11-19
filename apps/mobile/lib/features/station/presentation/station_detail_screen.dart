@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/core/utils/country_flag.dart';
+import 'package:peksoft_radio/core/utils/station_share.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
 import 'package:peksoft_radio/features/catalog/domain/genre.dart';
 import 'package:peksoft_radio/features/player/domain/playback_state.dart';
@@ -70,6 +71,24 @@ class StationDetailScreen extends ConsumerWidget {
             actions: [
               Semantics(
                 button: true,
+                label: 'Share ${station.name}',
+                child: SizedBox(
+                  width: AppSpacing.touchTarget,
+                  height: AppSpacing.touchTarget,
+                  child: Builder(
+                    builder: (buttonContext) => IconButton(
+                      tooltip: 'Share',
+                      onPressed: () => shareStation(buttonContext, station),
+                      icon: Icon(
+                        Icons.share_outlined,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Semantics(
+                button: true,
                 toggled: detail.isFavourite,
                 label: detail.isFavourite
                     ? 'Remove ${station.name} from favourites'
@@ -91,7 +110,7 @@ class StationDetailScreen extends ConsumerWidget {
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
                       color: detail.isFavourite
-                          ? colors.accent
+                          ? colors.error
                           : colors.textPrimary,
                     ),
                   ),

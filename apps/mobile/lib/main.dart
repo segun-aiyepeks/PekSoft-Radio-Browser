@@ -73,19 +73,23 @@ Future<void> main() async {
 }
 
 Future<GenreMap> _loadGenreMap() async {
-  try {
-    final String raw = await rootBundle.loadString(
-      '../../packages/shared/genre-map.json',
-    );
-    return GenreMap.fromJsonString(raw);
-  } catch (_) {
-    return GenreMap(
-      version: 1,
-      maxGenresPerStation: 2,
-      noiseTags: const <String>{},
-      definitions: const <GenreDefinition>[],
-    );
+  for (final assetPath in const <String>[
+    'assets/config/genre-map.json',
+    '../../packages/shared/genre-map.json',
+  ]) {
+    try {
+      final String raw = await rootBundle.loadString(assetPath);
+      return GenreMap.fromJsonString(raw);
+    } catch (_) {
+      // Try next candidate path.
+    }
   }
+  return GenreMap(
+    version: 1,
+    maxGenresPerStation: 2,
+    noiseTags: const <String>{},
+    definitions: const <GenreDefinition>[],
+  );
 }
 
 class PekSoftRadioApp extends StatelessWidget {

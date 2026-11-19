@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Heart, Pause, Play, Smartphone } from 'lucide-react';
 import { useMockSession } from '@/components/mock-session-provider';
+import { CountryFlag } from '@/components/radio/country-flag';
 import { StationArtwork } from '@/components/radio/station-artwork';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,24 +27,28 @@ export function StationRow({ station }: { station: WebStation }) {
   return (
     <div
       className={cn(
-        'group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-[var(--color-accent)]/40',
-        isCurrent && 'border-[var(--color-accent)]/60 bg-secondary/40',
+        'group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/40',
+        isCurrent && 'border-[var(--color-accent-violet)]',
       )}
     >
       <Link
         href={`/station/${station.slug}`}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <StationArtwork name={station.name} faviconUrl={station.faviconUrl} />
+        <StationArtwork
+          name={station.name}
+          faviconUrl={station.faviconUrl}
+          genres={station.genres}
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate font-heading text-sm font-semibold text-foreground sm:text-base">
+            <span className="truncate font-heading text-sm font-bold text-foreground sm:text-base">
               {station.name}
             </span>
             {isActivePlaying && (
               <Badge variant="live">
-                <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
+                <span className="size-1.5 rounded-full bg-[#10B981]" />
                 ON AIR
               </Badge>
             )}
@@ -55,8 +60,14 @@ export function StationRow({ station }: { station: WebStation }) {
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>
-              {station.countryFlag} {station.countryName}
+            <span className="inline-flex items-center gap-1.5">
+              <CountryFlag
+                code={station.countryCode}
+                name={station.countryName}
+                emojiFallback={station.countryFlag}
+                size="xs"
+              />
+              {station.countryName}
             </span>
             {station.genres.slice(0, 2).map((genre) => (
               <Badge key={genre} variant="secondary" className="text-[11px]">
@@ -88,7 +99,7 @@ export function StationRow({ station }: { station: WebStation }) {
             className={cn(
               'size-4',
               isFav
-                ? 'fill-[var(--color-accent)] text-[var(--color-accent)]'
+                ? 'fill-red-500 text-red-500'
                 : 'text-muted-foreground',
             )}
           />

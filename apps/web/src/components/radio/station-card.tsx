@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { Pause, Play, Smartphone } from 'lucide-react';
 import { useMockSession } from '@/components/mock-session-provider';
+import { CountryFlag } from '@/components/radio/country-flag';
 import { StationArtwork } from '@/components/radio/station-artwork';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { WebStation } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
 
 export function StationCard({ station }: { station: WebStation }) {
   const { currentStation, isPlaying, playStation, togglePlayPause } =
@@ -16,16 +18,22 @@ export function StationCard({ station }: { station: WebStation }) {
   const isActivePlaying = isCurrent && isPlaying;
 
   return (
-    <Card className="group border-border bg-card transition-colors hover:border-[var(--color-accent)]/50">
+    <Card
+      className={cn(
+        'group border-border bg-card transition-colors hover:bg-muted/40',
+        isCurrent && 'border-[var(--color-accent-violet)]',
+      )}
+    >
       <CardContent className="flex flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <Link
             href={`/station/${station.slug}`}
-            className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <StationArtwork
               name={station.name}
               faviconUrl={station.faviconUrl}
+              genres={station.genres}
               size="lg"
             />
           </Link>
@@ -55,11 +63,19 @@ export function StationCard({ station }: { station: WebStation }) {
           href={`/station/${station.slug}`}
           className="space-y-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <h3 className="truncate font-heading text-base font-semibold text-foreground">
+          <h3 className="truncate font-heading text-base font-bold text-foreground">
             {station.name}
           </h3>
-          <p className="truncate text-xs text-muted-foreground">
-            {station.countryFlag} {station.countryName} · {station.language}
+          <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+            <CountryFlag
+              code={station.countryCode}
+              name={station.countryName}
+              emojiFallback={station.countryFlag}
+              size="xs"
+            />
+            <span className="truncate">
+              {station.countryName} · {station.language}
+            </span>
           </p>
         </Link>
 

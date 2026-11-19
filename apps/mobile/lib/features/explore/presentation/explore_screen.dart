@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peksoft_radio/core/theme/app_theme.dart';
 import 'package:peksoft_radio/core/theme/design_tokens.dart';
-import 'package:peksoft_radio/core/utils/country_flag.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
 import 'package:peksoft_radio/features/catalog/domain/country.dart';
 import 'package:peksoft_radio/features/catalog/domain/genre.dart';
 import 'package:peksoft_radio/features/catalog/domain/language.dart';
 import 'package:peksoft_radio/features/explore/presentation/view_models/explore_view_model.dart';
+import 'package:peksoft_radio/features/explore/presentation/world_radio_map_tab.dart';
 
 class ExploreScreen extends ConsumerWidget {
   const ExploreScreen({super.key});
@@ -72,11 +72,12 @@ class ExploreScreen extends ConsumerWidget {
               );
             }
             return TabBarView(
+              physics: const NeverScrollableScrollPhysics(),
               children: [
                 _CountriesTab(countries: explore.countries),
                 _GenresTab(genres: explore.genres),
                 _LanguagesTab(languages: explore.languages),
-                const _MapPlaceholderTab(),
+                const WorldRadioMapTab(),
               ],
             );
           },
@@ -108,7 +109,6 @@ class _CountriesTab extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
       itemBuilder: (context, index) {
         final Country country = countries[index];
-        final String flag = countryFlagEmoji(country.code);
         return Semantics(
           button: true,
           label: '${country.name}, ${country.stationCount} stations',
@@ -132,7 +132,12 @@ class _CountriesTab extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Text(flag, style: AppTypography.h2),
+                    CountryFlagImage(
+                      countryCode: country.code,
+                      width: 36,
+                      height: 26,
+                      borderRadius: 6,
+                    ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
@@ -192,50 +197,65 @@ class _GenresTab extends StatelessWidget {
       itemCount: genres.length,
       itemBuilder: (context, index) {
         final Genre genre = genres[index];
+        final String genreAsset = resolveStationThemeAsset(
+          genre.name,
+          genres: [genre.id],
+        );
         return Semantics(
           button: true,
           label: '${genre.name}, ${genre.stationCount} stations',
           child: Material(
             color: colors.surface,
             borderRadius: BorderRadius.circular(AppRadii.lg),
+            clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: () =>
                   context.push('/genre/${Uri.encodeComponent(genre.id)}'),
               borderRadius: BorderRadius.circular(AppRadii.lg),
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                  border: Border.all(color: colors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      genre.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.title.copyWith(color: colors.accent),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(genreAsset, fit: BoxFit.cover),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      border: Border.all(color: colors.border),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.25),
+                          Colors.black.withValues(alpha: 0.85),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        genre.tagline,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.caption.copyWith(
-                          color: colors.textSecondary,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          genre.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.title.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          '${genre.stationCount} stations',
+                          style: AppTypography.caption.copyWith(
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '${genre.stationCount} stations',
-                      style: AppTypography.caption.copyWith(
-                        color: colors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -317,73 +337,6 @@ class _LanguagesTab extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _MapPlaceholderTab extends StatelessWidget {
-  const _MapPlaceholderTab();
-
-  static const List<({String code, String label})> _hubs = [
-    (code: 'NG', label: '🇳🇬 Lagos'),
-    (code: 'GH', label: '🇬🇭 Accra'),
-    (code: 'GB', label: '🇬🇧 London'),
-    (code: 'US', label: '🇺🇸 New York'),
-    (code: 'JP', label: '🇯🇵 Tokyo'),
-    (code: 'BR', label: '🇧🇷 São Paulo'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadii.xl),
-            border: Border.all(color: colors.border),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                Icons.public_rounded,
-                size: AppSpacing.s3xl,
-                color: colors.accent,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'World Radio Map (Placeholder)',
-                style: AppTypography.h3.copyWith(color: colors.textPrimary),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Visual map pins using Radio Browser geo_lat / geo_long coordinates.',
-                style: AppTypography.bodySmall.copyWith(
-                  color: colors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                alignment: WrapAlignment.center,
-                children: [
-                  for (final hub in _hubs)
-                    GenreChip(
-                      label: hub.label,
-                      onTap: () => context.push('/country/${hub.code}'),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

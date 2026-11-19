@@ -48,14 +48,14 @@ class SectionHeader extends StatelessWidget {
                 child: TextButton(
                   onPressed: onActionTap,
                   style: TextButton.styleFrom(
-                    foregroundColor: colors.accent,
+                    foregroundColor: colors.accentText,
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm,
                     ),
                   ),
                   child: Text(
                     actionLabel!,
-                    style: AppTypography.label.copyWith(color: colors.accent),
+                    style: AppTypography.label.copyWith(color: colors.accentText),
                   ),
                 ),
               ),

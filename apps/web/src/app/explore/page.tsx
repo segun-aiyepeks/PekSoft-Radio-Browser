@@ -16,9 +16,21 @@ export const metadata = buildMetadata({
   path: '/explore',
 });
 
-export default async function ExplorePage() {
+export default async function ExplorePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const initialQuery = q?.trim() ?? '';
+
   const [initialStations, countries, genres, languages] = await Promise.all([
-    searchStations({ limit: 40, workingOnly: true, sort: 'popular' }),
+    searchStations({
+      q: initialQuery || undefined,
+      limit: 40,
+      workingOnly: true,
+      sort: 'popular',
+    }),
     fetchCountries(),
     fetchGenres(),
     fetchLanguages(),
@@ -26,6 +38,7 @@ export default async function ExplorePage() {
 
   return (
     <ExploreClient
+      initialQuery={initialQuery}
       initialStations={initialStations}
       countries={countries}
       genres={genres}

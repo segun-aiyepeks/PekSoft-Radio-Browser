@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
+import { ChevronRight } from 'lucide-react';
+import { CountryFlag } from '@/components/radio/country-flag';
 import { Card, CardContent } from '@/components/ui/card';
 import type { WebCountry } from '@/lib/mock-data';
 
@@ -7,27 +8,33 @@ export function CountryCard({ country }: { country: WebCountry }) {
   return (
     <Link
       href={`/country/${country.code.toLowerCase()}`}
-      className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <Card className="h-full border-border bg-card transition-colors hover:border-[var(--color-accent)]/50">
-        <CardContent className="flex items-center gap-3.5 p-4">
-          <span
-            aria-hidden="true"
-            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-2xl"
-          >
-            {country.flag}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate font-heading text-sm font-semibold text-foreground">
-              {country.name}
-            </h3>
-            <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{country.stationCount} stations</span>
-              <Badge variant="live" className="text-[10px]">
-                {country.workingCount} live
-              </Badge>
+      <Card className="h-full border-border bg-card transition-colors group-hover:bg-muted/40">
+        <CardContent className="flex items-center justify-between gap-3 p-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <CountryFlag
+              code={country.code}
+              name={country.name}
+              emojiFallback={country.flag}
+              size="md"
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="truncate font-heading text-sm font-bold text-foreground">
+                  {country.name}
+                </p>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {country.stationCount}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                <span className="text-[#10B981]">●</span>{' '}
+                {country.workingCount} working streams
+              </p>
             </div>
           </div>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
         </CardContent>
       </Card>
     </Link>

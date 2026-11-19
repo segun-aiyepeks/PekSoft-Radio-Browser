@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +6,6 @@ import 'package:peksoft_radio/core/theme/design_tokens.dart';
 import 'package:peksoft_radio/core/theme/theme_controller.dart';
 import 'package:peksoft_radio/core/widgets/widgets.dart';
 import 'package:peksoft_radio/features/auth/presentation/view_models/auth_view_model.dart';
-import 'package:peksoft_radio/features/profile/presentation/view_models/settings_view_model.dart';
 import 'package:peksoft_radio/features/subscription/domain/entitlement.dart';
 import 'package:peksoft_radio/features/subscription/presentation/view_models/subscription_view_model.dart';
 
@@ -21,20 +19,18 @@ class ProfileScreen extends ConsumerWidget {
     final AsyncValue<SubscriptionState> subAsync = ref.watch(
       subscriptionViewModelProvider,
     );
-    final AsyncValue<SettingsState> settingsAsync = ref.watch(
-      settingsViewModelProvider,
-    );
 
     final bool signedIn = authState.isAuthenticated;
     final bool isPro =
         subAsync.asData?.value.entitlement.tier == EntitlementTier.pro;
-    final bool offlineSim =
-        settingsAsync.asData?.value.isOfflineSimulated ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -200,18 +196,11 @@ class ProfileScreen extends ConsumerWidget {
                   minTileHeight: AppSpacing.touchTarget,
                   leading: const Icon(Icons.info_outline_rounded),
                   title: const Text('About & Legal'),
-                  subtitle: const Text('Station data by Radio Browser'),
+                  subtitle: Text(
+                    'Station data by Radio Browser · © ${DateTime.now().year} developed by aiyepeks',
+                  ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/about'),
-                ),
-                Divider(height: 1, color: colors.border),
-                ListTile(
-                  minTileHeight: AppSpacing.touchTarget,
-                  leading: const Icon(Icons.waving_hand_outlined),
-                  title: const Text('Replay Welcome & Splash'),
-                  subtitle: const Text('Preview onboarding flow'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push('/splash'),
                 ),
                 if (signedIn) ...[
                   Divider(height: 1, color: colors.border),
@@ -236,43 +225,22 @@ class ProfileScreen extends ConsumerWidget {
           Material(
             color: colors.surface,
             borderRadius: BorderRadius.circular(AppRadii.md),
-            child: Column(
-              children: [
-                SwitchListTile(
-                  title: const Text('Simulate Offline Banner'),
-                  subtitle: const Text('Preview offline mode across shell'),
-                  value: offlineSim,
-                  onChanged: (_) => ref
-                      .read(settingsViewModelProvider.notifier)
-                      .toggleOfflineSimulated(),
-                ),
-                Divider(height: 1, color: colors.border),
-                ValueListenableBuilder<ThemeMode>(
-                  valueListenable: appThemeController,
-                  builder: (context, mode, _) {
-                    return SwitchListTile(
-                      title: const Text('Dark Theme'),
-                      value: mode == ThemeMode.dark,
-                      onChanged: (dark) => appThemeController.setMode(
-                        dark ? ThemeMode.dark : ThemeMode.light,
-                      ),
-                    );
-                  },
-                ),
-                if (kDebugMode) ...[
-                  Divider(height: 1, color: colors.border),
-                  ListTile(
-                    minTileHeight: AppSpacing.touchTarget,
-                    leading: Icon(Icons.widgets_outlined, color: colors.accent),
-                    title: const Text('Component Gallery (Dev)'),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => context.push('/gallery'),
+            child: ValueListenableBuilder<ThemeMode>(
+              valueListenable: appThemeController,
+              builder: (context, mode, _) {
+                return SwitchListTile(
+                  title: const Text('Dark Theme'),
+                  value: mode == ThemeMode.dark,
+                  onChanged: (dark) => appThemeController.setMode(
+                    dark ? ThemeMode.dark : ThemeMode.light,
                   ),
-                ],
-              ],
+                );
+              },
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }

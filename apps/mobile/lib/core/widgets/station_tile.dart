@@ -69,6 +69,7 @@ class StationTile extends StatelessWidget {
                 StationLogo(
                   stationName: name,
                   faviconUrl: faviconUrl,
+                  genres: genres,
                   hasLogo: faviconUrl != null && faviconUrl!.isNotEmpty,
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -132,7 +133,7 @@ class StationTile extends StatelessWidget {
                         isFavourite
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,
-                        color: isFavourite ? colors.accent : colors.textMuted,
+                        color: isFavourite ? colors.error : colors.textMuted,
                       ),
                       tooltip: isFavourite ? 'Unfavourite' : 'Favourite',
                     ),

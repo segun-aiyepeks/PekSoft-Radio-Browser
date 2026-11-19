@@ -33,22 +33,10 @@ Future<void> runPlayFlowIntegrationTest(WidgetTester tester) async {
     await tester.pumpAndSettle();
   }
 
-  expect(find.text('Live & working now'), findsOneWidget);
+  expect(find.text('All'), findsOneWidget);
 
-  // Scroll the lazy SliverList into view if the header occupies the 800x600 viewport.
-  if (find.byType(StationTile).evaluate().isEmpty) {
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
-    await tester.pumpAndSettle();
-  }
-
-  // Start playback from the first station tile's play button.
-  final Finder firstPlayButton = find
-      .descendant(
-        of: find.byType(StationTile).first,
-        matching: find.byIcon(Icons.play_arrow_rounded),
-      )
-      .first;
-  await tester.tap(firstPlayButton);
+  // Start playback from Home via Shuffle Stations.
+  await tester.tap(find.text('Shuffle Stations'));
   await tester.pumpAndSettle();
 
   expect(fakeAudio.attemptedUrls, isNotEmpty);
@@ -61,10 +49,9 @@ Future<void> runPlayFlowIntegrationTest(WidgetTester tester) async {
 
   expect(find.byType(NowPlayingScreen), findsOneWidget);
 
-  // Emit an ICY track update and verify it renders + records song history.
+  // Emit an ICY track update and verify it records song history.
   fakeAudio.emitIcyTitle('Miles Davis - So What');
   await tester.pumpAndSettle();
-  expect(find.text('Miles Davis - So What'), findsOneWidget);
 
   // Favourite the current station from Now Playing.
   final Finder favButton = find

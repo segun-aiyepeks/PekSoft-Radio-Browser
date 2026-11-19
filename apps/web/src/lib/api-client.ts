@@ -31,11 +31,14 @@ const GENRE_GRADIENTS: Record<string, string> = {
 };
 
 export function getApiBaseUrl(): string {
-  return (
-    process.env.API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    'http://127.0.0.1:4000'
-  ).replace(/\/+$/, '');
+  const configured =
+    process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
+  if (configured) {
+    return configured.replace(/\/+$/, '');
+  }
+  return typeof window !== 'undefined'
+    ? 'http://localhost:4000'
+    : 'http://127.0.0.1:4000';
 }
 
 export function countryCodeToFlag(code: string): string {
@@ -53,8 +56,15 @@ export function slugifyStationName(name: string, id: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
-  const shortId = id.slice(0, 8);
-  return base ? `${base}-${shortId}` : id;
+  return base ? `${base}--${id}` : id;
+}
+
+export function extractStationIdFromSlug(slugOrId: string): string {
+  const idx = slugOrId.lastIndexOf('--');
+  if (idx !== -1 && idx + 2 < slugOrId.length) {
+    return slugOrId.slice(idx + 2);
+  }
+  return slugOrId;
 }
 
 export function stationDtoToWebStation(dto: StationDto): WebStation {
@@ -92,6 +102,36 @@ export function countryDtoToWebCountry(dto: CountryDto): WebCountry {
   };
 }
 
+const KNOWN_GENRE_IMAGES = new Set([
+  'afrobeats',
+  'bollywood',
+  'classical',
+  'country',
+  'electronic',
+  'gospel',
+  'highlife',
+  'hiphop',
+  'islamic',
+  'jazz',
+  'jpop',
+  'latin',
+  'lounge',
+  'news',
+  'oldies',
+  'pop',
+  'reggae',
+  'rock',
+  'soul',
+  'sports',
+]);
+
+export function genreImageForSlug(slug: string): string {
+  const key = slug.toLowerCase();
+  return KNOWN_GENRE_IMAGES.has(key)
+    ? `/images/genres/${key}.jpg`
+    : '/images/genres/electronic.jpg';
+}
+
 export function genreDtoToWebGenre(dto: GenreDto): WebGenre {
   return {
     id: dto.id,
@@ -102,6 +142,7 @@ export function genreDtoToWebGenre(dto: GenreDto): WebGenre {
     gradient:
       GENRE_GRADIENTS[dto.id] ??
       'from-amber-500/25 via-slate-800 to-slate-950',
+    imageUrl: genreImageForSlug(dto.id),
   };
 }
 
@@ -118,10 +159,12 @@ async function fetchJson(
   const url = `${getApiBaseUrl()}${path}`;
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
+    const timer = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(url, {
       signal: controller.signal,
-      next: { revalidate: revalidateSeconds },
+      ...(typeof window === 'undefined'
+        ? { next: { revalidate: revalidateSeconds } }
+        : {}),
     });
     clearTimeout(timer);
     if (!res.ok) return null;
@@ -276,8 +319,9 @@ export async function fetchStationBySlugOrId(
   const mockMatch = getStationBySlug(slugOrId);
   if (mockMatch) return mockMatch;
 
+  const resolvedId = extractStationIdFromSlug(slugOrId);
   const json = await fetchJson(
-    `/v1/stations/${encodeURIComponent(slugOrId)}`,
+    `/v1/stations/${encodeURIComponent(resolvedId)}`,
     300,
   );
   if (json && 'station' in json) {
@@ -325,5 +369,6 @@ export async function fetchGenreMeta(slug: string): Promise<WebGenre> {
     stationCount: 0,
     gradient:
       GENRE_GRADIENTS[slug] ?? 'from-amber-500/30 via-slate-800 to-slate-950',
+    imageUrl: genreImageForSlug(slug),
   };
 }

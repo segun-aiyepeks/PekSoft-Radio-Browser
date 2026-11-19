@@ -46,6 +46,7 @@ export function StationDetailClient({
           <StationArtwork
             name={station.name}
             faviconUrl={station.faviconUrl}
+            genres={station.genres}
             size="xl"
           />
 
@@ -103,8 +104,7 @@ export function StationDetailClient({
                 <Heart
                   className={cn(
                     'size-4',
-                    isFav &&
-                      'fill-[var(--color-accent)] text-[var(--color-accent)]',
+                    isFav && 'fill-red-500 text-red-500',
                   )}
                 />
                 {isFav ? 'Saved' : 'Save'}

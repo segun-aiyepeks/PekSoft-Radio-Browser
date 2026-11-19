@@ -16,7 +16,7 @@ describe('api-client mapping', () => {
 
   it('builds deterministic station slugs', () => {
     expect(slugifyStationName('Cool FM 96.9 Lagos', '12345678-abcd')).toBe(
-      'cool-fm-96-9-lagos-12345678',
+      'cool-fm-96-9-lagos--12345678-abcd',
     );
   });
 
@@ -49,7 +49,7 @@ describe('api-client mapping', () => {
     expect(web.fallbackStreamUrl).toBe('https://backup.example.com/live.mp3');
     expect(web.genres).toEqual(['afrobeats']);
     expect(web.isHttpsPlayable).toBe(true);
-    expect(web.slug).toBe('wazobia-fm-95-1-st-12345');
+    expect(web.slug).toBe('wazobia-fm-95-1--st-12345678-uuid');
   });
 });
 

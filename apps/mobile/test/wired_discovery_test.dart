@@ -278,15 +278,20 @@ void main() {
         await tester.pumpWidget(
           _wrapWithProviders(const HomeScreen(), catalog: catalog),
         );
-        expect(find.byType(SkeletonList), findsOneWidget);
+        expect(find.byType(PekSoftSignalLoader), findsOneWidget);
 
         catalog.pendingTop!.complete(<Station>[_lagosStation]);
         catalog.pendingTop = null;
         await tester.pumpAndSettle();
 
-        expect(find.text('Cool FM Lagos'), findsOneWidget);
-        expect(find.text('Lagos Morning'), findsOneWidget);
+        expect(find.text('Cool FM Lagos'), findsWidgets);
         expect(find.byType(AdSlotPlaceholder), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('Lagos Morning'),
+          250,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text('Lagos Morning'), findsOneWidget);
 
         // Error state + retry
         catalog.shouldFail = true;
@@ -325,7 +330,7 @@ void main() {
 
       await tester.tap(find.text('Map'));
       await tester.pumpAndSettle();
-      expect(find.text('World Radio Map (Placeholder)'), findsOneWidget);
+      expect(find.text('Lagos'), findsOneWidget);
     });
 
     testWidgets('SearchScreen shows idle, results, no-results, and Filters', (
@@ -401,6 +406,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Skip'), findsOneWidget);
+      expect(find.text('Every radio station in the world'), findsOneWidget);
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
       expect(find.text('Tune into your world'), findsOneWidget);
     });
   });
