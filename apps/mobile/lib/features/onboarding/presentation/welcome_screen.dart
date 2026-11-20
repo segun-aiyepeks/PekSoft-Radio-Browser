@@ -95,9 +95,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             child: SizedBox(
               height: AppSpacing.touchTarget,
               child: TextButton(
-                onPressed: () {
-                  vm.skip();
-                  context.go('/home');
+                onPressed: () async {
+                  await vm.skip();
+                  if (context.mounted) {
+                    context.go('/home');
+                  }
                 },
                 child: const Text('Skip'),
               ),

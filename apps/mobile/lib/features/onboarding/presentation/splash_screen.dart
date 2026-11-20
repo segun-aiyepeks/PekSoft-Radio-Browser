@@ -26,11 +26,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     _autoNavTimer = Timer(const Duration(seconds: 2), _navigateNext);
   }
 
-  void _navigateNext() {
+  Future<void> _navigateNext() async {
     if (!mounted) return;
-    final destination =
-        ref.read(splashViewModelProvider).value?.destinationRoute ??
-            '/welcome';
+    String destination = '/welcome';
+    try {
+      final splashState = await ref.read(splashViewModelProvider.future);
+      destination = splashState.destinationRoute;
+    } catch (_) {
+      destination =
+          ref.read(splashViewModelProvider).value?.destinationRoute ??
+              '/welcome';
+    }
+    if (!mounted) return;
     GoRouter.maybeOf(context)?.go(destination);
   }
 
@@ -43,6 +50,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    // Start loading saved onboarding settings immediately while Splash renders.
+    ref.watch(splashViewModelProvider);
 
     return Scaffold(
       backgroundColor: colors.background,
