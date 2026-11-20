@@ -18,11 +18,19 @@ class PekSoftLogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final bool isLight = Theme.of(context).brightness == Brightness.light;
     return CustomPaint(
       size: Size.square(size),
       painter: _PekSoftSignalPainter(
         progress: 0.5,
         showBackground: showBackground,
+        stemColor: (!showBackground && isLight)
+            ? colors.textPrimary
+            : const Color(0xFFF4F6FB),
+        signalColor: (!showBackground && isLight)
+            ? const Color(0xFFD97706)
+            : const Color(0xFFFFB020),
       ),
     );
   }
@@ -83,11 +91,19 @@ class _PekSoftSignalLoaderState extends State<PekSoftSignalLoader>
             animation: _controller,
             builder: (context, _) {
               final t = disableAnimations ? 0.5 : _controller.value;
+              final bool isLight =
+                  Theme.of(context).brightness == Brightness.light;
               return CustomPaint(
                 size: Size.square(widget.size),
                 painter: _PekSoftSignalPainter(
                   progress: t,
                   showBackground: widget.showBackground,
+                  stemColor: (!widget.showBackground && isLight)
+                      ? colors.textPrimary
+                      : const Color(0xFFF4F6FB),
+                  signalColor: (!widget.showBackground && isLight)
+                      ? const Color(0xFFD97706)
+                      : const Color(0xFFFFB020),
                 ),
               );
             },
@@ -111,10 +127,14 @@ class _PekSoftSignalPainter extends CustomPainter {
   const _PekSoftSignalPainter({
     required this.progress,
     required this.showBackground,
+    this.stemColor = const Color(0xFFF4F6FB),
+    this.signalColor = const Color(0xFFFFB020),
   });
 
   final double progress;
   final bool showBackground;
+  final Color stemColor;
+  final Color signalColor;
 
   double _waveOpacity(double t, double onStart, double onEnd, double offStart, double offEnd) {
     if (t < onStart) return 0.15;
@@ -147,8 +167,8 @@ class _PekSoftSignalPainter extends CustomPainter {
     canvas.save();
     canvas.translate(8 * s, 0);
 
-    // White 'P' stem + bowl (#F4F6FB)
-    final whitePaint = Paint()..color = const Color(0xFFF4F6FB);
+    // 'P' stem + bowl
+    final whitePaint = Paint()..color = stemColor;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(152 * s, 136 * s, 48 * s, 240 * s),
@@ -187,13 +207,13 @@ class _PekSoftSignalPainter extends CustomPainter {
     // 1. Smallest signal (dot): appears 1st, disappears last
     final dotOpacity = _waveOpacity(progress, 0.04, 0.16, 0.80, 0.94);
     final dotPaint = Paint()
-      ..color = const Color(0xFFFFB020).withValues(alpha: dotOpacity);
+      ..color = signalColor.withValues(alpha: dotOpacity);
     canvas.drawCircle(Offset(228 * s, 212 * s), 15 * s, dotPaint);
 
     // 2. Medium signal (inner arc): appears 2nd, disappears 2nd
     final innerOpacity = _waveOpacity(progress, 0.18, 0.32, 0.66, 0.80);
     final innerPaint = Paint()
-      ..color = const Color(0xFFFFB020).withValues(alpha: innerOpacity)
+      ..color = signalColor.withValues(alpha: innerOpacity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 24 * s
       ..strokeCap = StrokeCap.round;
@@ -208,7 +228,7 @@ class _PekSoftSignalPainter extends CustomPainter {
     // 3. Largest signal (outer arc): appears 3rd, disappears 1st
     final outerOpacity = _waveOpacity(progress, 0.34, 0.48, 0.52, 0.66);
     final outerPaint = Paint()
-      ..color = const Color(0xFFFFB020).withValues(alpha: outerOpacity)
+      ..color = signalColor.withValues(alpha: outerOpacity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 24 * s
       ..strokeCap = StrokeCap.round;

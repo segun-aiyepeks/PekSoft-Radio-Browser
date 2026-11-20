@@ -13,6 +13,12 @@ export function registerReportRoutes(
   app.post(
     '/v1/reports',
     {
+      config: {
+        rateLimit: {
+          max: 15,
+          timeWindow: 60_000,
+        },
+      },
       schema: {
         tags: ['Reports'],
         summary: 'Submit a broken station or metadata report',

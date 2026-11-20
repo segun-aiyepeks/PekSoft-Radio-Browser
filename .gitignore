@@ -18,10 +18,11 @@ build/
 coverage/
 *.tsbuildinfo
 
-# Next.js
+# Next.js & Netlify
 apps/web/.next/
 apps/web/out/
 next-env.d.ts
+.netlify/
 
 # Flutter / Dart / Android
 apps/mobile/.dart_tool/

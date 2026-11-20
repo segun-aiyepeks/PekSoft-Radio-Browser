@@ -18,6 +18,7 @@ import { AppError } from './errors/app-error.js';
 import { createRequireAuth } from './plugins/auth-middleware.js';
 import { registerErrorHandlers } from './plugins/error-handler.js';
 import { buildLoggerOptions } from './plugins/logger.js';
+import { createSentryReporter } from './plugins/sentry.js';
 import {
   RadioBrowserClient,
   type HttpTransport,
@@ -91,9 +92,30 @@ export async function buildServer(
 
   const app = Fastify({
     logger: buildLoggerOptions(env, options.logger ?? true),
+    bodyLimit: 256 * 1024, // 256 KiB defense against oversized payload DoS
   });
 
-  registerErrorHandlers(app);
+  const sentry = createSentryReporter(env);
+  registerErrorHandlers(app, { sentry });
+
+  // Baseline HTTP security headers (OWASP API8:2023)
+  app.addHook('onSend', async (_request, reply, payload) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'DENY');
+    reply.header('Referrer-Policy', 'no-referrer');
+    reply.header(
+      'Permissions-Policy',
+      'geolocation=(), microphone=(), camera=()',
+    );
+    reply.header('X-Permitted-Cross-Domain-Policies', 'none');
+    if (env.NODE_ENV === 'production') {
+      reply.header(
+        'Strict-Transport-Security',
+        'max-age=31536000; includeSubDomains',
+      );
+    }
+    return payload;
+  });
 
   await app.register(swagger, {
     openapi: {
@@ -116,7 +138,7 @@ export async function buildServer(
     },
   });
 
-  if (options.enableSwaggerUi ?? true) {
+  if (options.enableSwaggerUi ?? env.NODE_ENV !== 'production') {
     await app.register(swaggerUi, {
       routePrefix: '/docs',
       uiConfig: {
@@ -126,8 +148,15 @@ export async function buildServer(
     });
   }
 
+  const corsOrigin = parseCorsOrigins(env.CORS_ORIGINS);
+  if (env.NODE_ENV === 'production' && corsOrigin === true) {
+    throw new Error(
+      'CORS_ORIGINS cannot be "*" in production when credentials are enabled.',
+    );
+  }
+
   await app.register(cors, {
-    origin: parseCorsOrigins(env.CORS_ORIGINS),
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -145,11 +174,19 @@ export async function buildServer(
       }),
   });
 
-  registerHealthRoutes(app, env.APP_VERSION);
+  let dbHandle: DatabaseHandle | undefined;
+  registerHealthRoutes(app, env.APP_VERSION, {
+    checkDatabase: env.DATABASE_URL
+      ? async () => {
+          if (!dbHandle) return true;
+          await dbHandle.prisma.$queryRaw`SELECT 1`;
+          return true;
+        }
+      : undefined,
+  });
   registerCatalogRoutes(app, catalogService);
   registerStationRoutes(app, catalogService);
 
-  let dbHandle: DatabaseHandle | undefined;
   let userRepository = options.userRepository;
   let entitlementRepository = options.entitlementRepository;
   let libraryRepository = options.libraryRepository;

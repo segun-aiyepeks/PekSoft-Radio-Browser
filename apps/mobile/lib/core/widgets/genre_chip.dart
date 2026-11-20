@@ -23,7 +23,7 @@ class GenreChip extends StatelessWidget {
         ? colors.accent.withValues(alpha: 0.18)
         : colors.surfaceMuted;
     final borderColor = selected ? colors.accent : colors.border;
-    final textColor = selected ? colors.accent : colors.textSecondary;
+    final textColor = selected ? colors.accentText : colors.textSecondary;
 
     final chipBody = Container(
       constraints: BoxConstraints(

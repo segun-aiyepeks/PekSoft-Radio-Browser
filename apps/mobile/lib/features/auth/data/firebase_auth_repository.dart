@@ -108,11 +108,19 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
+  static const String _defaultGoogleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue:
+        '949308772683-kc8hiq67t3l98nrs15olvo4oorsefu7j.apps.googleusercontent.com',
+  );
+
   @override
   Future<Result<AuthOutcome>> signInWithGoogle() async {
     try {
       if (!_googleInitialized) {
-        await _googleSignIn.initialize();
+        await _googleSignIn.initialize(
+          serverClientId: _defaultGoogleServerClientId,
+        );
         _googleInitialized = true;
       }
       final GoogleSignInAccount account = await _googleSignIn.authenticate();

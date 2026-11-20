@@ -112,5 +112,41 @@ void main() {
         }
       }
     });
+
+    testWidgets(
+      'Milestone 7.1: Key screens render without overflow at 2.0x text scale',
+      (tester) async {
+        const Size phoneSize = Size(390, 844);
+        for (final entry in screens) {
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: mockRepositoryOverrides(),
+              child: MediaQuery(
+                data: const MediaQueryData(
+                  size: phoneSize,
+                  textScaler: TextScaler.linear(2.0),
+                ),
+                child: MaterialApp(
+                  theme: AppTheme.light(),
+                  darkTheme: AppTheme.dark(),
+                  themeMode: ThemeMode.dark,
+                  home: SizedBox(
+                    width: phoneSize.width,
+                    height: phoneSize.height,
+                    child: entry.builder(),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: '${entry.name} at 2.0x text scale',
+          );
+        }
+      },
+    );
   });
 }

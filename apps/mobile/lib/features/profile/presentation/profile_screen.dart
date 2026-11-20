@@ -51,7 +51,7 @@ class ProfileScreen extends ConsumerWidget {
                         signedIn
                             ? Icons.person_rounded
                             : Icons.person_outline_rounded,
-                        color: colors.accent,
+                        color: colors.accentText,
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -76,17 +76,25 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ),
                           if (signedIn && !authState.emailVerified)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: AppSpacing.xxs,
-                              ),
-                              child: GestureDetector(
-                                onTap: () => context.push('/auth/verify-email'),
-                                child: Text(
-                                  'Email not verified · Tap to verify',
-                                  style: AppTypography.caption.copyWith(
-                                    color: colors.accent,
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                onPressed: () =>
+                                    context.push('/auth/verify-email'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: colors.accentText,
+                                  minimumSize: const Size(
+                                    AppSpacing.touchTarget,
+                                    AppSpacing.touchTarget,
                                   ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.xs,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.padded,
+                                ),
+                                child: const Text(
+                                  'Email not verified · Tap to verify',
                                 ),
                               ),
                             ),
@@ -106,8 +114,10 @@ class ProfileScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: SizedBox(
-                          height: AppSpacing.touchTarget,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minHeight: AppSpacing.touchTarget,
+                          ),
                           child: OutlinedButton.icon(
                             onPressed: authState.isLoading
                                 ? null
@@ -133,8 +143,10 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
-                        child: SizedBox(
-                          height: AppSpacing.touchTarget,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minHeight: AppSpacing.touchTarget,
+                          ),
                           child: OutlinedButton(
                             onPressed: authState.isLoading
                                 ? null

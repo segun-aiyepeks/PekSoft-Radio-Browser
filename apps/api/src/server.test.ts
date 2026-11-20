@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { loadEnv, type Env } from './config/env.js';
 import { badRequest } from './errors/app-error.js';
+import { createSentryReporter, parseSentryDsn } from './plugins/sentry.js';
 import { buildServer } from './server.js';
 
 function makeTestEnv(overrides: Partial<Env> = {}): Env {
@@ -164,5 +165,66 @@ describe('Milestone 4.1 API scaffold', () => {
     expect(missing.json().error.code).toBe('NOT_FOUND');
 
     await app.close();
+  });
+
+  it('sets baseline HTTP security headers and rejects wildcard CORS in production', async () => {
+    const app = await buildServer({
+      env: makeTestEnv(),
+      logger: false,
+      enableSwaggerUi: false,
+    });
+
+    const res = await app.inject({ method: 'GET', url: '/health' });
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-frame-options']).toBe('DENY');
+    expect(res.headers['referrer-policy']).toBe('no-referrer');
+    expect(res.headers['x-permitted-cross-domain-policies']).toBe('none');
+    await app.close();
+
+    await expect(
+      buildServer({
+        env: makeTestEnv({ NODE_ENV: 'production', CORS_ORIGINS: '*' }),
+        logger: false,
+      }),
+    ).rejects.toThrow(/CORS_ORIGINS cannot be "\*" in production/);
+  });
+
+  it('serves readiness probe on GET /health/ready and formats PII-free Sentry envelopes', async () => {
+    const app = await buildServer({
+      env: makeTestEnv(),
+      logger: false,
+      enableSwaggerUi: false,
+    });
+
+    const readyRes = await app.inject({ method: 'GET', url: '/health/ready' });
+    expect(readyRes.statusCode).toBe(200);
+    const readyBody = readyRes.json();
+    expect(readyBody.status).toBe('ok');
+    expect(readyBody.checks.process).toBe('ok');
+    expect(typeof readyBody.memoryRssMb).toBe('number');
+    await app.close();
+
+    expect(parseSentryDsn('https://abc123@o12345.ingest.sentry.io/999')).toEqual({
+      storeUrl: 'https://o12345.ingest.sentry.io/api/999/store/',
+      publicKey: 'abc123',
+    });
+
+    const sent: Array<{ url: string; body: string }> = [];
+    const reporter = createSentryReporter(
+      makeTestEnv({ SENTRY_DSN: 'https://abc123@o12345.ingest.sentry.io/999' }),
+      (async (url: string | URL | Request, init?: RequestInit) => {
+        sent.push({ url: String(url), body: String(init?.body ?? '') });
+        return new Response('{}', { status: 200 });
+      }) as typeof fetch,
+    );
+    expect(reporter.enabled).toBe(true);
+    await reporter.captureException(new Error('boom'), {
+      requestId: 'req-1',
+      method: 'GET',
+      url: '/v1/me?email=secret@example.com',
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.body).not.toContain('secret@example.com');
+    expect(sent[0]?.body).toContain('/v1/me');
   });
 });

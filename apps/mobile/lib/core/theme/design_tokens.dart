@@ -33,10 +33,10 @@ abstract final class AppLightColors {
   static const Color accent = Color(0xFF7C22CE);
   static const Color accentHover = Color(0xFF6B1BB5);
   static const Color onAccent = Color(0xFFFFFFFF);
-  static const Color success = Color(0xFF059669);
-  static const Color warning = Color(0xFFD97706);
+  static const Color success = Color(0xFF047857);
+  static const Color warning = Color(0xFFB45309);
   static const Color error = Color(0xFFDC2626);
-  static const Color info = Color(0xFF0284C7);
+  static const Color info = Color(0xFF0369A1);
 }
 
 abstract final class AppTypography {

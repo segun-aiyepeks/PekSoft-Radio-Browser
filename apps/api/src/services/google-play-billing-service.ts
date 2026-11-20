@@ -107,7 +107,14 @@ export class GooglePlayBillingService {
     input: GooglePlayVerifyPurchaseRequest,
   ): Promise<EntitlementMutationResult> {
     const user = await this.options.users.findOrCreateByFirebaseUid(identity);
-    const packageName = input.packageName ?? this.options.packageName;
+    if (input.packageName && input.packageName !== this.options.packageName) {
+      throw new AppError({
+        statusCode: 400,
+        code: 'INVALID_PACKAGE_NAME',
+        message: 'Purchase packageName does not match this application.',
+      });
+    }
+    const packageName = this.options.packageName;
 
     const verification =
       await this.options.verifier.verifySubscriptionPurchase({

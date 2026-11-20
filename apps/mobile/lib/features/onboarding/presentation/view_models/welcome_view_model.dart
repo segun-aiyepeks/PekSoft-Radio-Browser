@@ -70,9 +70,17 @@ class WelcomeViewModel extends Notifier<WelcomeState> {
       Success<UserSettings>(:final data) => data,
       Failure<UserSettings>() => const UserSettings(),
     };
+    final String persistedCountry =
+        (state.selectedCountryCode != null &&
+                state.selectedCountryCode!.isNotEmpty)
+            ? state.selectedCountryCode!
+            : ((base.homeCountryCode != null &&
+                    base.homeCountryCode!.isNotEmpty)
+                ? base.homeCountryCode!
+                : 'GLOBAL');
     final Result<void> saved = await repo.saveSettings(
       base.copyWith(
-        homeCountryCode: state.selectedCountryCode,
+        homeCountryCode: persistedCountry,
         preferredGenreIds: state.selectedGenreIds,
       ),
     );
@@ -85,7 +93,16 @@ class WelcomeViewModel extends Notifier<WelcomeState> {
     };
   }
 
-  void skip() {
+  Future<void> skip() async {
+    final repo = ref.read(settingsRepositoryProvider);
+    final Result<UserSettings> currentRes = await repo.getSettings();
+    final UserSettings base = switch (currentRes) {
+      Success<UserSettings>(:final data) => data,
+      Failure<UserSettings>() => const UserSettings(),
+    };
+    if ((base.homeCountryCode ?? '').isEmpty) {
+      await repo.saveSettings(base.copyWith(homeCountryCode: 'GLOBAL'));
+    }
     state = state.copyWith(completed: true, clearError: true);
   }
 }

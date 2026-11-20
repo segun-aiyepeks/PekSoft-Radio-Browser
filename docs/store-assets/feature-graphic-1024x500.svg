@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500" fill="none">
+  <!-- Background -->
+  <rect width="1024" height="500" fill="#0B0E17" />
+  <!-- Subtle flat architectural grid lines -->
+  <line x1="0" y1="100" x2="1024" y2="100" stroke="#1A2138" stroke-width="1" />
+  <line x1="0" y1="200" x2="1024" y2="200" stroke="#1A2138" stroke-width="1" />
+  <line x1="0" y1="300" x2="1024" y2="300" stroke="#1A2138" stroke-width="1" />
+  <line x1="0" y1="400" x2="1024" y2="400" stroke="#1A2138" stroke-width="1" />
+
+  <!-- Left brand logo mark (exact PekSoft Radio Browser geometry, flat solid) -->
+  <g transform="translate(88, 130) scale(0.46875)">
+    <rect x="0" y="0" width="512" height="512" rx="112" fill="#131826" stroke="#262B3D" stroke-width="6" />
+    <g transform="translate(8, 0)">
+      <rect x="152" y="136" width="48" height="240" rx="24" fill="#F4F6FB" />
+      <path d="M176 136 H228 A76 76 0 0 1 228 288 H176 Z M200 182 V242 H228 A30 30 0 0 0 228 182 Z" fill-rule="evenodd" fill="#F4F6FB" />
+      <circle cx="228" cy="212" r="15" fill="#FFB020" />
+      <path d="M301.5 138.5 A104 104 0 0 1 301.5 285.5" stroke="#FFB020" stroke-width="24" stroke-linecap="round" fill="none" />
+      <path d="M329.8 110.2 A144 144 0 0 1 329.8 313.8" stroke="#FFB020" stroke-width="24" stroke-linecap="round" fill="none" />
+    </g>
+  </g>
+
+  <!-- Right editorial copy (clean Material 3 / Roboto typography, zero glow) -->
+  <g transform="translate(376, 132)">
+    <!-- LIVE badge -->
+    <rect x="0" y="0" width="186" height="34" rx="17" fill="#131826" stroke="#262B3D" stroke-width="1.5" />
+    <circle cx="22" cy="17" r="5" fill="#10B981" />
+    <text x="38" y="22" fill="#E2E8F0" font-family="Roboto, Arial, sans-serif" font-size="14" font-weight="600">40,000+ LIVE STATIONS</text>
+
+    <!-- Title -->
+    <text x="0" y="96" fill="#FFFFFF" font-family="Roboto, Arial, sans-serif" font-size="52" font-weight="700" letter-spacing="-1">PekSoft Radio</text>
+    <text x="0" y="152" fill="#C084FC" font-family="Roboto, Arial, sans-serif" font-size="52" font-weight="700" letter-spacing="-1">Browser</text>
+
+    <!-- Subtitle -->
+    <text x="0" y="198" fill="#94A3B8" font-family="Roboto, Arial, sans-serif" font-size="22" font-weight="400">Stream live FM &amp; internet radio across 195+ countries.</text>
+
+    <!-- Solid feature pills -->
+    <g transform="translate(0, 224)">
+      <rect x="0" y="0" width="144" height="36" rx="8" fill="#8A2BE2" />
+      <text x="72" y="23" text-anchor="middle" fill="#FFFFFF" font-family="Roboto, Arial, sans-serif" font-size="14" font-weight="600">Guest-First</text>
+
+      <rect x="158" y="0" width="152" height="36" rx="8" fill="#131826" stroke="#262B3D" stroke-width="1.5" />
+      <text x="234" y="23" text-anchor="middle" fill="#E2E8F0" font-family="Roboto, Arial, sans-serif" font-size="14" font-weight="600">World Radio Map</text>
+
+      <rect x="324" y="0" width="144" height="36" rx="8" fill="#131826" stroke="#262B3D" stroke-width="1.5" />
+      <text x="396" y="23" text-anchor="middle" fill="#E2E8F0" font-family="Roboto, Arial, sans-serif" font-size="14" font-weight="600">Working Now</text>
+    </g>
+  </g>
+
+  <!-- Footer credit -->
+  <text x="936" y="470" text-anchor="end" fill="#64748B" font-family="Roboto, Arial, sans-serif" font-size="14" font-weight="500">© 2026 developed by aiyepeks</text>
+</svg>

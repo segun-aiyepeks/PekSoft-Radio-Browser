@@ -1280,3 +1280,233 @@ Phase 5 delivers end-to-end mobile monetisation, server-verified billing, ad pol
 
 ### How to run and verify
 - `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web typecheck && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
+
+
+---
+
+## Phase 7 — Hardening and Launch
+
+### Milestone 7.1 — Accessibility and Performance (2026-11-19)
+
+#### What I did
+- Audited all key Flutter mobile screens (`HomeScreen`, `ExploreScreen`, `WorldRadioMapTab`, `NowPlayingScreen`, `SplashScreen`, `WelcomeScreen`, `ProfileScreen`, `StationLogo`, `GenreChip`) for TalkBack semantics, 48dp touch targets, WCAG AA contrast (dark & light), and 2.0x text scaling.
+- Fixed every critical/high accessibility issue found: added Play/Pause and Details semantics on map station cards, raised map pins and zoom/refresh controls to 48x48dp, added selection semantics and visible checkmarks on onboarding genre cards, replaced the tiny email-verify `GestureDetector` with a 48dp `TextButton`, made the light-mode splash logo high-contrast, darkened light-mode status tokens (`success`, `warning`, `info`) to >= 4.5:1, switched `GenreChip` selected text to `colors.accentText`, scoped `_PlaybackStatusBanner` `liveRegion` to status text only, and made shelf/grid heights scale cleanly up to 2.0x text scaling.
+- Configured Flutter's bounded LRU `ImageCache` (250 images / 64 MB) in `main.dart` and added DPR-aware `cacheWidth`/`cacheHeight` decoding in `StationLogo`.
+- Audited Next.js web accessibility and production bundle/caching: added a keyboard-accessible `Skip to main content` link and `#main-content` landmark in `AppShell`, enabled `compress: true`, `poweredByHeader: false`, `images.formats: ['image/avif', 'image/webp']`, `experimental.optimizePackageImports: ['lucide-react', 'motion']`, and 1-year `immutable` `Cache-Control` headers for `/images/*` in `next.config.ts`.
+- Recorded all Before and After measurements in `docs/performance-accessibility-audit.md` and added an automated 2.0x text-scale widget test in `apps/mobile/test/polish_accessibility_test.dart`.
+
+#### Why
+- Hardening accessibility (TalkBack, keyboard bypass, 48dp targets, WCAG AA contrast, 2.0x font scaling) ensures the app is usable by everyone and avoids Play Store accessibility warnings.
+- Bounding decoded image memory (`ImageCache` + `cacheWidth`/`cacheHeight`) and enabling AVIF/WebP + immutable image caching keeps scrolling smooth on low-RAM Android devices and improves web Lighthouse/LCP scores.
+
+#### How it works (plain English)
+- On mobile, every interactive icon/pin now exposes a 48x48dp tap area and clear TalkBack label, while `StationLogo` decodes images at the exact pixel size needed for the screen rather than full raw resolution.
+- On web, keyboard users can press Tab once to jump straight past the sidebar/header to the main content, and browsers cache static genre/brand images locally for a full year.
+
+#### Files created or changed
+- `docs/performance-accessibility-audit.md` (new)
+- `docs/build-log.md` (updated)
+- `apps/mobile/lib/main.dart`
+- `apps/mobile/lib/core/theme/design_tokens.dart`
+- `apps/mobile/lib/core/widgets/genre_chip.dart`
+- `apps/mobile/lib/core/widgets/peksoft_signal_loader.dart`
+- `apps/mobile/lib/core/widgets/station_logo.dart`
+- `apps/mobile/lib/features/explore/presentation/world_radio_map_tab.dart`
+- `apps/mobile/lib/features/home/presentation/home_screen.dart`
+- `apps/mobile/lib/features/onboarding/presentation/welcome_screen.dart`
+- `apps/mobile/lib/features/player/presentation/now_playing_screen.dart`
+- `apps/mobile/lib/features/profile/presentation/profile_screen.dart`
+- `apps/mobile/test/polish_accessibility_test.dart`
+- `apps/mobile/test/goldens/*.png`
+- `apps/web/next.config.ts`
+- `apps/web/src/components/radio/app-shell.tsx`
+
+#### How to run and verify
+- Mobile: `cd apps/mobile && flutter analyze && flutter test`
+- Web: `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web test && pnpm --filter @peksoft/web build`
+
+#### Concepts worth learning
+- **`cacheWidth` / `cacheHeight` in Flutter**: Telling Flutter's image decoder the exact pixel size (`logicalSize * devicePixelRatio`) avoids decoding a 1200x1200 JPEG into a 5.7 MB uncompressed RGBA bitmap just to render a 56dp thumbnail.
+- **`Semantics(excludeSemantics: true)`**: When you wrap a card in a custom accessible label, `excludeSemantics: true` prevents TalkBack from reading both your summary label and every child `Text` node twice.
+- **Immutable `Cache-Control` headers**: `public, max-age=31536000, immutable` lets browsers and CDNs reuse static assets without revalidation round-trips.
+
+#### Decisions and alternatives
+- Kept `flutter_map` + OpenStreetMap tiles (zero API keys) and enlarged marker hit targets to 48x48dp rather than switching to a paid map SDK.
+- Used Next.js built-in `optimizePackageImports` and `Cache-Control` headers rather than adding extra bundler plugins, keeping the build pipeline simple and fast.
+
+
+### Milestone 7.2 — Security Review (2026-11-19)
+
+#### What I did
+- Walked through all 10 categories of the **OWASP API Security Top 10 (2023)** against `apps/api` and documented the full assessment, fixes, and operational guidance in `docs/security-review.md`.
+- Hardened `apps/api/src/server.ts`: added baseline HTTP security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy`, `X-Permitted-Cross-Domain-Policies: none`, and `Strict-Transport-Security` in production), bounded JSON payload size (`bodyLimit: 256 KiB`), disabled Swagger UI (`/docs`) by default when `NODE_ENV === 'production'`, and blocked wildcard `CORS_ORIGINS=*` in production when credentials are enabled.
+- Tightened `POST /v1/reports` rate limiting to `15 req/min` (`apps/api/src/routes/v1/reports.ts`), expanded PII/secret redaction in `apps/api/src/plugins/logger.ts` (`x-paystack-signature`, `x-goog-pubsub-token`, `purchaseToken`, `secretKey`, `privateKey`), and enforced exact `packageName` matching in `GooglePlayBillingService.verifyPurchase`.
+- Ran `pnpm audit --prod`, `flutter pub outdated --no-dev-dependencies`, and a repository secrets scan; verified Paystack HMAC-SHA512 and Google Play Pub/Sub constant-time webhook signature verification and Firebase revocation checks.
+- Added automated security-header and production CORS tests in `apps/api/src/server.test.ts`.
+
+#### Why
+- Hardening HTTP headers, payload limits, public endpoint rate limits, package-name binding, and production CORS/Swagger defaults closes the most common OWASP API misconfigurations before public launch.
+
+#### How it works (plain English)
+- Every API response now includes security headers that tell browsers not to MIME-sniff, embed the API in iframes, or leak referrers.
+- In production, the API refuses to start with wildcard CORS (`*`) alongside cookies/auth headers, hides `/docs`, caps request bodies at 256 KiB, and strictly rejects Google Play purchase tokens submitted for any package other than `com.peksoft.radio`.
+
+#### Files created or changed
+- `docs/security-review.md` (new)
+- `docs/build-log.md` (updated)
+- `apps/api/src/server.ts`
+- `apps/api/src/plugins/logger.ts`
+- `apps/api/src/routes/v1/reports.ts`
+- `apps/api/src/services/google-play-billing-service.ts`
+- `apps/api/src/server.test.ts`
+
+#### How to run and verify
+- `pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test`
+- `pnpm audit --prod`
+- `cd apps/mobile && flutter pub outdated --no-dev-dependencies`
+
+#### Concepts worth learning
+- **Constant-time comparison (`crypto.timingSafeEqual`)**: Comparing HMAC signatures or webhook tokens with `===` leaks how many leading bytes matched via microsecond timing differences; `timingSafeEqual` takes constant time regardless of where a mismatch occurs.
+- **CORS wildcard + `credentials: true` (OWASP API8)**: Reflecting arbitrary `Origin` headers while allowing credentials lets any malicious site make authenticated cross-origin requests from a logged-in user's browser.
+- **`checkRevoked: true` in Firebase Admin**: Ensures that if a user signs out everywhere or has their account disabled, their still-unexpired JWT is rejected immediately.
+
+#### Decisions and alternatives
+- Added baseline security headers directly via a zero-dependency Fastify `onSend` hook rather than introducing `@fastify/helmet`, avoiding an unapproved new dependency while enforcing the exact headers needed for a JSON API.
+- Documented the 3 transitive `apps/web` advisories (`@grpc/grpc-js` from Firebase Firestore and `minimatch` from `shadcn`) in `docs/security-review.md` with clear remediation steps rather than mutating lockfiles without approval.
+
+
+### Milestone 7.3 — Observability (2026-11-19)
+
+#### What I did
+- Verified mobile **Firebase Crashlytics** wiring in `apps/mobile/lib/main.dart` and `apps/mobile/lib/core/analytics/firebase_analytics_service.dart` (consent-gated, PII-stripped).
+- Added **Sentry** error reporting on the API (`apps/api/src/plugins/sentry.ts`, wired into `apps/api/src/plugins/error-handler.ts` and `apps/api/src/server.ts`) and Web (`apps/web/src/lib/sentry.ts` + `apps/web/src/app/global-error.tsx`), stripping query strings and personal data before dispatch and acting as a safe no-op when `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` is unset.
+- Added a readiness probe `GET /health/ready` (`apps/api/src/routes/health.ts`) reporting process status, memory RSS, uptime, and database probe status for uptime monitors (UptimeRobot / BetterStack / Cloud Run).
+- Built the Section 11 **Observability & KPI Dashboard** page at `/status` (`apps/web/src/app/status/page.tsx`) showing live `/health/ready` checks alongside all 8 Section 11 KPI targets.
+- Documented the complete observability runbook in `docs/observability.md` and added unit tests for `/health/ready` and PII-free Sentry reporting in `apps/api/src/server.test.ts`.
+
+#### Why
+- Production apps need fast detection of crashes, unhandled 500s, and downtime without leaking listener PII (emails, tokens, IPs), plus a single place to track the product KPIs defined in Section 11.
+
+#### How it works (plain English)
+- When an unhandled 500 happens on the API or a React crash hits the web app, our Sentry reporter strips query strings/PII and posts a structured JSON error report directly to your Sentry DSN.
+- External uptime monitors ping `/health/ready` every 60 seconds; if the database probe fails, it returns `503 Service Unavailable` so alerts fire immediately.
+
+#### Files created or changed
+- `docs/observability.md` (new)
+- `docs/build-log.md` (updated)
+- `apps/api/src/plugins/sentry.ts` (new)
+- `apps/api/src/config/env.ts`, `apps/api/.env.example`
+- `apps/api/src/plugins/error-handler.ts`, `apps/api/src/routes/health.ts`, `apps/api/src/server.ts`, `apps/api/src/server.test.ts`
+- `apps/web/src/lib/sentry.ts` (new), `apps/web/src/app/global-error.tsx` (new), `apps/web/src/app/status/page.tsx` (new), `apps/web/.env.example`
+
+#### How to run and verify
+- API: `pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test`
+- Web: `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web test`
+- Visit `/status` on the web app to view live readiness & Section 11 KPIs.
+
+#### Concepts worth learning
+- **Liveness (`/health`) vs. Readiness (`/health/ready`)**: Liveness tells an orchestrator "is the process alive?"; readiness tells load balancers and uptime monitors "can this instance safely serve traffic (e.g., is the database reachable)?".
+- **Zero-dependency Sentry Store API**: Sentry's HTTP Store endpoint accepts standard JSON error payloads signed with `X-Sentry-Auth`, letting you add PII-free crash reporting without heavy SDK bundle overhead.
+
+#### Decisions and alternatives
+- Implemented lightweight, zero-dependency Sentry Store API reporters for API and Web (consistent with `AGENTS.md` rule 4 not to add unapproved dependencies), while keeping the interface compatible with dropping in `@sentry/node` / `@sentry/nextjs` later if distributed tracing is desired.
+
+
+### Milestone 7.4 — Legal and Store Assets (2026-11-19)
+
+#### What I did
+- Created lawyer-review legal templates and public compliance pages on the web app:
+  - `/privacy` (`apps/web/src/app/privacy/page.tsx`) — Privacy Policy template covering guest-first local storage, Firebase Auth, Google Play Billing & Paystack, consent-gated AdMob/AdSense & Crashlytics/Sentry, and Radio Browser attribution.
+  - `/terms` (`apps/web/src/app/terms/page.tsx`) — Terms of Service template covering third-party radio stream disclaimer, Plus subscription terms, and acceptable use.
+  - `/delete-account` (`apps/web/src/app/delete-account/page.tsx`) — Public account & data deletion page required by Google Play Data Safety policy.
+- Linked `/privacy`, `/terms`, `/delete-account`, and `/status` in the global web footer (`apps/web/src/components/radio/app-shell.tsx`), alongside the existing cookie/ad consent banner (`ad-consent-provider.tsx`).
+- Wrote `docs/store-assets.md` with draft answers for the **Google Play Data Safety form**, **IARC content-rating questionnaire**, **Google Play store listing copy** (title, 78-char short description, full description, category, tags), and a 6-screen **screenshot plan**.
+- Created a crisp `1024×500` brand **Feature Graphic** (`docs/store-assets/feature-graphic-1024x500.svg`) using the exact PekSoft logo geometry and flat Material 3 brand palette (`#0B0E17`, `#131826`, `#8A2BE2`, `#FFB020`, `#10B981`).
+
+#### Why
+- Google Play rejects app submissions that lack a live Privacy Policy URL, a public web Account Deletion URL (for apps offering account creation), accurate Data Safety declarations, and a `1024×500` feature graphic.
+
+#### How it works (plain English)
+- Anyone — including Google Play reviewers — can open `/privacy`, `/terms`, and `/delete-account` directly from the web footer without signing in.
+- The feature graphic SVG is exact `1024×500` and ready to export directly to PNG for Play Console upload.
+
+#### Files created or changed
+- `apps/web/src/app/privacy/page.tsx` (new)
+- `apps/web/src/app/terms/page.tsx` (new)
+- `apps/web/src/app/delete-account/page.tsx` (new)
+- `apps/web/src/components/radio/app-shell.tsx` (updated footer links)
+- `docs/store-assets.md` (new)
+- `docs/store-assets/feature-graphic-1024x500.svg` (new)
+- `docs/build-log.md` (updated)
+
+#### How to run and verify
+- `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web test`
+- Visit `/privacy`, `/terms`, and `/delete-account` in the web app.
+
+#### Concepts worth learning
+- **Google Play Account Deletion Policy**: Any app that lets users create an account must provide BOTH an in-app deletion path AND a public web URL where users can request deletion even after uninstalling the app.
+- **IARC Rating for Live Radio**: Even when your app has no violent or adult UI, streaming unmoderated third-party live broadcasts typically places the app in Teen / PEGI 12.
+
+#### Decisions and alternatives
+- Authored the `1024×500` feature graphic as an exact vector SVG (`docs/store-assets/feature-graphic-1024x500.svg`) using the exact PekSoft logo paths and tokens so there is zero typography distortion or unwanted glow/glassmorphism when exporting to PNG for Play Console.
+
+
+### Milestone 7.5 — Release Pipelines (2026-11-19)
+
+#### What I did
+- Created `.github/workflows/release-android.yml` to run Flutter analyze/test, decode the Android upload keystore from GitHub Secrets, build a signed & obfuscated `.aab`, archive debug symbols, upload to the **Google Play Internal Track**, and clean up signing artifacts in `if: always()`.
+- Created `.github/workflows/deploy-api-web.yml` to run the API & Web quality gate (`lint`, `test`, `build`), auto-deploy to **staging** with `prisma migrate deploy` + `/health/ready` smoke check, and promote to **production** behind a GitHub Environment approval gate with production migrations and health verification.
+- Wrote `docs/release-and-rollback.md` documenting all required GitHub Environments/Secrets and step-by-step rollback procedures for Web, API, PostgreSQL/Prisma migrations, and Android Play releases.
+
+#### Why
+- Automating signed builds, database migrations, staging verification, and approval-gated production promotion prevents manual deployment mistakes and ensures every release is reproducible and reversible.
+
+#### How it works (plain English)
+- Pushing a version tag like `v1.0.0` builds, tests, signs, and uploads your Android App Bundle directly to Google Play Internal Testing.
+- Merging to `main` deploys API + Web to Staging automatically after running Prisma migrations; promoting to Production requires a manual dispatch + environment approval.
+
+#### Files created or changed
+- `.github/workflows/release-android.yml` (new)
+- `.github/workflows/deploy-api-web.yml` (new)
+- `docs/release-and-rollback.md` (new)
+- `docs/build-log.md` (updated)
+
+#### How to run and verify
+- Configure the GitHub Environments (`android-release`, `staging`, `production`) and secrets listed in `docs/release-and-rollback.md`, then test via GitHub Actions -> **Run workflow**.
+
+#### Concepts worth learning
+- **Expand-and-Contract Migrations**: Adding new nullable columns/tables before removing old ones ensures that if you roll back your API code, the previous version still works against the live database without downtime.
+- **GitHub Environments**: Lets you attach environment-specific secrets (`STAGING_DATABASE_URL` vs `PROD_DATABASE_URL`) and require manual reviewer approval before production jobs execute.
+
+#### Decisions and alternatives
+- Used vendor-neutral deploy webhook hooks (`*_DEPLOY_HOOK`) in `deploy-api-web.yml` so the pipeline works out of the box with Railway, Render, Vercel, or Netlify without locking you into a single cloud provider's CLI.
+
+
+### Milestone 7.6 — Launch Checklist and Backlog (2026-11-19)
+
+#### What I did
+- Wrote `docs/launch-checklist.md` with a complete pre-launch sign-off checklist (Mobile, API, Web, Security, Observability, Legal, Google Play Console) and a prioritized **Post-Launch Backlog (Phase 8+)** covering Radio Wrapped, Map Exploration v2, Alarm Clock, Android Auto, Chromecast, Home Screen Widgets, and More Languages (i18n).
+- Wrote `docs/phase-7-summary.md` summarizing all 6 milestones of Phase 7.
+- Ran the full monorepo quality gate across API, Web, and Mobile, pushed `phase/7-launch`, and opened the Phase 7 Pull Request.
+
+#### Why
+- A concrete sign-off checklist ensures nothing critical (keystores, live billing webhooks, lawyer review, uptime alerts) is missed on launch day, while the backlog captures high-value post-launch features cleanly.
+
+#### How it works (plain English)
+- Use `docs/launch-checklist.md` top-to-bottom before promoting the Android Play Internal Track build and production Web/API deploys to 100% of users.
+
+#### Files created or changed
+- `docs/launch-checklist.md` (new)
+- `docs/phase-7-summary.md` (new)
+- `docs/build-log.md` (updated)
+
+#### How to run and verify
+- API: `pnpm --filter @peksoft/api lint && pnpm --filter @peksoft/api test`
+- Web: `pnpm --filter @peksoft/web lint && pnpm --filter @peksoft/web test`
+- Mobile: `cd apps/mobile && flutter analyze && flutter test`
+
+#### Concepts worth learning
+- **Staged Rollouts (10% -> 25% -> 50% -> 100%)**: Releasing to a small slice of real users first catches device-specific crashes in Crashlytics before the majority of users update.
+
+#### Decisions and alternatives
+- Prioritized Map Exploration v2, i18n, and Home Screen Widgets as P1 post-launch epics because they directly boost daily retention and international reach, followed by Alarm Clock, Android Auto, Chromecast (P2), and Radio Wrapped (P3).
