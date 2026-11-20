@@ -1,8 +1,6 @@
 [build]
-  base = "apps/web"
   command = "pnpm --filter @peksoft/web build"
-  publish = ".next"
+  publish = "apps/web/.next"
 
 [build.environment]
   NODE_VERSION = "22"
-  NPM_FLAGS = "--version"
