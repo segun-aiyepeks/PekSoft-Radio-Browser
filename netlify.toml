@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm --filter @peksoft/web build"
+  command = "pnpm --filter @peksoft/shared build && pnpm --filter @peksoft/web build"
   publish = "apps/web/.next"
 
 [build.environment]
